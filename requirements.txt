@@ -1,0 +1,10 @@
+# Runtime deps for the scanner + dashboard.
+# pandas pinned to 2.2.3: Windows Smart App Control blocks pandas 3.0.x DLLs
+# locally; 2.2.3 is trusted and also works fine on Linux CI / Streamlit Cloud.
+pandas==2.2.3
+numpy>=1.26,<2.3
+yfinance>=0.2.40
+requests>=2.31
+matplotlib>=3.8
+streamlit>=1.40
+plotly>=5.20

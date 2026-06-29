@@ -1,0 +1,71 @@
+"""Telegram notification: format the daily scan into a message and send it.
+
+Messages use Telegram's HTML parse mode (simpler than MarkdownV2 — only &, <, >
+need escaping). The HTTP send is a thin wrapper over the Bot API; configure with
+TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env vars.
+"""
+
+import html
+
+
+def _esc(text) -> str:
+    return html.escape(str(text))
+
+
+def _fired_line(p: dict) -> str:
+    arrow = "🟢 BUY" if p["direction"] == "bull" else "🔴 SELL"
+    return (
+        f"{arrow} <b>{_esc(p['symbol'])}</b> ({_esc(p['grade'])})\n"
+        f"   close {p['close']:.2f} · RSI {p['rsi']:.0f}\n"
+        f"   target {p['target_up']:.2f} / {p['target_dn']:.2f} · stop {p['stop']:.2f}"
+    )
+
+
+def format_message(results: dict) -> str:
+    """Build the HTML message body for a results document."""
+    lines = [f"<b>Squeeze Scan</b> — bar {_esc(results['as_of'])}"]
+    fired = results.get("fired", [])
+
+    if fired:
+        lines.append(f"{len(fired)} signal(s) fired:")
+        lines.append("")
+        lines.extend(_fired_line(p) for p in fired)
+    else:
+        lines.append("No signals fired today.")
+
+    watching = results.get("watching", [])
+    if watching:
+        lines.append("")
+        lines.append("👀 Coiled (in squeeze, not yet aligned):")
+        lines.append(_esc(", ".join(watching)))
+
+    return "\n".join(lines)
+
+
+def send_message(token: str, chat_id: str, text: str) -> dict:
+    """Send a text message via the Telegram Bot API."""
+    import requests
+
+    resp = requests.post(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        json={"chat_id": chat_id, "text": text, "parse_mode": "HTML",
+              "disable_web_page_preview": True},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def send_photo(token: str, chat_id: str, photo_path: str, caption: str = "") -> dict:
+    """Send a chart image with an optional caption."""
+    import requests
+
+    with open(photo_path, "rb") as fh:
+        resp = requests.post(
+            f"https://api.telegram.org/bot{token}/sendPhoto",
+            data={"chat_id": chat_id, "caption": caption[:1024], "parse_mode": "HTML"},
+            files={"photo": fh},
+            timeout=60,
+        )
+    resp.raise_for_status()
+    return resp.json()

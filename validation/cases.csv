@@ -1,0 +1,6 @@
+ticker,date,engine_signal,tos_signal,tos_close,tos_squeeze,tos_rsi,tos_macd_color,tos_ema_stacked,notes
+RSP,6/29/2026,bull,none,210.31,on,>50,orange,yes (EMA 21/50/200),moxie indicator red in upper above zero line
+DIA,6/29/2026,bull,none,517.75,on,>50,green,yes (EMA 21/50/200),moxie indicator red in upper above zero line
+IYT,6/29/2026,bull,none,87.18,on,<50,red,yes (EMA 21/50/200),moxie indicator red in upper above zero line
+XLRE,6/29/2026,bull,none,45.24,on,<50,red,yes (EMA 21/50/200),
+QQQ,6/29/2026,none,bear,706.52,on,<50,red,yes (EMA 21/50/200),moxie indicator red in upper above zero line
