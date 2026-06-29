@@ -42,6 +42,18 @@ def format_message(results: dict) -> str:
     return "\n".join(lines)
 
 
+def _check(resp) -> dict:
+    """Raise a clear error that includes Telegram's own description on failure."""
+    try:
+        body = resp.json()
+    except ValueError:
+        body = {}
+    if not resp.ok or not body.get("ok", False):
+        desc = body.get("description", (resp.text or "")[:300])
+        raise RuntimeError(f"Telegram API {resp.status_code}: {desc}")
+    return body
+
+
 def send_message(token: str, chat_id: str, text: str) -> dict:
     """Send a text message via the Telegram Bot API."""
     import requests
@@ -52,8 +64,7 @@ def send_message(token: str, chat_id: str, text: str) -> dict:
               "disable_web_page_preview": True},
         timeout=30,
     )
-    resp.raise_for_status()
-    return resp.json()
+    return _check(resp)
 
 
 def send_photo(token: str, chat_id: str, photo_path: str, caption: str = "") -> dict:
@@ -67,5 +78,4 @@ def send_photo(token: str, chat_id: str, photo_path: str, caption: str = "") -> 
             files={"photo": fh},
             timeout=60,
         )
-    resp.raise_for_status()
-    return resp.json()
+    return _check(resp)

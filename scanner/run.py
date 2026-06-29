@@ -60,12 +60,18 @@ def main(argv=None) -> dict:
         print(f"[not sending: {reason}]")
         return results
 
-    for p in results["fired"]:
-        cpath = out_dir / "charts" / f"{p['symbol']}.png"
-        if cpath.exists():
-            notify.send_photo(token, chat_id, str(cpath), caption=notify._fired_line(p))
-    notify.send_message(token, chat_id, message)
-    print(f"[sent to Telegram chat {chat_id}]")
+    try:
+        for p in results["fired"]:
+            cpath = out_dir / "charts" / f"{p['symbol']}.png"
+            if cpath.exists():
+                notify.send_photo(token, chat_id, str(cpath), caption=notify._fired_line(p))
+        notify.send_message(token, chat_id, message)
+        print(f"[sent to Telegram chat {chat_id}]")
+    except Exception as exc:
+        # A notify failure must not fail the whole job — results are already
+        # written and will still be committed for the dashboard.
+        print(f"[telegram send FAILED: {exc}]")
+        print("[hint: open YOUR bot in Telegram and tap Start, and check the secrets]")
     return results
 
 
