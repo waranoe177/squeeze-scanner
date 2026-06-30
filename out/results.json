@@ -1,23 +1,38 @@
 {
-  "generated_at": "2026-06-29T17:35:56+00:00",
-  "as_of": "2026-06-26",
+  "generated_at": "2026-06-30T08:50:12+00:00",
+  "as_of": "2026-06-29",
   "universe": 34,
-  "fired_count": 1,
+  "fired_count": 2,
   "fired": [
     {
-      "symbol": "IWM",
-      "date": "2026-06-26",
+      "symbol": "IYT",
+      "date": "2026-06-29",
       "direction": "bull",
       "grade": "A++",
-      "close": 299.8299865722656,
-      "rsi": 63.28299899598908,
-      "ppo": 1.193451552124451,
+      "close": 87.62999725341797,
+      "rsi": 63.43303242792903,
+      "ppo": 1.0550855925082248,
       "squeeze_on": true,
-      "moxie_w": 6.284344811962109,
-      "target_up": 305.6168,
-      "target_dn": 277.303,
-      "stop": 291.3358,
-      "chart": "charts/IWM.png"
+      "moxie_w": 1.671626439138525,
+      "target_up": 88.907,
+      "target_dn": 80.7779,
+      "stop": 85.1913,
+      "chart": "charts/IYT.png"
+    },
+    {
+      "symbol": "XLRE",
+      "date": "2026-06-29",
+      "direction": "bull",
+      "grade": "A++",
+      "close": 44.91999816894531,
+      "rsi": 57.37865335799659,
+      "ppo": 0.51472671173536,
+      "squeeze_on": true,
+      "moxie_w": 0.4217156407881145,
+      "target_up": 45.9686,
+      "target_dn": 42.6572,
+      "stop": 43.9266,
+      "chart": "charts/XLRE.png"
     }
   ],
   "watching": [
@@ -25,16 +40,15 @@
     "SPY",
     "RSP",
     "DIA",
+    "IWM",
     "XLK",
     "SMH",
     "ARKK",
     "XLY",
-    "IYR",
     "XLB",
-    "IYT",
-    "XLRE",
     "GOOGL",
     "TSM",
+    "AMZN",
     "TSLA"
   ]
 }
