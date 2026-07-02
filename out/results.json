@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-07-01T10:52:43+00:00",
-  "as_of": "2026-06-30",
+  "generated_at": "2026-07-02T08:32:50+00:00",
+  "as_of": "2026-07-01",
   "universe": 34,
   "fired_count": 1,
   "fired": [
     {
-      "symbol": "IWM",
-      "date": "2026-06-30",
+      "symbol": "IYT",
+      "date": "2026-07-01",
       "direction": "bull",
       "grade": "A++",
-      "close": 300.45001220703125,
-      "rsi": 63.38355846235809,
-      "ppo": 1.2050100962096937,
+      "close": 87.52999877929688,
+      "rsi": 61.63030367743643,
+      "ppo": 1.1007943531193807,
       "squeeze_on": true,
-      "moxie_w": 6.761589899615153,
-      "target_up": 306.5907,
-      "target_dn": 279.205,
-      "stop": 292.2343,
-      "chart": "charts/IWM.png"
+      "moxie_w": 1.6716265234562258,
+      "target_up": 89.1815,
+      "target_dn": 81.3073,
+      "stop": 85.1677,
+      "chart": "charts/IYT.png"
     }
   ],
   "watching": [
@@ -32,11 +32,13 @@
     "IBIT",
     "IYR",
     "XLB",
-    "IYT",
+    "XLP",
     "XLRE",
+    "NVDA",
     "GOOGL",
     "TSM",
     "AMZN",
-    "TSLA"
+    "TSLA",
+    "AAPL"
   ]
 }
