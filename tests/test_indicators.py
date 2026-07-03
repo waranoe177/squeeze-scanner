@@ -156,6 +156,30 @@ def test_squeeze_off_in_a_steady_trend():
 # Moxie (MACD-histogram variant) + weekly resampling
 # ---------------------------------------------------------------------------
 
+def test_rescaled_rsi_spans_minus100_to_100():
+    up = np.arange(1.0, 40.0)
+    down = np.arange(40.0, 1.0, -1.0)
+    s = pd.Series(np.concatenate([up, down]))
+    r = ind.rescaled_rsi(s, 14).dropna()
+    assert r.max() == pytest.approx(100.0)
+    assert r.min() == pytest.approx(-100.0)
+    assert r.between(-100.001, 100.001).all()  # tolerant of float epsilon at the bounds
+
+
+def test_rev_eng_rsi_constant_series_equals_price():
+    # No change -> RevEngRSI collapses to the price level.
+    s = pd.Series([50.0] * 40)
+    r = ind.rev_eng_rsi(s, 14)
+    assert r.iloc[-1] == pytest.approx(50.0)
+
+
+def test_rev_eng_rsi_below_price_in_uptrend():
+    # In a steady uptrend the 50-RSI price level sits below current price.
+    s = pd.Series(np.arange(1.0, 60.0))
+    r = ind.rev_eng_rsi(s, 14)
+    assert r.iloc[-1] < s.iloc[-1]
+
+
 def test_moxie_of_constant_series_is_zero():
     s = pd.Series([50.0] * 60)
     mox = ind.moxie(s)

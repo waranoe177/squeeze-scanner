@@ -94,13 +94,42 @@ def squeeze_on(
     return (bb_u < kc_u) & (bb_l > kc_l)
 
 
-def moxie(price: pd.Series) -> pd.Series:
-    """Watkins Moxie: (vc1 - EMA(vc1, 9)) * 3, vc1 = EMA(p,12) - EMA(p,26).
+def rescaled_rsi(close: pd.Series, length: int = 14) -> pd.Series:
+    """Mobius 'Chaikin Money Flow RSI' cloud driver: standard Wilders RSI
+    rescaled across the series' full range to span -100..+100. Background is
+    green where this is > 0, red where < 0.
+    """
+    r = rsi(close, length)
+    lo, hi = r.min(), r.max()
+    if hi == lo:
+        return r - r
+    return 200.0 * (r - lo) / (hi - lo) - 100.0
+
+
+def rev_eng_rsi(close: pd.Series, length: int = 14, rsi_value: float = 50.0) -> pd.Series:
+    """Reverse-engineered RSI (REV RSI study): the price level at which RSI would
+    equal `rsi_value` (default 50), Wilders-smoothed. Used to color candles:
+    the study paints the bar red when RevEngRSI > EMA21, green otherwise.
+    """
+    coeff = rsi_value / (100 - rsi_value)
+    chg = close.diff()
+    up = chg.clip(lower=0)
+    dn = (-chg).clip(lower=0)
+    avg_up = up.ewm(alpha=1.0 / length, adjust=False).mean()
+    avg_dn = dn.ewm(alpha=1.0 / length, adjust=False).mean()
+    diff = (length - 1) * (avg_dn * coeff - avg_up)
+    value = close + diff.where(diff >= 0, diff / coeff)
+    return value.shift(1)  # ThinkScript compoundValue(1, value[1], NaN)
+
+
+def moxie(price: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> pd.Series:
+    """Watkins Moxie: (vc1 - EMA(vc1, signal)) * 3, vc1 = EMA(p,fast) - EMA(p,slow).
 
     Pass the *higher timeframe* price (e.g. weekly close) to match B3 usage.
+    The B3 Super dots study uses a slow Moxie (12/26) and a fast Moxie (3/8).
     """
-    vc1 = ema(price, 12) - ema(price, 26)
-    va1 = ema(vc1, 9)
+    vc1 = ema(price, fast) - ema(price, slow)
+    va1 = ema(vc1, signal)
     return (vc1 - va1) * 3.0
 
 

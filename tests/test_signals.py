@@ -161,6 +161,32 @@ def test_analyze_never_marks_a_bar_both_bull_and_bear():
     assert not (out["scanner_bull"] & out["scanner_bear"]).any()
 
 
+def test_condition_breakdown_reports_each_layer_consistently():
+    out = sig.condition_breakdown(_ohlc(step=0.1, noise=0.3))
+    # every advertised condition key is present
+    for key in ["squeeze_on", "rsi_pass", "ppo_pass", "structure_pass",
+                "stack_pass", "macd_pass", "moxie_pass", "direction"]:
+        assert key in out
+    # pass-flags must agree with the raw values they summarize
+    assert out["rsi_pass"] == (out["rsi"] > 50)
+    assert out["ppo_pass"] == (out["ppo"] >= 0)
+    assert out["structure_pass"] == (out["ema8"] > out["ema21"])
+    # a bull direction requires every gate true
+    if out["direction"] == "bull":
+        assert all([out["squeeze_on"], out["rsi_pass"], out["ppo_pass"],
+                    out["stack_pass"], out["macd_pass"], out["moxie_pass"]])
+
+
+def test_b3_rows_has_all_seven_rows_with_valid_states():
+    rows = sig.b3_rows(_ohlc(step=0.12, noise=0.3))
+    assert list(rows.columns) == sig.B3_ROWS
+    last = rows.iloc[-1]
+    assert set(rows.values.ravel()) <= {"bull", "bear", "none", "neutral"}
+    # steady uptrend -> structure and stack rows should read bull on the last bar
+    assert last["structure"] == "bull"
+    assert last["stack1"] == "bull"
+
+
 def test_latest_signal_payload_has_levels_and_direction():
     payload = sig.latest_signal(_ohlc(step=0.1, noise=0.3), symbol="TEST")
     assert payload["symbol"] == "TEST"

@@ -11,6 +11,7 @@ grade a firing signal (A++ when the weekly Moxie agrees) so the dashboard can
 rank the strongest setups first. ATR Stop levels are attached for execution.
 """
 
+import numpy as np
 import pandas as pd
 
 from scanner import indicators as ind
@@ -129,6 +130,106 @@ def analyze(daily: pd.DataFrame) -> pd.DataFrame:
     grade = grade.mask(out["scanner_bull"] | out["scanner_bear"], "A++")
     out["grade"] = grade
     return out
+
+
+B3_ROWS = ["scanner", "mo_aaa", "mix", "sqz", "sqzstack", "stack1", "structure"]
+
+
+def b3_rows(daily: pd.DataFrame) -> pd.DataFrame:
+    """Reproduce the 7 rows of the B3 Super dots study as a per-bar state frame.
+
+    Each column holds 'bull' / 'bear' / 'none' (or 'neutral' for the two stack
+    rows). This is the study AS WRITTEN — it uses the original B3 Scanner_Signal
+    (MACD rising, no Moxie-green gate), so it is independent of the customized
+    buy signal in `analyze`.
+    """
+    close, high, low = daily["close"], daily["high"], daily["low"]
+    ema8, ema21, ema34 = ind.ema(close, 8), ind.ema(close, 21), ind.ema(close, 34)
+    sma50, sma200 = ind.sma(close, 50), ind.sma(close, 200)
+    ppo = ind.ppo(close, 10, 20)
+    rsi = ind.rsi(close, 14)
+    diff = ind.macd_diff(close, 12, 26, 34)
+    sqz = ind.squeeze_on(close, high, low, 20, 2.0, 2.0)
+
+    rsiup, rsidn = rsi > 50, rsi < 50
+    bulltrend, beartrend = ppo >= 0, ppo < 0
+    bullstruct, bearstruct = ema8 > ema21, ema8 < ema21
+    bullstack = (ema8 > ema21) & (ema21 > ema34) & (sma50 > sma200)
+    bearstack = (ema8 < ema21) & (ema21 < ema34) & (sma50 < sma200)
+    bullstack1 = (ema8 > ema21) & (ema21 > ema34) & (ema34 > sma50)
+    bearstack1 = (ema8 < ema21) & (ema21 < ema34) & (ema34 < sma50)
+    macdbull, macdbear = macd_rising(diff), macd_falling(diff)
+
+    # Higher-timeframe (weekly) Moxie: slow (12/26) and fast (3/8), ffilled to daily.
+    wk = ind.resample_to_weekly(daily[["open", "high", "low", "close"]])
+    mox = ind.moxie(wk["close"])
+    mox_fast = ind.moxie(wk["close"], fast=3, slow=8, signal=9)
+
+    def _ff_bool(s):
+        # forward-fill = last COMPLETED weekly bar (matches TOS higher-timeframe,
+        # which holds the prior week's value until the current week closes).
+        r = s.reindex(daily.index, method="ffill")
+        return r.where(r.notna(), False).astype(bool)
+
+    def _ff_val(s):
+        return s.reindex(daily.index, method="ffill")
+
+    moxw, moxfw = _ff_val(mox), _ff_val(mox_fast)
+    # Per "b3 stripped down": macdCol = Moxie > 0 (NOT Moxie rising).
+    macd_col1 = moxw > 0
+    macd_col4 = moxfw > 0
+    buyzone = ppo >= 0
+
+    bullfull1 = macd_col1 & macd_col4 & buyzone
+    bearfull1 = (moxw <= 0) & (moxfw <= 0) & (~buyzone)
+    bullmoxie, bearmoxie = (moxw > 0) & (moxfw > 0), (moxw <= 0) & (moxfw <= 0)
+    bullsqz, bearsqz = sqz & rsiup & bulltrend & bullstruct, sqz & rsidn & beartrend & bearstruct
+    bullsqzst, bearsqzst = bullsqz & bullstack, bearsqz & bearstack
+    scanbull = sqz & rsiup & bulltrend & bullstruct & bullstack & macdbull
+    scanbear = sqz & rsidn & beartrend & bearstruct & bearstack & macdbear
+
+    def st(bull, bear, neutral="none"):
+        return np.where(bull, "bull", np.where(bear, "bear", neutral))
+
+    out = pd.DataFrame(index=daily.index)
+    out["scanner"] = st(scanbull, scanbear)
+    out["mo_aaa"] = st(bullfull1, bearfull1)
+    out["mix"] = st(bullmoxie, bearmoxie)
+    out["sqz"] = st(bullsqz, bearsqz)
+    out["sqzstack"] = st(bullsqzst, bearsqzst)
+    out["stack1"] = st(bullstack1, bearstack1, neutral="neutral")
+    out["structure"] = st(bullstruct, bearstruct, neutral="neutral")
+    return out
+
+
+def condition_breakdown(daily: pd.DataFrame, on_date=None) -> dict:
+    """Per-indicator breakdown for one bar: each of the 7 buy conditions with its
+    raw value and pass/fail, so it can be cross-checked layer-by-layer vs TOS.
+    """
+    out = analyze(daily)
+    row = out.iloc[-1] if on_date is None else out.loc[on_date]
+    stack_pass = bool(
+        row["ema8"] > row["ema21"] > row["ema34"] and row["sma50"] > row["sma200"]
+    )
+    direction = "bull" if row["scanner_bull"] else "bear" if row["scanner_bear"] else "none"
+    return {
+        "symbol": None,
+        "date": row.name.strftime("%Y-%m-%d"),
+        "close": float(row["close"]),
+        "squeeze_on": bool(row["squeeze_on"]),
+        "rsi": float(row["rsi"]), "rsi_pass": bool(row["rsi"] > 50),
+        "ppo": float(row["ppo"]), "ppo_pass": bool(row["ppo"] >= 0),
+        "ema8": float(row["ema8"]), "ema21": float(row["ema21"]),
+        "ema34": float(row["ema34"]), "sma50": float(row["sma50"]),
+        "sma200": float(row["sma200"]),
+        "structure_pass": bool(row["ema8"] > row["ema21"]),
+        "stack_pass": stack_pass,
+        "macd_diff": float(row["macd_diff"]),
+        "macd_pass": bool(row["macd_green"]),
+        "moxie_w": float(row["moxie_w"]) if pd.notna(row["moxie_w"]) else None,
+        "moxie_pass": bool(row["moxie_up"]),
+        "direction": direction,
+    }
 
 
 def latest_signal(daily: pd.DataFrame, symbol: str | None = None) -> dict:

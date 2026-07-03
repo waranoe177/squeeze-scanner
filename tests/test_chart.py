@@ -20,3 +20,19 @@ def test_render_chart_writes_a_png(tmp_path):
     assert out.exists()
     assert out.stat().st_size > 1000  # a real image, not an empty file
     assert path == str(out)
+
+
+def test_render_layers_writes_a_multipanel_png(tmp_path):
+    out = tmp_path / "DEMO_layers.png"
+    path = chart.render_layers(_ohlc(), "DEMO", str(out), lookback=120)
+    assert out.exists()
+    assert out.stat().st_size > 5000  # bigger multi-panel figure
+    assert path == str(out)
+
+
+def test_render_b3_dots_writes_a_png(tmp_path):
+    out = tmp_path / "DEMO_dots.png"
+    path = chart.render_b3_dots(_ohlc(), "DEMO", str(out), lookback=60)
+    assert out.exists()
+    assert out.stat().st_size > 3000
+    assert path == str(out)

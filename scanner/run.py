@@ -44,7 +44,7 @@ def main(argv=None) -> dict:
         for p in results["fired"]:
             sym = p["symbol"]
             try:
-                chart.render(frames[sym], sym, str(out_dir / "charts" / f"{sym}.png"))
+                chart.render_layers(frames[sym], sym, str(out_dir / "charts" / f"{sym}.png"), lookback=90)
                 p["chart"] = f"charts/{sym}.png"
             except Exception as exc:  # chart is a nicety, never fail the scan
                 print(f"  [warn] chart failed for {sym}: {exc}")
