@@ -234,9 +234,10 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140) -> str:
 
     # 3) Weekly Moxie — thick line colored by rising/falling + zero line
     _dark(ax[3])
+    # containing-week Moxie (matches TOS repaint) for the display line + color
     mox = e["moxie_w"].to_numpy()
     mprev = np.concatenate([[mox[0]], mox[:-1]])
-    mcolors = [GREEN if a0 >= b0 else RED for a0, b0 in zip(mox, mprev)]
+    mcolors = [GREEN if r else RED for r in e["moxie_rising"].to_numpy()]
     _colored_line(ax[3], pos, mox, mcolors, lw=2.8)
     ax[3].axhline(0, color="#888", lw=1.0)
     # dotted vertical lines at zero crossings: green = crossed up, red = crossed down

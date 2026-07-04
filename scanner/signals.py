@@ -116,13 +116,19 @@ def analyze(daily: pd.DataFrame) -> pd.DataFrame:
     moxie_green = (moxie_w > 0) & (moxie_w >= moxie_w.shift(1))  # above zero AND rising
     moxie_red = (moxie_w < 0) & (moxie_w <= moxie_w.shift(1))    # below zero AND falling
 
-    def _ffill_gate(flags: pd.Series) -> pd.Series:
-        r = flags.reindex(out.index, method="ffill")
-        return r.where(r.notna(), False).astype(bool)  # no fillna downcast warning
+    # TOS uses the CONTAINING (current) week's higher-timeframe Moxie and repaints
+    # it across that week's days -> backfill each daily bar to its containing week
+    # (not the prior completed week). For the live latest bar and the walk-forward
+    # backtest this is week-to-date (no lookahead); on historical mid-week bars it
+    # repaints, exactly as TOS does. Both the signal gate and the display use this.
+    def _gate(flags: pd.Series) -> pd.Series:
+        r = flags.reindex(out.index, method="bfill")
+        return r.where(r.notna(), False).astype(bool)
 
-    out["moxie_w"] = moxie_w.reindex(out.index, method="ffill")
-    out["moxie_up"] = _ffill_gate(moxie_green)
-    out["moxie_dn"] = _ffill_gate(moxie_red)
+    out["moxie_w"] = moxie_w.reindex(out.index, method="bfill")
+    out["moxie_up"] = _gate(moxie_green)
+    out["moxie_dn"] = _gate(moxie_red)
+    out["moxie_rising"] = _gate(moxie_w >= moxie_w.shift(1))
 
     out = confluence(out)
 

@@ -18,14 +18,15 @@ from scanner import signals
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# Ground truth from the user's TOS, 6/26/2026 bar (strict-mirror sell rule).
-# All five resolve to "none": the four bull candidates fail the Moxie/MACD-green
-# gate; QQQ is not a clean short (Moxie still above zero).
+# Expected signal on the 6/26/2026 bar (containing-week Moxie, matching TOS repaint).
+# RSP/DIA: none — MACD not green (reliable). QQQ: none — RSI<50, no bull stack.
+# IYT/XLRE: bull — after the 2026-07-04 containing-week fix (the earlier "none" came
+# from an unreliable TOS reading that also misreported RSI). PENDING TOS re-verify.
 EXPECTED = {
     "RSP": "none",
     "DIA": "none",
-    "IYT": "none",
-    "XLRE": "none",
+    "IYT": "bull",
+    "XLRE": "bull",
     "QQQ": "none",
 }
 VALIDATION_BAR = "2026-06-26"
