@@ -14,10 +14,19 @@ def _esc(text) -> str:
 
 def _fired_line(p: dict) -> str:
     arrow = "🟢 BUY" if p["direction"] == "bull" else "🔴 SELL"
+    head = f"{arrow} <b>{_esc(p['symbol'])}</b>"
+    if p.get("score") is not None:
+        head += f" · score {p['score']:.0f}/100 ({_esc(p.get('conviction_grade', ''))})"
+    tail = ""
+    if p.get("recommendation"):
+        extra = f" (final {p['final_score']:.0f}, news {_esc(p.get('stance', ''))})" \
+            if p.get("final_score") is not None else ""
+        tail = f"\n   🧠 <b>{_esc(p['recommendation'])}</b>{extra}"
     return (
-        f"{arrow} <b>{_esc(p['symbol'])}</b> ({_esc(p['grade'])})\n"
+        f"{head}\n"
         f"   close {p['close']:.2f} · RSI {p['rsi']:.0f}\n"
         f"   target {p['target_up']:.2f} / {p['target_dn']:.2f} · stop {p['stop']:.2f}"
+        f"{tail}"
     )
 
 

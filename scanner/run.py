@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from scanner import chart, data, notify, scan
+from scanner import chart, data, llm_eval, notify, scan
 
 
 def main(argv=None) -> dict:
@@ -39,6 +39,19 @@ def main(argv=None) -> dict:
     payloads = scan.scan_frames(frames)
     as_of = max((p["date"] for p in payloads), default="")
     results = scan.build_results(payloads, as_of=as_of)
+
+    # Opt-in LLM eval layer: qualitative read + GO/WATCH/PASS on fired tickers.
+    if os.environ.get("ANTHROPIC_API_KEY") and results["fired"]:
+        print("running LLM eval on fired tickers...")
+        for p in results["fired"]:
+            try:
+                enriched = llm_eval.evaluate(p, p["symbol"])
+                for k in ("recommendation", "stance", "final_score", "llm"):
+                    if k in enriched:
+                        p[k] = enriched[k]
+            except Exception as exc:  # LLM layer is a nicety, never fail the scan
+                print(f"  [warn] LLM eval failed for {p['symbol']}: {exc}")
+        results["fired"].sort(key=lambda p: -(p.get("final_score") or p.get("score") or 0))
 
     if not args.no_charts:
         for p in results["fired"]:
