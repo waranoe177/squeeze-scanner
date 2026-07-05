@@ -38,3 +38,40 @@ def parse_decision(update: dict) -> dict | None:
         return {"decision": TOKENS[m.group(1).lower()], "decided_at": decided_at,
                 "reply_to_msg_id": reply_to, "symbol": m.group(2).upper()}
     return None
+
+
+def _is_late(decided_at: str, entry_date: str | None) -> bool:
+    """Late = decided at/after 09:30 America/New_York on the entry date.
+    No entry date yet (pending_entry) -> decided before the entry, never late."""
+    if not entry_date:
+        return False
+    decided = datetime.fromisoformat(decided_at)
+    y, m, d = (int(x) for x in entry_date.split("-"))
+    entry_open = datetime(y, m, d, 9, 30, tzinfo=_MARKET_TZ)
+    return decided >= entry_open
+
+
+def apply_decisions(records: list[dict], parsed: list[dict]) -> list[dict]:
+    """Write each parsed decision onto its matching record (write-once)."""
+    by_msg = {r["telegram_msg_id"]: r for r in records
+              if r.get("telegram_msg_id") is not None}
+    for p in parsed:
+        rec = None
+        if p["reply_to_msg_id"] is not None:
+            rec = by_msg.get(p["reply_to_msg_id"])
+        if rec is None and p["symbol"]:
+            candidates = [r for r in records
+                          if r["symbol"] == p["symbol"] and not r.get("decision")]
+            rec = max(candidates, key=lambda r: r["signal_date"], default=None)
+        if rec is None:
+            print(f"  [decisions] no match for {p} — skipped")
+            continue
+        if rec.get("decision"):
+            print(f"  [decisions] {rec['id']} already decided — reply ignored")
+            continue
+        rec["decision"] = p["decision"]
+        rec["decided_at"] = p["decided_at"]
+        rec["decision_late"] = _is_late(p["decided_at"], rec.get("entry_date"))
+        print(f"  [decisions] {rec['id']} -> {p['decision']}"
+              f"{' (late)' if rec['decision_late'] else ''}")
+    return records

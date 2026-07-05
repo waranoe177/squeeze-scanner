@@ -32,3 +32,71 @@ def test_parse_garbage_returns_none():
     assert decisions.parse_decision(_update("gopher", reply_to=5)) is None
     assert decisions.parse_decision({"update_id": 2}) is None  # no message
     assert decisions.parse_decision(_update("go now then")) is None  # 3 words
+
+
+def _rec(symbol="TSLA", signal_date="2026-01-05", entry_date="2026-01-06",
+         msg_id=123, status="open"):
+    return {"id": f"{symbol}-{signal_date}", "schema_version": 1, "symbol": symbol,
+            "direction": "bull", "signal_date": signal_date, "signal_close": 100.0,
+            "atr": 2.0, "ema21": 99.0, "conviction_score": 80.0,
+            "telegram_msg_id": msg_id, "status": status, "entry": 101.0,
+            "entry_date": entry_date, "stop": 98.0, "target": 106.0,
+            "exit_price": None, "exit_date": None, "r_multiple": None}
+
+
+def _parsed(decision="go", decided_at="2026-01-05T23:00:00+00:00",
+            reply_to=123, symbol=None):
+    return {"decision": decision, "decided_at": decided_at,
+            "reply_to_msg_id": reply_to, "symbol": symbol}
+
+
+def test_apply_matches_by_msg_id_and_sets_fields():
+    recs = [_rec(msg_id=123), _rec(symbol="NVDA", msg_id=124)]
+    decisions.apply_decisions(recs, [_parsed()])
+    assert recs[0]["decision"] == "go"
+    assert recs[0]["decided_at"] == "2026-01-05T23:00:00+00:00"
+    assert recs[0]["decision_late"] is False   # decided evening before entry
+    assert "decision" not in recs[1]
+
+
+def test_apply_symbol_fallback_picks_latest_undecided():
+    older = _rec(signal_date="2026-01-02", msg_id=50)
+    newer = _rec(signal_date="2026-01-05", msg_id=51)
+    decisions.apply_decisions([older, newer],
+                              [_parsed(reply_to=None, symbol="TSLA")])
+    assert "decision" not in older and newer["decision"] == "go"
+
+
+def test_apply_write_once_first_decision_stands():
+    rec = _rec()
+    decisions.apply_decisions([rec], [_parsed(decision="go")])
+    decisions.apply_decisions([rec], [_parsed(
+        decision="pass", decided_at="2026-01-06T01:00:00+00:00")])
+    assert rec["decision"] == "go"
+    assert rec["decided_at"] == "2026-01-05T23:00:00+00:00"
+
+
+def test_apply_late_boundary():
+    # entry 2026-01-06; 09:30 America/New_York (EST) == 14:30 UTC
+    early = _rec()
+    late = _rec(symbol="NVDA", msg_id=124)
+    decisions.apply_decisions(
+        [early, late],
+        [_parsed(decided_at="2026-01-06T14:29:00+00:00", reply_to=123),
+         _parsed(decided_at="2026-01-06T14:31:00+00:00", reply_to=124)])
+    assert early["decision_late"] is False
+    assert late["decision_late"] is True
+
+
+def test_apply_pending_entry_never_late():
+    rec = _rec(entry_date=None, status="pending_entry")
+    decisions.apply_decisions([rec], [_parsed(
+        decided_at="2026-03-01T00:00:00+00:00")])
+    assert rec["decision_late"] is False
+
+
+def test_apply_no_match_is_skipped():
+    rec = _rec()
+    decisions.apply_decisions([rec], [_parsed(reply_to=999),
+                                      _parsed(reply_to=None, symbol="ZZZZ")])
+    assert "decision" not in rec
