@@ -1,0 +1,31 @@
+name: Free Channel Delayed Post
+
+on:
+  schedule:
+    - cron: "30 13 * * 2-6"   # next morning ET (Tue-Sat for Mon-Fri scans)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  delayed:
+    if: vars.PHASE == '2'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Post yesterday's signals to the free channel
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_FREE_CHAT_ID: ${{ secrets.TELEGRAM_FREE_CHAT_ID }}
+          TELEGRAM_FOOTER: ${{ vars.TELEGRAM_FOOTER }}
+        run: python -m scanner.delayed --results out/results.json

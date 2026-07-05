@@ -53,6 +53,10 @@ python -m venv .venv
 $env:PYTHONPATH="."; .venv\Scripts\python.exe -m scanner.run --dry-run
 ```
 
+New flags: `--ledger` (append fired signals to `ledger/signals.jsonl`),
+`--site` / `--no-site` (regenerate the public track-record site alongside the
+scan). CI scans `universe.csv` (not `watchlist.csv`).
+
 ## Telegram setup
 
 1. In Telegram, message **@BotFather** → `/newbot` → copy the **bot token**.
@@ -83,8 +87,12 @@ the *signal* — the LLM only adds context.
 ## Automate (GitHub Actions)
 
 `.github/workflows/scan.yml` runs the scan weekdays at 21:30 UTC (after the US
-close), pushes Telegram alerts, and commits `out/` back so the dashboard updates.
-Use the **Run workflow** button to trigger it manually.
+close), pushes Telegram alerts, appends fired signals to the ledger,
+regenerates the track-record site, and commits `out/` + `ledger/` back so the
+dashboard updates. Use the **Run workflow** button to trigger it manually.
+`.github/workflows/recap.yml` posts a weekly recap card to Telegram every
+Sunday. `.github/workflows/free-delayed.yml` posts yesterday's signals to the
+free channel once `PHASE` is set to `2`.
 
 ## Dashboard (Streamlit Community Cloud)
 
@@ -96,3 +104,20 @@ Point Streamlit Cloud at this repo, main file `dashboard/app.py`. It reads
 ```powershell
 # see scanner/backtest.py — walk-forward, point-in-time (no lookahead)
 ```
+
+## Product pipeline (Sqzdots Indicator)
+
+- `universe.csv` — curated ~120-name product universe (the scan input in CI)
+- `ledger/signals.jsonl` — the live signal ledger (append-oriented; closed
+  records are never edited; git history is the tamper-evidence)
+- `python -m scanner.backtest --universe universe.csv --period 5y` — Phase 0
+  walk-forward backtest (hours for the full universe; use `--symbols A,B` to smoke)
+- `python -m scanner.trackrecord --out site` — regenerate the public
+  track-record site (deployed to the public repo in `vars.SITE_REPO` by CI)
+- `python -m scanner.recap --dry-run` — weekly recap card
+- `python -m scanner.delayed --dry-run` — Phase 2 free-channel delayed post
+
+CI secrets: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_ADMIN_CHAT_ID`,
+`TELEGRAM_FREE_CHAT_ID` (Phase 2), `SITE_DEPLOY_TOKEN`.
+CI variables: `SITE_REPO`, `PHASE`, `TELEGRAM_FOOTER`, `SITE_CHANNEL_USERNAME`,
+`SITE_CHANNEL_URL`.
