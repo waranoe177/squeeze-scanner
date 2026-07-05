@@ -100,3 +100,52 @@ def test_apply_no_match_is_skipped():
     decisions.apply_decisions([rec], [_parsed(reply_to=999),
                                       _parsed(reply_to=None, symbol="ZZZZ")])
     assert "decision" not in rec
+
+
+from scanner import ledger
+
+
+def test_state_roundtrip_and_bootstrap(tmp_path):
+    path = tmp_path / "state.json"
+    assert decisions.load_state(path) == {"offset": 0}
+    decisions.save_state(path, {"offset": 42})
+    assert decisions.load_state(path) == {"offset": 42}
+
+
+def test_ingest_applies_and_advances_offset(tmp_path, monkeypatch):
+    lpath, spath = tmp_path / "signals.jsonl", tmp_path / "state.json"
+    ledger.save(lpath, [_rec(msg_id=123)])
+
+    calls = []
+    def fake_fetch(token, offset):
+        calls.append(offset)
+        if offset == 0:
+            return [_update("go", reply_to=123, uid=7)], 8
+        return [], offset
+    monkeypatch.setattr(decisions, "fetch_updates", fake_fetch)
+
+    n = decisions.ingest(lpath, spath, token="T")
+    assert n == 1
+    assert ledger.load(lpath)[0]["decision"] == "go"
+    assert decisions.load_state(spath) == {"offset": 8}
+
+    # second run: nothing new, nothing re-applied
+    assert decisions.ingest(lpath, spath, token="T") == 0
+    assert calls == [0, 8]
+
+
+def test_ingest_same_update_twice_is_harmless(tmp_path, monkeypatch):
+    # crash-between-saves simulation: offset not advanced, update replayed
+    lpath, spath = tmp_path / "signals.jsonl", tmp_path / "state.json"
+    ledger.save(lpath, [_rec(msg_id=123)])
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda t, o: ([_update("go", reply_to=123, uid=7)], 8))
+    decisions.ingest(lpath, spath, token="T")
+    n = decisions.ingest(lpath, spath, token="T")  # replays same update
+    assert n == 0                                   # write-once absorbed it
+    assert ledger.load(lpath)[0]["decision"] == "go"
+
+
+def test_ingest_without_token_is_noop(tmp_path, monkeypatch):
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    assert decisions.ingest(tmp_path / "l.jsonl", tmp_path / "s.json") == 0

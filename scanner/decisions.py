@@ -8,7 +8,9 @@ offset state file. Everything here is deliberately conservative: anything
 unparseable or unmatchable is logged and skipped, never guessed.
 """
 
+import argparse
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -75,3 +77,79 @@ def apply_decisions(records: list[dict], parsed: list[dict]) -> list[dict]:
         print(f"  [decisions] {rec['id']} -> {p['decision']}"
               f"{' (late)' if rec['decision_late'] else ''}")
     return records
+
+
+def fetch_updates(token: str, offset: int) -> tuple[list[dict], int]:
+    """One getUpdates batch. Returns (updates, next_offset)."""
+    import requests
+
+    resp = requests.get(
+        f"https://api.telegram.org/bot{token}/getUpdates",
+        params={"offset": offset, "timeout": 0,
+                "allowed_updates": json.dumps(["message"])},
+        timeout=30,
+    )
+    body = resp.json() if resp.ok else {}
+    if not resp.ok or not body.get("ok", False):
+        desc = body.get("description", (resp.text or "")[:300])
+        raise RuntimeError(f"Telegram getUpdates {resp.status_code}: {desc}")
+    updates = body.get("result", [])
+    next_offset = max((u["update_id"] for u in updates), default=offset - 1) + 1 \
+        if updates else offset
+    return updates, next_offset
+
+
+def load_state(path) -> dict:
+    p = Path(path)
+    if not p.exists():
+        return {"offset": 0}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def save_state(path, state: dict) -> None:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(state) + "\n", encoding="utf-8")
+
+
+def ingest(ledger_path=None, state_path=DEFAULT_STATE_PATH, token=None) -> int:
+    """Pull replies, apply decisions, persist. Returns applied count.
+
+    Ledger is saved BEFORE the offset state: a crash between the two replays
+    updates on the next run, which write-once absorbs harmlessly.
+    """
+    from scanner import ledger
+
+    ledger_path = ledger_path or ledger.DEFAULT_PATH
+    token = token or os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        print("[decisions] no TELEGRAM_BOT_TOKEN — skipping ingest")
+        return 0
+
+    state = load_state(state_path)
+    updates, next_offset = fetch_updates(token, state["offset"])
+    records = ledger.load(ledger_path)
+    before = sum(1 for r in records if r.get("decision"))
+    parsed = [p for p in (parse_decision(u) for u in updates) if p]
+    apply_decisions(records, parsed)
+    applied = sum(1 for r in records if r.get("decision")) - before
+
+    ledger.save(ledger_path, records)
+    save_state(state_path, {"offset": next_offset})
+    print(f"[decisions] {len(updates)} update(s), {len(parsed)} decision reply(ies), "
+          f"{applied} applied")
+    return applied
+
+
+def main(argv=None) -> int:
+    from scanner import ledger
+
+    ap = argparse.ArgumentParser(description="Ingest GO/PASS Telegram replies")
+    ap.add_argument("--ledger", default=ledger.DEFAULT_PATH)
+    ap.add_argument("--state", default=DEFAULT_STATE_PATH)
+    args = ap.parse_args(argv)
+    return ingest(args.ledger, args.state)
+
+
+if __name__ == "__main__":
+    main()
