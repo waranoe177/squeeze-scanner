@@ -193,8 +193,13 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140) -> str:
     atr_top, atr_bot = ema21v + 2.5 * atr, ema21v - 2.5 * atr
     ax[0].plot(pos, atr_top, color="#a35bff", lw=1.1, label="ATR+")
     ax[0].plot(pos, atr_bot, color="#a35bff", lw=1.1, label="ATR-")
+    # scanner signal markers, colored like the Scanner dot row: cyan = buy
+    # (below the bar), magenta = sell (above the bar)
+    bull = e["scanner_bull"].to_numpy()
     bear = e["scanner_bear"].to_numpy()
+    lows = e["low"].to_numpy()
     highs = e["high"].to_numpy()
+    ax[0].scatter(pos[bull], lows[bull] * 0.985, marker="^", color="#00e5ff", s=75, zorder=6, label="BUY")
     ax[0].scatter(pos[bear], highs[bear] * 1.015, marker="v", color="#ff2bd6", s=75, zorder=6, label="SELL")
     lo = min(e["low"].min(), atr_bot.min(), e["sma200"].min())
     hi = max(e["high"].max(), atr_top.max())
