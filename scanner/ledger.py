@@ -102,3 +102,31 @@ def update(records: list[dict], frames: dict) -> list[dict]:
             rec["exit_date"] = after.index[result["bars_held"] - 1].strftime("%Y-%m-%d")
             rec["r_multiple"] = round(result["r_multiple"], 3)
     return records
+
+
+def stats(records: list[dict]) -> dict:
+    """Aggregate the ledger for the track-record site and recap card."""
+    closed = sorted((r for r in records if r["status"] in CLOSED),
+                    key=lambda r: (r["exit_date"], r["id"]))
+    n = len(closed)
+    wins = sum(1 for r in closed if r["status"] == "win")
+    losses = sum(1 for r in closed if r["status"] == "loss")
+    time_exits = sum(1 for r in closed if r["status"] == "time")
+
+    curve, cum, streak, max_streak = [], 0.0, 0, 0
+    for r in closed:
+        cum += r["r_multiple"]
+        curve.append([r["exit_date"], round(cum, 3)])
+        streak = streak + 1 if r["r_multiple"] < 0 else 0
+        max_streak = max(max_streak, streak)
+
+    return {
+        "n_closed": n,
+        "n_open": len(records) - n,
+        "wins": wins, "losses": losses, "time_exits": time_exits,
+        "win_rate": (wins / n) if n else None,
+        "avg_r": (sum(r["r_multiple"] for r in closed) / n) if n else None,
+        "total_r": round(cum, 3),
+        "max_losing_streak": max_streak,
+        "equity_curve": curve,
+    }

@@ -165,3 +165,37 @@ def test_update_missing_frame_is_skipped():
     records = _ledger_with_signal()
     ledger.update(records, {})  # symbol absent (fetch failed today)
     assert records[0]["status"] == "pending_entry"
+
+
+def _closed(id_, exit_date, r, outcome):
+    return {"id": id_, "schema_version": 1, "symbol": id_.split("-")[0],
+            "direction": "bull", "signal_date": "2026-01-05",
+            "signal_close": 100.0, "atr": 2.0, "ema21": 99.0,
+            "conviction_score": 80.0, "telegram_msg_id": None,
+            "status": outcome, "entry": 101.0, "entry_date": "2026-01-06",
+            "stop": 98.0, "target": 106.0, "exit_price": 101.0 + 3 * r,
+            "exit_date": exit_date, "r_multiple": r}
+
+
+def test_stats_full():
+    records = [
+        _closed("A-1", "2026-01-08", 1.667, "win"),
+        _closed("B-1", "2026-01-09", -1.0, "loss"),
+        _closed("C-1", "2026-01-12", -1.0, "loss"),
+        _closed("D-1", "2026-01-14", 0.3, "time"),
+        ledger.new_record(fired_payload(symbol="E")),  # open-ish, excluded
+    ]
+    s = ledger.stats(records)
+    assert s["n_closed"] == 4 and s["n_open"] == 1
+    assert s["wins"] == 1 and s["losses"] == 2 and s["time_exits"] == 1
+    assert s["win_rate"] == 0.25
+    assert round(s["avg_r"], 4) == round((1.667 - 1 - 1 + 0.3) / 4, 4)
+    assert round(s["total_r"], 3) == -0.033
+    assert s["max_losing_streak"] == 2
+    assert s["equity_curve"][0] == ["2026-01-08", 1.667]
+    assert s["equity_curve"][-1][0] == "2026-01-14"
+
+
+def test_stats_empty():
+    s = ledger.stats([])
+    assert s["n_closed"] == 0 and s["win_rate"] is None and s["equity_curve"] == []
