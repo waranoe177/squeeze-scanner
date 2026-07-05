@@ -12,6 +12,10 @@ the live record and the Phase 0 backtest are the same code path by design.
 import json
 from pathlib import Path
 
+import pandas as pd
+
+from scanner import backtest
+
 SCHEMA_VERSION = 1
 CLOSED = ("win", "loss", "time")
 MAX_HOLD = 5
@@ -59,4 +63,42 @@ def append_fired(records: list[dict], fired: list[dict]) -> list[dict]:
         if rec["id"] not in known:
             records.append(rec)
             known.add(rec["id"])
+    return records
+
+
+def update(records: list[dict], frames: dict) -> list[dict]:
+    """Backfill entries and close positions from the latest bars.
+
+    Re-derives each non-closed record from ALL bars after its signal date, so a
+    missed run self-heals on the next one. Closed records are never touched.
+    """
+    for rec in records:
+        if rec["status"] in CLOSED:
+            continue
+        df = frames.get(rec["symbol"])
+        if df is None or df.empty:
+            continue
+        after = df[df.index > pd.Timestamp(rec["signal_date"])]
+        if after.empty:
+            continue
+
+        if rec["status"] == "pending_entry":
+            rec["entry"] = round(float(after["open"].iloc[0]), 4)
+            rec["entry_date"] = after.index[0].strftime("%Y-%m-%d")
+            target, stop = backtest.trade_levels(
+                close=rec["signal_close"], ema21=rec["ema21"], atr=rec["atr"],
+                entry=rec["entry"], direction=rec["direction"], mode="entry",
+            )
+            rec["target"], rec["stop"] = round(target, 4), round(stop, 4)
+            rec["status"] = "open"
+
+        hold = after.iloc[:MAX_HOLD][["high", "low", "close"]]
+        result = backtest.simulate_trade(
+            hold, rec["entry"], rec["target"], rec["stop"], rec["direction"]
+        )
+        if result["outcome"] in ("win", "loss") or len(hold) >= MAX_HOLD:
+            rec["status"] = result["outcome"]
+            rec["exit_price"] = round(result["exit_price"], 4)
+            rec["exit_date"] = after.index[result["bars_held"] - 1].strftime("%Y-%m-%d")
+            rec["r_multiple"] = round(result["r_multiple"], 3)
     return records
