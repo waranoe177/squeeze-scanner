@@ -115,6 +115,7 @@ Point Streamlit Cloud at this repo, main file `dashboard/app.py`. It reads
 - `python -m scanner.delayed --dry-run` — Phase 2 free-channel delayed post
 
 CI secrets: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_ADMIN_CHAT_ID`,
-`TELEGRAM_FREE_CHAT_ID` (Phase 2), `SITE_DEPLOY_TOKEN`.
+`TELEGRAM_FREE_CHAT_ID` (Phase 2), `SITE_DEPLOY_KEY` (SSH private key; its
+public half is registered as a write deploy key on the site repo).
 CI variables: `SITE_REPO`, `PHASE`, `TELEGRAM_FOOTER`, `SITE_CHANNEL_USERNAME`,
 `SITE_CHANNEL_URL`.

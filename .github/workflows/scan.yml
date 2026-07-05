@@ -44,7 +44,7 @@ jobs:
         if: vars.SITE_REPO != ''
         uses: peaceiris/actions-gh-pages@v4
         with:
-          personal_token: ${{ secrets.SITE_DEPLOY_TOKEN }}
+          deploy_key: ${{ secrets.SITE_DEPLOY_KEY }}
           external_repository: ${{ vars.SITE_REPO }}
           publish_branch: main
           publish_dir: ./site
