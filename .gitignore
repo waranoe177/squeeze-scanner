@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 # Keep out/results.json + out/charts (the dashboard reads them); ignore stray local files
 out/*.tmp
+site/

@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from scanner import chart, data, notify, scan
+from scanner import backtest, chart, data, ledger, notify, scan, trackrecord
 
 
 def main(argv=None) -> dict:
@@ -28,6 +28,9 @@ def main(argv=None) -> dict:
     ap.add_argument("--period", default="2y")
     ap.add_argument("--dry-run", action="store_true", help="don't send to Telegram")
     ap.add_argument("--no-charts", action="store_true")
+    ap.add_argument("--ledger", default=ledger.DEFAULT_PATH)
+    ap.add_argument("--site", default="site")
+    ap.add_argument("--no-site", action="store_true")
     args = ap.parse_args(argv)
 
     out_dir = Path(args.out)
@@ -40,6 +43,19 @@ def main(argv=None) -> dict:
     as_of = max((p["date"] for p in payloads), default="")
     results = scan.build_results(payloads, as_of=as_of)
 
+    # Provisional entry-anchored levels for the alert (finalized at next open).
+    for p in results["fired"]:
+        target, stop = backtest.trade_levels(
+            close=p["close"], ema21=p["ema21"], atr=p["atr"],
+            entry=p["close"], direction=p["direction"], mode="entry",
+        )
+        p["prov_target"], p["prov_stop"] = round(target, 2), round(stop, 2)
+
+    # Ledger: record new fires, backfill entries, close finished positions.
+    records = ledger.load(args.ledger)
+    ledger.append_fired(records, results["fired"])
+    ledger.update(records, frames)
+
     if not args.no_charts:
         for p in results["fired"]:
             sym = p["symbol"]
@@ -50,21 +66,36 @@ def main(argv=None) -> dict:
                 print(f"  [warn] chart failed for {sym}: {exc}")
 
     (out_dir / "results.json").write_text(json.dumps(results, indent=2))
-    message = notify.format_message(results)
+    message = notify.format_message(results, footer=os.environ.get("TELEGRAM_FOOTER"))
     print("\n" + message + "\n")
+
+    def _persist():
+        ledger.save(args.ledger, records)
+        if not args.no_site:
+            trackrecord.render_site(
+                records, args.site,
+                channel_username=os.environ.get("SITE_CHANNEL_USERNAME"),
+                channel_url=os.environ.get("SITE_CHANNEL_URL"),
+            )
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     if args.dry_run or not (token and chat_id):
         reason = "dry-run" if args.dry_run else "no TELEGRAM_BOT_TOKEN/CHAT_ID set"
         print(f"[not sending: {reason}]")
+        _persist()
         return results
 
     try:
+        by_id = {r["id"]: r for r in records}
         for p in results["fired"]:
             cpath = out_dir / "charts" / f"{p['symbol']}.png"
             if cpath.exists():
-                notify.send_photo(token, chat_id, str(cpath), caption=notify._fired_line(p))
+                body = notify.send_photo(token, chat_id, str(cpath),
+                                         caption=notify._fired_line(p))
+                rec = by_id.get(f"{p['symbol']}-{p['date']}")
+                if rec is not None and rec.get("telegram_msg_id") is None:
+                    rec["telegram_msg_id"] = body["result"]["message_id"]
         notify.send_message(token, chat_id, message)
         print(f"[sent to Telegram chat {chat_id}]")
     except Exception as exc:
@@ -72,6 +103,7 @@ def main(argv=None) -> dict:
         # written and will still be committed for the dashboard.
         print(f"[telegram send FAILED: {exc}]")
         print("[hint: open YOUR bot in Telegram and tap Start, and check the secrets]")
+    _persist()
     return results
 
 
