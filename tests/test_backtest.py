@@ -143,3 +143,35 @@ def test_signal_history_is_point_in_time():
     common = full.index.intersection(truncated.index)
     assert len(common) > 0
     assert (full.loc[common] == truncated.loc[common]).all()
+
+
+# ---------------------------------------------------------------------------
+# extended_stats — max losing streak and max drawdown
+# ---------------------------------------------------------------------------
+
+def _trade(entry_date, r, outcome=None):
+    return {
+        "symbol": "T", "signal_date": entry_date, "entry_date": entry_date,
+        "direction": "bull", "entry": 100.0, "stop": 97.0, "target": 105.0,
+        "outcome": outcome or ("win" if r > 0 else "loss"),
+        "exit_price": 100.0 + 3 * r, "bars_held": 2,
+        "r_multiple": r, "return_pct": r * 0.03,
+    }
+
+
+def test_extended_stats_losing_streak_and_drawdown():
+    trades = [
+        _trade("2025-01-02", 1.0),
+        _trade("2025-01-06", -1.0),
+        _trade("2025-01-08", -1.0),
+        _trade("2025-01-10", -0.5),
+        _trade("2025-01-14", 2.0),
+    ]
+    s = bt.extended_stats(trades)
+    assert s["max_losing_streak"] == 3
+    assert s["max_drawdown_r"] == 2.5  # peak +1.0 -> trough -1.5
+
+
+def test_extended_stats_empty():
+    s = bt.extended_stats([])
+    assert s == {"max_losing_streak": 0, "max_drawdown_r": 0.0}

@@ -129,3 +129,68 @@ def summarize(trades: list[dict]) -> dict:
     wins = sum(1 for t in trades if t["outcome"] == "win")
     avg_r = sum(t["r_multiple"] for t in trades) / n
     return {"n": n, "win_rate": wins / n, "expectancy_r": avg_r}
+
+
+def extended_stats(trades: list[dict]) -> dict:
+    """Max consecutive losing trades and max drawdown of cumulative R,
+    with trades ordered by entry_date (then signal_date as tiebreak)."""
+    ordered = sorted(trades, key=lambda t: (t["entry_date"], t["signal_date"]))
+    cum = peak = max_dd = 0.0
+    streak = max_streak = 0
+    for t in ordered:
+        r = t["r_multiple"]
+        cum += r
+        peak = max(peak, cum)
+        max_dd = max(max_dd, peak - cum)
+        streak = streak + 1 if r < 0 else 0
+        max_streak = max(max_streak, streak)
+    return {"max_losing_streak": max_streak, "max_drawdown_r": round(max_dd, 3)}
+
+
+def run_universe(universe_path: str, period: str = "5y", max_hold: int = 5,
+                 symbols: list[str] | None = None) -> list[dict]:
+    """Walk-forward backtest across every symbol in the universe file.
+    Symbols that error are skipped with a warning (one bad ticker must not
+    kill a multi-hour run)."""
+    from scanner import data
+
+    syms = symbols or data.load_watchlist(universe_path)
+    frames = data.fetch_daily(syms, period=period)
+    trades: list[dict] = []
+    for sym, df in frames.items():
+        try:
+            trades.extend(backtest(df, sym, max_hold=max_hold))
+            print(f"  {sym}: done ({len(trades)} trades total)")
+        except Exception as exc:
+            print(f"  [warn] backtest failed for {sym}: {exc}")
+    return trades
+
+
+def main(argv=None) -> dict:
+    import argparse
+    import json
+    from pathlib import Path
+
+    ap = argparse.ArgumentParser(description="Universe walk-forward backtest (Phase 0)")
+    ap.add_argument("--universe", default="universe.csv")
+    ap.add_argument("--period", default="5y")
+    ap.add_argument("--max-hold", type=int, default=5)
+    ap.add_argument("--out", default="out/backtest.json")
+    ap.add_argument("--symbols", default=None,
+                    help="comma-separated subset for a quick smoke run")
+    args = ap.parse_args(argv)
+
+    subset = args.symbols.split(",") if args.symbols else None
+    trades = run_universe(args.universe, period=args.period,
+                          max_hold=args.max_hold, symbols=subset)
+    summary = {**summarize(trades), **extended_stats(trades)}
+    doc = {"summary": summary, "trades": trades}
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(doc, indent=2))
+    print(json.dumps(summary, indent=2))
+    return doc
+
+
+if __name__ == "__main__":
+    main()
