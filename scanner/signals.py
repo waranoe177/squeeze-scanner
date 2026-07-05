@@ -257,6 +257,17 @@ def latest_signal(daily: pd.DataFrame, symbol: str | None = None) -> dict:
     atr = float(last["atr"])
     close = float(last["close"])
 
+    stack_bull = bool(last["ema8"] > last["ema21"] > last["ema34"]) and bool(last["sma50"] > last["sma200"])
+    stack_bear = bool(last["ema8"] < last["ema21"] < last["ema34"]) and bool(last["sma50"] < last["sma200"])
+    lit_bull = sum(map(bool, [
+        last["squeeze_on"], last["rsi"] > 50, last["ppo"] >= 0,
+        last["ema8"] > last["ema21"], stack_bull, last["macd_green"], last["moxie_up"],
+    ]))
+    lit_bear = sum(map(bool, [
+        last["squeeze_on"], last["rsi"] < 50, last["ppo"] < 0,
+        last["ema8"] < last["ema21"], stack_bear, last["macd_red"], last["moxie_dn"],
+    ]))
+
     return {
         "symbol": symbol,
         "date": out.index[-1].strftime("%Y-%m-%d"),
@@ -267,6 +278,10 @@ def latest_signal(daily: pd.DataFrame, symbol: str | None = None) -> dict:
         "ppo": float(last["ppo"]),
         "squeeze_on": bool(last["squeeze_on"]),
         "moxie_w": float(last["moxie_w"]) if pd.notna(last["moxie_w"]) else None,
+        "atr": atr,
+        "ema21": ema21,
+        "lit_bull": int(lit_bull),
+        "lit_bear": int(lit_bear),
         "target_up": round(ema21 + atr * 2.5, 4),
         "target_dn": round(ema21 - atr * 2.5, 4),
         "stop": round(close - atr * 1.5, 4),

@@ -194,3 +194,26 @@ def test_latest_signal_payload_has_levels_and_direction():
     for key in ["close", "target_up", "target_dn", "stop", "grade", "date"]:
         assert key in payload
     assert isinstance(payload["close"], float)
+
+
+# ---------------------------------------------------------------------------
+# Task 2: latest_signal exports atr, ema21, and lit-condition counts
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def iyt_frame():
+    """Load IYT fixture frame from tests/fixtures/IYT.csv."""
+    from pathlib import Path
+    fixtures = Path(__file__).parent / "fixtures"
+    df = pd.read_csv(fixtures / "IYT.csv", index_col=0, parse_dates=True)
+    return df
+
+
+def test_latest_signal_exports_atr_ema21_and_lit_counts(iyt_frame):
+    p = sig.latest_signal(iyt_frame, symbol="IYT")
+    assert isinstance(p["atr"], float) and p["atr"] > 0
+    assert isinstance(p["ema21"], float) and p["ema21"] > 0
+    assert 0 <= p["lit_bull"] <= 7
+    assert 0 <= p["lit_bear"] <= 7
+    # a bar can't fully satisfy both sides at once
+    assert not (p["lit_bull"] == 7 and p["lit_bear"] == 7)
