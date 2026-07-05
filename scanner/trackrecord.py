@@ -73,7 +73,7 @@ def _row(rec: dict, channel_username: str | None) -> str:
     receipt = ""
     if channel_username and rec.get("telegram_msg_id"):
         receipt = (f'<a href="https://t.me/{_esc(channel_username)}/'
-                   f'{rec["telegram_msg_id"]}">post</a>')
+                   f'{_esc(rec["telegram_msg_id"])}">post</a>')
     return (f'<tr><td>{_esc(rec["signal_date"])}</td>'
             f'<td><b>{_esc(rec["symbol"])}</b></td>'
             f'<td>{_esc(rec["direction"])}</td>'
