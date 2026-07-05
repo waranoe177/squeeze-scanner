@@ -86,16 +86,22 @@ def main(argv=None) -> dict:
         _persist()
         return results
 
-    try:
-        by_id = {r["id"]: r for r in records}
-        for p in results["fired"]:
-            cpath = out_dir / "charts" / f"{p['symbol']}.png"
-            if cpath.exists():
+    by_id = {r["id"]: r for r in records}
+    for p in results["fired"]:
+        cpath = out_dir / "charts" / f"{p['symbol']}.png"
+        if cpath.exists():
+            try:
                 body = notify.send_photo(token, chat_id, str(cpath),
                                          caption=notify._fired_line(p))
                 rec = by_id.get(f"{p['symbol']}-{p['date']}")
                 if rec is not None and rec.get("telegram_msg_id") is None:
                     rec["telegram_msg_id"] = body["result"]["message_id"]
+            except Exception as exc:
+                # A failure on one photo must not skip the remaining photos
+                # or the summary message.
+                print(f"[photo send failed for {p['symbol']}: {exc}]")
+
+    try:
         notify.send_message(token, chat_id, message)
         print(f"[sent to Telegram chat {chat_id}]")
     except Exception as exc:

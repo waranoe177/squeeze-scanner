@@ -67,7 +67,7 @@ scan). CI scans `universe.csv` (not `watchlist.csv`).
 4. In GitHub: repo **Settings → Secrets and variables → Actions** → add
    `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
 
-## Conviction score + LLM eval (decision layer)
+## Conviction score (decision layer)
 
 Every fired ticker gets a **conviction score (0-100 + grade)** — a confluence
 ladder (which of your buy conditions are lit) plus strength (RSI, MACD, PPO, Moxie
@@ -75,14 +75,11 @@ percentile-ranked over the ticker's own history, squeeze freshness, R:R). Fired
 tickers are ranked by it, so "which to look at first" is answered. This is
 deterministic and always on (`scanner/score.py`).
 
-Optionally, an **LLM eval layer** (`scanner/llm_eval.py`) adds a qualitative read:
-it pulls recent news (yfinance) and asks Claude (`claude-opus-4-8`) for a stance
-(bullish/neutral/bearish), catalysts, risks, and a 0-100 qualitative score, then
-combines quant + qualitative into a **GO / WATCH / PASS** call. It runs only when
-`ANTHROPIC_API_KEY` is set (add it as a GitHub Actions secret); without it the
-scan degrades gracefully to the quant score. Cost is a few cents/day (only fired
-tickers are evaluated). The deterministic engine remains the source of truth for
-the *signal* — the LLM only adds context.
+An earlier, optional **LLM eval layer** has been retired from the product
+pipeline — the scan runs on the deterministic engine only. The module
+(`scanner/llm_eval.py`) is retained in the repo for reference but is not wired
+into `scanner/run.py`. No `ANTHROPIC_API_KEY` is needed or used anywhere in
+this project.
 
 ## Automate (GitHub Actions)
 
