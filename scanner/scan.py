@@ -40,16 +40,26 @@ def rank_fired(payloads: list[dict]) -> list[dict]:
 def build_results(payloads: list[dict], as_of: str) -> dict:
     """Split payloads into fired / watching and assemble the results document."""
     fired = rank_fired([p for p in payloads if p["direction"] != "none"])
-    watching = [
-        p["symbol"]
-        for p in payloads
-        if p["direction"] == "none" and p.get("squeeze_on")
+    watch_payloads = [
+        p for p in payloads if p["direction"] == "none" and p.get("squeeze_on")
     ]
+    watching_detail = sorted(
+        (
+            {
+                "symbol": p["symbol"],
+                "lit": max(p.get("lit_bull", 0), p.get("lit_bear", 0)),
+                "lean": "bull" if p.get("lit_bull", 0) >= p.get("lit_bear", 0) else "bear",
+            }
+            for p in watch_payloads
+        ),
+        key=lambda d: -d["lit"],
+    )
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "as_of": as_of,
         "universe": len(payloads),
         "fired_count": len(fired),
         "fired": fired,
-        "watching": watching,
+        "watching": [d["symbol"] for d in watching_detail],
+        "watching_detail": watching_detail,
     }

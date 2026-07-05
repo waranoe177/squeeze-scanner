@@ -22,32 +22,52 @@ def _fired_line(p: dict) -> str:
         extra = f" (final {p['final_score']:.0f}, news {_esc(p.get('stance', ''))})" \
             if p.get("final_score") is not None else ""
         tail = f"\n   🧠 <b>{_esc(p['recommendation'])}</b>{extra}"
+    if p.get("prov_target") is not None:
+        levels = (f"   target {p['prov_target']:.2f} · stop {p['prov_stop']:.2f}"
+                  f" (finalize at next open)")
+    else:
+        levels = (f"   target {p['target_up']:.2f} / {p['target_dn']:.2f}"
+                  f" · stop {p['stop']:.2f}")
     return (
         f"{head}\n"
         f"   close {p['close']:.2f} · RSI {p['rsi']:.0f}\n"
-        f"   target {p['target_up']:.2f} / {p['target_dn']:.2f} · stop {p['stop']:.2f}"
+        f"{levels}"
         f"{tail}"
     )
 
 
-def format_message(results: dict) -> str:
+def format_message(results: dict, footer: str | None = None) -> str:
     """Build the HTML message body for a results document."""
-    lines = [f"<b>Squeeze Scan</b> — bar {_esc(results['as_of'])}"]
+    lines = [f"<b>Sqzdots Scan</b> — bar {_esc(results['as_of'])}"]
     fired = results.get("fired", [])
 
     if fired:
         lines.append(f"{len(fired)} signal(s) fired:")
         lines.append("")
         lines.extend(_fired_line(p) for p in fired)
+        watching = results.get("watching", [])
+        if watching:
+            lines.append("")
+            lines.append("👀 Coiled (in squeeze, not yet aligned):")
+            lines.append(_esc(", ".join(watching)))
     else:
-        lines.append("No signals fired today.")
+        lines.append(f"Scanned {results.get('universe', 0)} names. 0 fired.")
+        detail = results.get("watching_detail", [])
+        # older results.json files have only the plain `watching` symbol list
+        names = [d["symbol"] for d in detail] or results.get("watching", [])
+        if names:
+            lines.append(f"{len(names)} squeezes building: "
+                         f"{_esc(', '.join(names[:12]))}")
+            if detail:
+                top = detail[0]
+                lines.append(f"Closest to trigger: <b>{_esc(top['symbol'])}</b> "
+                             f"({top['lit']}/7 conditions lit, leaning {_esc(top['lean'])})")
+        else:
+            lines.append("No squeezes building today.")
 
-    watching = results.get("watching", [])
-    if watching:
+    if footer:
         lines.append("")
-        lines.append("👀 Coiled (in squeeze, not yet aligned):")
-        lines.append(_esc(", ".join(watching)))
-
+        lines.append(_esc(footer))
     return "\n".join(lines)
 
 

@@ -61,3 +61,19 @@ def test_scan_frames_runs_engine_over_a_dict_of_frames():
     assert len(payloads) == 1
     assert payloads[0]["symbol"] == "DEMO"
     assert payloads[0]["direction"] in {"bull", "bear", "none"}
+
+
+def test_build_results_watching_detail_sorted_by_lit():
+    payloads = [
+        {"symbol": "AAA", "direction": "none", "squeeze_on": True,
+         "lit_bull": 3, "lit_bear": 5, "score": 0},
+        {"symbol": "BBB", "direction": "none", "squeeze_on": True,
+         "lit_bull": 6, "lit_bear": 1, "score": 0},
+        {"symbol": "CCC", "direction": "none", "squeeze_on": False,
+         "lit_bull": 6, "lit_bear": 1, "score": 0},
+    ]
+    results = scan.build_results(payloads, as_of="2026-07-03")
+    detail = results["watching_detail"]
+    assert [d["symbol"] for d in detail] == ["BBB", "AAA"]  # CCC not squeezing
+    assert detail[0] == {"symbol": "BBB", "lit": 6, "lean": "bull"}
+    assert detail[1]["lean"] == "bear"

@@ -41,11 +41,36 @@ def test_message_marks_direction():
 
 def test_message_handles_no_fires():
     msg = notify.format_message(_results([], watching=["QQQ"]))
-    assert "no" in msg.lower()  # "no signals" / "nothing fired"
-    assert "QQQ" in msg         # still shows what's coiled
+    assert "0 fired" in msg           # quiet-day header
+    assert "QQQ" in msg               # still shows what's coiled
 
 
 def test_message_escapes_html_special_chars():
     p = _p("A&B", "bull")
     msg = notify.format_message(_results([p]))
     assert "&amp;" in msg  # & escaped for HTML parse mode
+
+
+def test_fired_line_prefers_provisional_levels():
+    p = _p("IYT", "bull")
+    p["prov_target"], p["prov_stop"] = 105.0, 97.0
+    msg = notify.format_message(_results([p]))
+    assert "105.00" in msg and "97.00" in msg
+    assert "next open" in msg.lower()
+
+
+def test_no_fire_message_shows_building_squeezes():
+    results = _results([], watching=["QQQ", "SPY"])
+    results["watching_detail"] = [
+        {"symbol": "QQQ", "lit": 6, "lean": "bull"},
+        {"symbol": "SPY", "lit": 4, "lean": "bear"},
+    ]
+    msg = notify.format_message(results)
+    assert "0 fired" in msg
+    assert "QQQ" in msg
+    assert "6/7" in msg and "bull" in msg
+
+
+def test_footer_appended_when_provided():
+    msg = notify.format_message(_results([]), footer="Track record: https://example.com")
+    assert msg.rstrip().endswith("Track record: https://example.com")
