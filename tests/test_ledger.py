@@ -199,3 +199,35 @@ def test_stats_full():
 def test_stats_empty():
     s = ledger.stats([])
     assert s["n_closed"] == 0 and s["win_rate"] is None and s["equity_curve"] == []
+
+
+def _decided(rec, decision, late=False):
+    rec["decision"] = decision
+    rec["decided_at"] = "2026-01-05T23:00:00+00:00"
+    rec["decision_late"] = late
+    return rec
+
+
+def test_stats_decisions_split():
+    records = [
+        _decided(_closed("A-1", "2026-01-08", 1.667, "win"), "go"),
+        _decided(_closed("B-1", "2026-01-09", -1.0, "loss"), "go"),
+        _decided(_closed("C-1", "2026-01-12", -1.0, "loss"), "pass"),
+        _decided(_closed("D-1", "2026-01-13", 2.0, "win"), "go", late=True),
+        _closed("E-1", "2026-01-14", 0.3, "time"),          # undecided
+        _decided(ledger.new_record(fired_payload(symbol="F")), "go"),  # open: excluded
+    ]
+    d = ledger.stats(records)["decisions"]
+    assert d["go"]["n"] == 2 and d["go"]["wins"] == 1          # late one excluded
+    assert round(d["go"]["avg_r"], 4) == round((1.667 - 1.0) / 2, 4)
+    assert d["pass"]["n"] == 1 and d["pass"]["avg_r"] == -1.0
+    assert d["undecided"]["n"] == 1
+    assert d["late_n"] == 1
+    assert round(d["selection_alpha"], 4) == round((1.667 - 1.0) / 2 - (-1.0), 4)
+
+
+def test_stats_decisions_alpha_none_when_bucket_empty():
+    records = [_decided(_closed("A-1", "2026-01-08", 1.0, "win"), "go")]
+    d = ledger.stats(records)["decisions"]
+    assert d["selection_alpha"] is None
+    assert d["pass"]["n"] == 0 and d["pass"]["win_rate"] is None

@@ -149,3 +149,15 @@ def test_ingest_same_update_twice_is_harmless(tmp_path, monkeypatch):
 def test_ingest_without_token_is_noop(tmp_path, monkeypatch):
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
     assert decisions.ingest(tmp_path / "l.jsonl", tmp_path / "s.json") == 0
+
+
+def test_decision_table_rows_sorted_desc():
+    a = _rec(signal_date="2026-01-02", msg_id=1, status="win")
+    a.update(decision="go", decided_at="x", decision_late=False,
+             r_multiple=1.667, exit_date="2026-01-08")
+    b = _rec(symbol="NVDA", signal_date="2026-01-05", msg_id=2)
+    b.update(decision="pass", decided_at="x", decision_late=True)
+    undecided = _rec(symbol="CAT", signal_date="2026-01-06", msg_id=3)
+    rows = decisions.decision_table([a, b, undecided])
+    assert [r["symbol"] for r in rows] == ["NVDA", "TSLA"]
+    assert rows[0]["late"] is True and rows[1]["r_multiple"] == 1.667

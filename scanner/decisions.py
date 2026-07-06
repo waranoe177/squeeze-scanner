@@ -144,6 +144,18 @@ def ingest(ledger_path=None, state_path=DEFAULT_STATE_PATH, token=None) -> int:
     return applied
 
 
+def decision_table(records: list[dict]) -> list[dict]:
+    """Rows for the dashboard Decision Review table (decided records only)."""
+    rows = [
+        {"signal_date": r["signal_date"], "symbol": r["symbol"],
+         "direction": r["direction"], "decision": r["decision"],
+         "status": r["status"], "r_multiple": r.get("r_multiple"),
+         "late": bool(r.get("decision_late")), "exit_date": r.get("exit_date")}
+        for r in records if r.get("decision")
+    ]
+    return sorted(rows, key=lambda r: r["signal_date"], reverse=True)
+
+
 def main(argv=None) -> int:
     from scanner import ledger
 

@@ -120,6 +120,25 @@ def stats(records: list[dict]) -> dict:
         streak = streak + 1 if r["r_multiple"] < 0 else 0
         max_streak = max(max_streak, streak)
 
+    def _bucket(rows):
+        bn = len(rows)
+        bwins = sum(1 for r in rows if r["status"] == "win")
+        return {"n": bn, "wins": bwins,
+                "win_rate": (bwins / bn) if bn else None,
+                "avg_r": (sum(r["r_multiple"] for r in rows) / bn) if bn else None,
+                "total_r": round(sum(r["r_multiple"] for r in rows), 3)}
+
+    clean_go = [r for r in closed if r.get("decision") == "go" and not r.get("decision_late")]
+    clean_pass = [r for r in closed if r.get("decision") == "pass" and not r.get("decision_late")]
+    undecided = [r for r in closed if not r.get("decision")]
+    go_b, pass_b = _bucket(clean_go), _bucket(clean_pass)
+    decisions_split = {
+        "go": go_b, "pass": pass_b, "undecided": _bucket(undecided),
+        "late_n": sum(1 for r in closed if r.get("decision") and r.get("decision_late")),
+        "selection_alpha": (go_b["avg_r"] - pass_b["avg_r"])
+        if go_b["avg_r"] is not None and pass_b["avg_r"] is not None else None,
+    }
+
     return {
         "n_closed": n,
         "n_open": len(records) - n,
@@ -129,4 +148,5 @@ def stats(records: list[dict]) -> dict:
         "total_r": round(cum, 3),
         "max_losing_streak": max_streak,
         "equity_curve": curve,
+        "decisions": decisions_split,
     }
