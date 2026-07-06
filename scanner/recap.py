@@ -63,6 +63,19 @@ def render_card(records: list[dict], week_ending: str, out_path) -> str:
     txt(0.55, 0.74, f"{s['n_closed']} closed · {win_rate} win rate · "
                     f"avg {avg_r}R · total {s['total_r']:+.1f}R", 15)
 
+    dec = s.get("decisions") or {}
+    go_b, pass_b = dec.get("go") or {}, dec.get("pass") or {}
+    if go_b.get("n") or pass_b.get("n"):
+        def _fmt(b):
+            if not b.get("n"):
+                return "0"
+            wr = f"{b['win_rate'] * 100:.0f}%" if b["win_rate"] is not None else "—"
+            return f"{b['n']} · {wr} · {b['avg_r']:+.2f}R"
+        alpha = dec.get("selection_alpha")
+        alpha_txt = f"edge {alpha:+.2f}R" if alpha is not None else "edge —"
+        txt(0.55, 0.62, "Your calls (clean)", 14, "#8b949e")
+        txt(0.55, 0.55, f"GO {_fmt(go_b)}   |   PASS {_fmt(pass_b)}   |   {alpha_txt}", 13)
+
     curve = s["equity_curve"]
     if len(curve) >= 2:
         ys = [pt[1] for pt in curve]

@@ -35,3 +35,19 @@ def test_render_card_handles_empty_week(tmp_path):
     out = tmp_path / "recap.png"
     recap.render_card([], "2026-06-28", out)
     assert out.exists()
+
+
+def test_render_card_with_decisions(tmp_path):
+    rec = _rec("A-1", "2026-06-22", "2026-06-25", 1.5, "win")
+    rec.update(decision="go", decided_at="2026-06-22T23:00:00+00:00",
+               decision_late=False)
+    out = tmp_path / "recap.png"
+    recap.render_card([rec], "2026-06-28", out)
+    assert out.exists() and out.stat().st_size > 5000
+
+
+def test_render_card_no_decisions_still_renders(tmp_path):
+    out = tmp_path / "recap.png"
+    recap.render_card([_rec("A-1", "2026-06-22", "2026-06-25", 1.5, "win")],
+                      "2026-06-28", out)
+    assert out.exists()
