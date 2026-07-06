@@ -1,0 +1,50 @@
+name: Ingest GO/PASS Decisions
+
+on:
+  schedule:
+    - cron: "0 6,18 * * *"   # twice daily, every day — Telegram drops updates after ~24h
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sqzdots-ledger
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Ingest decisions
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: python -m scanner.decisions
+
+      - name: Commit ledger + state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ledger/
+          git diff --staged --quiet || git commit -m "decisions $(date -u +%Y-%m-%dT%H:%M)"
+          git push
+
+      - name: Alert operator on failure
+        if: failure()
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          ADMIN: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -d chat_id="${ADMIN}" \
+            -d text="🚨 Sqzdots decision ingest FAILED — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

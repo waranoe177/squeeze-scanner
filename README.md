@@ -119,3 +119,14 @@ CI secrets: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_ADMIN_CHAT_ID`,
 public half is registered as a write deploy key on the site repo).
 CI variables: `SITE_REPO`, `PHASE`, `TELEGRAM_FOOTER`, `SITE_CHANNEL_USERNAME`,
 `SITE_CHANNEL_URL`.
+
+## Decision tracking (measure your own judgment)
+
+Reply **go** or **pass** directly to a signal's chart photo in Telegram (long-press
+→ Reply). A twice-daily job (`decisions.yml`) records your call in
+`ledger/signals.jsonl` (`decision` / `decided_at` / `decision_late`) next to the
+mechanical outcome. Decisions made after the entry open are flagged late and kept
+out of the clean stats. The weekly recap card and the dashboard's Decision Review
+section report GO vs PASS performance — the gap is your measured selection alpha.
+Unthreaded `go TSLA` also works. `python -m scanner.decisions` runs an ingest
+manually.
