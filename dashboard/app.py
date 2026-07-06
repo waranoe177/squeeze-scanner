@@ -31,7 +31,7 @@ try:
 except Exception:
     pass
 
-from scanner import chart, data, llm_eval, score  # noqa: E402
+from scanner import chart, data, decisions, ledger, llm_eval, score  # noqa: E402
 
 RESULTS_PATH = ROOT / "out" / "results.json"
 
@@ -101,6 +101,50 @@ else:
 if results["watching"]:
     st.subheader("Coiled — in squeeze, not yet aligned")
     st.write(" · ".join(results["watching"]))
+
+# ---- decision review -------------------------------------------------------
+LEDGER_PATH = ROOT / "ledger" / "signals.jsonl"
+led_records = ledger.load(LEDGER_PATH)
+dec_rows = decisions.decision_table(led_records)
+if dec_rows:
+    st.subheader("Decision review — your calls vs the machine")
+    d = ledger.stats(led_records)["decisions"]
+
+    def _b(b):
+        return f"{b['n']} · {b['avg_r']:+.2f}R" if b["n"] and b["avg_r"] is not None else f"{b['n']}"
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("GO (clean)", _b(d["go"]))
+    m2.metric("PASS (clean)", _b(d["pass"]))
+    alpha = d["selection_alpha"]
+    m3.metric("Selection alpha", f"{alpha:+.3f}R" if alpha is not None else "—")
+    m4.metric("Late / undecided", f"{d['late_n']} / {d['undecided']['n']}")
+
+    closed_rows = [r for r in dec_rows if r["r_multiple"] is not None and not r["late"]]
+    if len(closed_rows) >= 2:
+        curves = {}
+        for bucket in ("go", "pass"):
+            cum, series = 0.0, {}
+            for r in sorted((x for x in closed_rows if x["decision"] == bucket),
+                            key=lambda x: x["exit_date"]):
+                cum += r["r_multiple"]
+                series[r["exit_date"]] = cum
+            curves[bucket.upper()] = series
+        st.line_chart(pd.DataFrame(curves).ffill())
+
+    n_go, n_pass = d["go"]["n"], d["pass"]["n"]
+    if n_go >= 30 and n_pass >= 30:
+        import math
+        rs_go = [r["r_multiple"] for r in closed_rows if r["decision"] == "go"]
+        rs_pa = [r["r_multiple"] for r in closed_rows if r["decision"] == "pass"]
+        se = math.sqrt(pd.Series(rs_go).var(ddof=1) / n_go
+                       + pd.Series(rs_pa).var(ddof=1) / n_pass)
+        st.caption(f"alpha t-stat ≈ {alpha / se:+.2f} (Welch, clean closed only)")
+    else:
+        st.caption(f"t-stat shown once both buckets reach 30 clean decisions "
+                   f"(now {n_go} / {n_pass})")
+
+    st.dataframe(pd.DataFrame(dec_rows), use_container_width=True, hide_index=True)
 
 # ---- per-ticker detail -----------------------------------------------------
 st.subheader("Ticker detail")
