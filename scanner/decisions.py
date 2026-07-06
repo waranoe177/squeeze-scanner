@@ -89,7 +89,10 @@ def fetch_updates(token: str, offset: int) -> tuple[list[dict], int]:
                 "allowed_updates": json.dumps(["message"])},
         timeout=30,
     )
-    body = resp.json() if resp.ok else {}
+    try:
+        body = resp.json()
+    except ValueError:
+        body = {}
     if not resp.ok or not body.get("ok", False):
         desc = body.get("description", (resp.text or "")[:300])
         raise RuntimeError(f"Telegram getUpdates {resp.status_code}: {desc}")
