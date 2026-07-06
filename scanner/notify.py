@@ -12,7 +12,7 @@ def _esc(text) -> str:
     return html.escape(str(text))
 
 
-def _fired_line(p: dict) -> str:
+def _fired_line(p: dict, cta: bool = False) -> str:
     arrow = "🟢 BUY" if p["direction"] == "bull" else "🔴 SELL"
     head = f"{arrow} <b>{_esc(p['symbol'])}</b>"
     if p.get("score") is not None:
@@ -28,11 +28,13 @@ def _fired_line(p: dict) -> str:
     else:
         levels = (f"   target {p['target_up']:.2f} / {p['target_dn']:.2f}"
                   f" · stop {p['stop']:.2f}")
+    cta_line = "\n   ↩️ Reply to this chart: go or pass" if cta else ""
     return (
         f"{head}\n"
         f"   close {p['close']:.2f} · RSI {p['rsi']:.0f}\n"
         f"{levels}"
         f"{tail}"
+        f"{cta_line}"
     )
 
 

@@ -74,3 +74,14 @@ def test_no_fire_message_shows_building_squeezes():
 def test_footer_appended_when_provided():
     msg = notify.format_message(_results([]), footer="Track record: https://example.com")
     assert msg.rstrip().endswith("Track record: https://example.com")
+
+
+def test_fired_line_cta_only_when_asked():
+    p = _p("TSLA", "bear")
+    assert "Reply to this chart" in notify._fired_line(p, cta=True)
+    assert "Reply to this chart" not in notify._fired_line(p)
+
+
+def test_format_message_never_contains_cta():
+    msg = notify.format_message(_results([_p("TSLA", "bear")]))
+    assert "Reply to this chart" not in msg

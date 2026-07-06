@@ -92,7 +92,7 @@ def main(argv=None) -> dict:
         if cpath.exists():
             try:
                 body = notify.send_photo(token, chat_id, str(cpath),
-                                         caption=notify._fired_line(p))
+                                         caption=notify._fired_line(p, cta=True))
                 rec = by_id.get(f"{p['symbol']}-{p['date']}")
                 if rec is not None and rec.get("telegram_msg_id") is None:
                     rec["telegram_msg_id"] = body["result"]["message_id"]
