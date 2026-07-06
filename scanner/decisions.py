@@ -133,7 +133,19 @@ def ingest(ledger_path=None, state_path=DEFAULT_STATE_PATH, token=None) -> int:
     updates, next_offset = fetch_updates(token, state["offset"])
     records = ledger.load(ledger_path)
     before = sum(1 for r in records if r.get("decision"))
-    parsed = [p for p in (parse_decision(u) for u in updates) if p]
+
+    allowed_chat = os.environ.get("TELEGRAM_CHAT_ID")
+
+    def _from_owner(u):
+        if not allowed_chat:
+            return True  # local/dev: no filter configured
+        chat = ((u.get("message") or {}).get("chat") or {}).get("id")
+        if str(chat) != str(allowed_chat):
+            print(f"  [decisions] update from foreign chat {chat} ignored")
+            return False
+        return True
+
+    parsed = [p for p in (parse_decision(u) for u in updates if _from_owner(u)) if p]
     apply_decisions(records, parsed)
     applied = sum(1 for r in records if r.get("decision")) - before
 

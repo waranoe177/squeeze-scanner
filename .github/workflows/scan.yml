@@ -28,8 +28,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Ingest pending decisions first
+        continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python -m scanner.decisions
 
       - name: Run scan + ledger + site + notify

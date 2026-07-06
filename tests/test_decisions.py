@@ -151,6 +151,18 @@ def test_ingest_without_token_is_noop(tmp_path, monkeypatch):
     assert decisions.ingest(tmp_path / "l.jsonl", tmp_path / "s.json") == 0
 
 
+def test_ingest_ignores_foreign_chat(tmp_path, monkeypatch):
+    lpath, spath = tmp_path / "signals.jsonl", tmp_path / "state.json"
+    ledger.save(lpath, [_rec(msg_id=123)])
+    foreign = _update("go", reply_to=123, uid=9)
+    foreign["message"]["chat"]["id"] = 999
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")   # owner chat id is 1 (per _update)
+    monkeypatch.setattr(decisions, "fetch_updates", lambda t, o: ([foreign], 10))
+    assert decisions.ingest(lpath, spath, token="T") == 0
+    assert "decision" not in ledger.load(lpath)[0]
+    assert decisions.load_state(spath) == {"offset": 10}  # still consumed
+
+
 def test_decision_table_rows_sorted_desc():
     a = _rec(signal_date="2026-01-02", msg_id=1, status="win")
     a.update(decision="go", decided_at="x", decision_late=False,
