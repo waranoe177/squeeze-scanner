@@ -47,3 +47,27 @@ def test_no_site_flag_skips_site(tmp_path, monkeypatch):
               "--ledger", str(tmp_path / "signals.jsonl"),
               "--site", str(site_dir)])
     assert not site_dir.exists()
+
+
+def test_send_failure_exits_nonzero_after_persist(tmp_path, monkeypatch):
+    import pytest
+
+    from scanner import notify
+
+    monkeypatch.setattr(data, "fetch_daily", lambda *a, **k: _fixture_frames())
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "T")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+
+    def boom(*a, **k):
+        raise RuntimeError("net down")
+
+    monkeypatch.setattr(notify, "send_message", boom)
+    monkeypatch.setattr(notify, "send_photo", boom)
+    ledger_path = tmp_path / "signals.jsonl"
+    site_dir = tmp_path / "site"
+    with pytest.raises(SystemExit) as ei:
+        run.main(["--no-charts", "--out", str(tmp_path / "out"),
+                  "--ledger", str(ledger_path), "--site", str(site_dir)])
+    assert ei.value.code == 1
+    assert ledger_path.exists()               # persisted despite the failure
+    assert (site_dir / "index.html").exists()  # site rendered despite the failure

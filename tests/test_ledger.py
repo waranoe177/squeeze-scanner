@@ -231,3 +231,28 @@ def test_stats_decisions_alpha_none_when_bucket_empty():
     d = ledger.stats(records)["decisions"]
     assert d["selection_alpha"] is None
     assert d["pass"]["n"] == 0 and d["pass"]["win_rate"] is None
+
+
+def test_update_skips_record_on_price_basis_drift():
+    # yfinance auto_adjust re-bases history after a dividend/split; closing a
+    # trade against a shifted basis would falsify an immutable record.
+    records = _ledger_with_signal()  # stored signal_close = 100.0
+    frame = make_frame([[98, 99, 97, 98],       # signal bar now reads 98 (2% shift)
+                        [99, 100, 98, 99],
+                        [100, 105, 99, 104]])   # would have "won" on shifted basis
+    ledger.update(records, {"TST": frame})
+    assert records[0]["status"] == "pending_entry"  # skipped, not falsified
+
+
+def test_update_bear_backfill_and_win():
+    records = []
+    ledger.append_fired(records, [dict(SIG, direction="bear", ema21=101.0)])
+    frame = make_frame([[100, 101, 99, 100],
+                        [99, 100, 98, 99],     # entry = 99 -> target 94, stop 102
+                        [98, 99, 93, 94]])     # low 93 <= target 94 -> win
+    ledger.update(records, {"TST": frame})
+    rec = records[0]
+    assert rec["status"] == "win"
+    assert rec["entry"] == 99.0
+    assert rec["target"] == 94.0 and rec["stop"] == 102.0
+    assert round(rec["r_multiple"], 3) == round(5 / 3, 3)

@@ -78,6 +78,17 @@ def update(records: list[dict], frames: dict) -> list[dict]:
         df = frames.get(rec["symbol"])
         if df is None or df.empty:
             continue
+        # Price-basis guard: auto-adjusted history re-bases after a dividend or
+        # split. If the signal bar's close no longer matches what we recorded,
+        # the stored entry/stop/target are on a different basis — closing
+        # against today's bars would falsify an immutable record. Skip loudly.
+        ts = pd.Timestamp(rec["signal_date"])
+        if ts in df.index:
+            cur_close = float(df.loc[ts, "close"])
+            if abs(cur_close - rec["signal_close"]) > rec["signal_close"] * 0.001:
+                print(f"  [ledger] {rec['id']}: price basis shifted "
+                      f"(stored {rec['signal_close']}, now {cur_close:.4f}) — skipped")
+                continue
         after = df[df.index > pd.Timestamp(rec["signal_date"])]
         if after.empty:
             continue

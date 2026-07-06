@@ -44,6 +44,7 @@ jobs:
         run: python -m scanner.run --watchlist universe.csv --out out --site site
 
       - name: Commit results + ledger
+        if: always()   # a failed send must not lose the day's ledger appends
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

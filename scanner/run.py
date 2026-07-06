@@ -86,6 +86,7 @@ def main(argv=None) -> dict:
         _persist()
         return results
 
+    send_failed = False
     by_id = {r["id"]: r for r in records}
     for p in results["fired"]:
         cpath = out_dir / "charts" / f"{p['symbol']}.png"
@@ -100,16 +101,21 @@ def main(argv=None) -> dict:
                 # A failure on one photo must not skip the remaining photos
                 # or the summary message.
                 print(f"[photo send failed for {p['symbol']}: {exc}]")
+                send_failed = True
 
     try:
         notify.send_message(token, chat_id, message)
         print(f"[sent to Telegram chat {chat_id}]")
     except Exception as exc:
-        # A notify failure must not fail the whole job — results are already
-        # written and will still be committed for the dashboard.
         print(f"[telegram send FAILED: {exc}]")
         print("[hint: open YOUR bot in Telegram and tap Start, and check the secrets]")
+        send_failed = True
     _persist()
+    if send_failed:
+        # A silently missed alert day is a trust leak: persist everything,
+        # then fail the job so CI's failure step pages the operator.
+        print("[exiting non-zero: Telegram delivery failed]")
+        sys.exit(1)
     return results
 
 
