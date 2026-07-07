@@ -27,12 +27,10 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Ingest pending decisions first
-        continue-on-error: true
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python -m scanner.decisions
+      # go/pass decisions AND on-demand chart requests are handled by the
+      # separate bot workflow (bot.yml) — the single Telegram poller. Telegram
+      # allows only one getUpdates consumer per token, so this scan no longer
+      # polls; it just produces signals and pushes charts.
 
       - name: Run scan + ledger + site + notify
         env:

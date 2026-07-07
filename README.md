@@ -28,10 +28,12 @@ scanner/        signal engine + data + notify + chart + run
   run.py          CLI entrypoint
   backtest.py     walk-forward backtest harness
   score.py        conviction score (0-100) + expected value
-  llm_eval.py     qualitative LLM read (news) + GO/WATCH/PASS (optional)
+  llm_eval.py     qualitative LLM read (news) — retired, kept for reference
+  decisions.py    ingest go/pass Telegram replies -> ledger (write-once)
+  bot.py          on-demand chart requests over Telegram (the single poller)
 dashboard/app.py  Streamlit dashboard (interactive charts)
-tests/            68 tests (pytest), incl. TOS parity fixtures
-watchlist.csv     your tickers
+tests/            160 tests (pytest), incl. TOS parity fixtures
+universe.csv      your tickers (CI scans this) — incl. GLD/UUP/BITO macro proxies
 out/              generated: results.json + charts/ (committed for the dashboard)
 ```
 
@@ -40,7 +42,7 @@ out/              generated: results.json + charts/ (committed for the dashboard
 ```powershell
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.venv\Scripts\python.exe -m pytest        # 68 tests
+.venv\Scripts\python.exe -m pytest        # 160 tests
 ```
 
 > Windows note: Smart App Control blocks pandas 3.0.x DLLs; requirements pin
@@ -67,6 +69,32 @@ scan). CI scans `universe.csv` (not `watchlist.csv`).
 4. In GitHub: repo **Settings → Secrets and variables → Actions** → add
    `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
 
+## Request a chart on demand (two-way Telegram)
+
+Text the bot a ticker and it replies with that symbol's TOS-matched chart plus a
+one-line read (direction, conviction score, key levels, and which of the seven
+buy conditions are lit). Any ticker works — in your universe or not.
+
+```
+NVDA            # bare ticker (fastest to thumb-type)
+/chart brk-b    # or the explicit command
+chart uup
+```
+
+Telegram allows only **one** `getUpdates` consumer per bot token, so `scanner/
+bot.py` is the single poller: it handles both chart requests **and** the go/pass
+decision replies. Two ways to run it:
+
+```powershell
+python -m scanner.bot            # one drain — what the cron runs
+python -m scanner.bot --serve    # long-poll loop — instant replies while it runs
+```
+
+`.github/workflows/bot.yml` runs `--once` every ~15 min on weekdays, so requests
+are answered without any machine of yours running (GitHub cron lag ≈ 10–25 min).
+Run `--serve` locally when you want instant (~1–2 s) back-and-forth. Only one
+poller may run at a time.
+
 ## Conviction score (decision layer)
 
 Every fired ticker gets a **conviction score (0-100 + grade)** — a confluence
@@ -87,6 +115,9 @@ this project.
 close), pushes Telegram alerts, appends fired signals to the ledger,
 regenerates the track-record site, and commits `out/` + `ledger/` back so the
 dashboard updates. Use the **Run workflow** button to trigger it manually.
+`.github/workflows/bot.yml` is the **single Telegram poller** (every ~15 min):
+it serves on-demand chart requests and ingests go/pass replies, so the scan
+itself no longer polls.
 `.github/workflows/recap.yml` posts a weekly recap card to Telegram every
 Sunday. `.github/workflows/free-delayed.yml` posts yesterday's signals to the
 free channel once `PHASE` is set to `2`.

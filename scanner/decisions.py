@@ -79,15 +79,19 @@ def apply_decisions(records: list[dict], parsed: list[dict]) -> list[dict]:
     return records
 
 
-def fetch_updates(token: str, offset: int) -> tuple[list[dict], int]:
-    """One getUpdates batch. Returns (updates, next_offset)."""
+def fetch_updates(token: str, offset: int, timeout: int = 0) -> tuple[list[dict], int]:
+    """One getUpdates batch. Returns (updates, next_offset).
+
+    `timeout` is Telegram's long-poll seconds: 0 = return immediately (cron
+    mode), >0 = hold the connection until an update arrives (local --serve).
+    """
     import requests
 
     resp = requests.get(
         f"https://api.telegram.org/bot{token}/getUpdates",
-        params={"offset": offset, "timeout": 0,
+        params={"offset": offset, "timeout": timeout,
                 "allowed_updates": json.dumps(["message"])},
-        timeout=30,
+        timeout=timeout + 10,
     )
     try:
         body = resp.json()

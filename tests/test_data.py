@@ -28,6 +28,15 @@ def test_load_watchlist_skips_header_and_uppercases(tmp_path):
     assert data.load_watchlist(f) == ["QQQ", "SPY"]
 
 
+def test_shipped_universe_has_macro_proxies():
+    """Gold/dollar/bitcoin exposure: GLD + UUP + BITO must be in the universe."""
+    from pathlib import Path
+
+    universe = Path(__file__).resolve().parent.parent / "universe.csv"
+    syms = set(data.load_watchlist(universe))
+    assert {"GLD", "UUP", "BITO"} <= syms
+
+
 def test_load_watchlist_drops_blanks_and_dedupes_preserving_order(tmp_path):
     f = tmp_path / "wl.csv"
     f.write_text("Ticker\nAAPL\n\n  MSFT  \nAAPL\n")

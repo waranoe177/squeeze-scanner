@@ -1,0 +1,50 @@
+name: Telegram Chart Bot
+
+# Single Telegram poller. Telegram allows only ONE getUpdates consumer per bot
+# token, so this workflow is the sole poller: it handles BOTH on-demand chart
+# requests (text a ticker) and go/pass decision replies. The daily scan
+# (scan.yml) no longer polls. Same concurrency group as the scan so the two
+# never run at once and their ledger pushes serialize.
+
+on:
+  schedule:
+    # Every 15 min, ~6am–6pm ET on weekdays (11:00–23:00 UTC). GitHub cron is
+    # best-effort and often runs late, so replies land in ~10–25 min.
+    - cron: "*/15 11-23 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write          # commit the offset + any ingested decisions
+
+concurrency:
+  group: sqzdots-ledger
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Poll Telegram + serve chart requests
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m scanner.bot
+
+      - name: Commit offset + decisions
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ledger/
+          git diff --staged --quiet || git commit -m "bot poll $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
