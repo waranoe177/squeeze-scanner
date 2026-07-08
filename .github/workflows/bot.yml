@@ -8,9 +8,11 @@ name: Telegram Chart Bot
 
 on:
   schedule:
-    # Every 15 min, ~6am–6pm ET on weekdays (11:00–23:00 UTC). GitHub cron is
-    # best-effort and often runs late, so replies land in ~10–25 min.
-    - cron: "*/15 11-23 * * 1-5"
+    # Every 15 min, around the clock, every day. 24/7 (not just market hours) so
+    # evening / after-close review is covered — the whole point of the tool.
+    # GitHub throttles frequent schedules, so runs are often late or skipped;
+    # replies land erratically (~15–60 min). Public repo = unlimited free minutes.
+    - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 permissions:

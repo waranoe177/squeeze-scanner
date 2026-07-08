@@ -90,10 +90,11 @@ python -m scanner.bot            # one drain — what the cron runs
 python -m scanner.bot --serve    # long-poll loop — instant replies while it runs
 ```
 
-`.github/workflows/bot.yml` runs `--once` every ~15 min on weekdays, so requests
-are answered without any machine of yours running (GitHub cron lag ≈ 10–25 min).
-Run `--serve` locally when you want instant (~1–2 s) back-and-forth. Only one
-poller may run at a time.
+`.github/workflows/bot.yml` runs `--once` every ~15 min **around the clock**, so
+requests are answered without any machine of yours running. GitHub throttles
+frequent schedules, though, so cloud replies are best-effort and land erratically
+(~15–60 min, occasionally a slot is skipped). Run `--serve` locally when you want
+instant (~1–2 s) back-and-forth. Only one poller may run at a time.
 
 ## Conviction score (decision layer)
 
