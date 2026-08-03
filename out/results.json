@@ -1,167 +1,220 @@
 {
-  "generated_at": "2026-07-31T22:32:41+00:00",
-  "as_of": "2026-07-31",
+  "generated_at": "2026-08-03T22:33:43+00:00",
+  "as_of": "2026-08-03",
   "universe": 126,
-  "fired_count": 2,
+  "fired_count": 3,
   "fired": [
     {
-      "symbol": "ABNB",
-      "date": "2026-07-31",
+      "symbol": "SNOW",
+      "date": "2026-08-03",
       "direction": "bull",
       "grade": "A++",
-      "close": 151.52000427246094,
-      "rsi": 59.72378897899501,
-      "ppo": 1.2709887449687627,
+      "close": 307.5299987792969,
+      "rsi": 74.50663151026268,
+      "ppo": 3.741315353809841,
       "squeeze_on": true,
-      "moxie_w": 3.136958758257284,
-      "atr": 4.349357603848956,
-      "ema21": 146.45115256621028,
+      "moxie_w": 35.52173289224572,
+      "atr": 14.665693484032424,
+      "ema21": 273.32260535327543,
       "lit_bull": 7,
       "lit_bear": 1,
-      "target_up": 157.3245,
-      "target_dn": 135.5778,
-      "stop": 144.996,
-      "score": 86.1,
+      "target_up": 309.9868,
+      "target_dn": 236.6584,
+      "stop": 285.5315,
+      "score": 91.3,
+      "conviction_grade": "A+",
+      "score_parts": {
+        "symbol": "SNOW",
+        "date": "2026-08-03",
+        "direction": "bull",
+        "score": 91.3,
+        "grade": "A+",
+        "confluence": 60.0,
+        "strength": 31.3,
+        "rr": 0.11,
+        "atr_pct": 4.77,
+        "parts": {
+          "momentum": 16.1,
+          "moxie": 11.1,
+          "freshness": 4.0,
+          "risk_reward": 0.1
+        }
+      },
+      "prov_target": 344.19,
+      "prov_stop": 285.53,
+      "chart": "charts/SNOW.png"
+    },
+    {
+      "symbol": "ABNB",
+      "date": "2026-08-03",
+      "direction": "bull",
+      "grade": "A++",
+      "close": 150.63999938964844,
+      "rsi": 58.05350120596179,
+      "ppo": 1.2748130379711382,
+      "squeeze_on": true,
+      "moxie_w": 3.2262371560042897,
+      "atr": 4.363969295774485,
+      "ema21": 146.83195682288647,
+      "lit_bull": 7,
+      "lit_bear": 1,
+      "target_up": 157.7419,
+      "target_dn": 135.922,
+      "stop": 144.094,
+      "score": 85.0,
       "conviction_grade": "A+",
       "score_parts": {
         "symbol": "ABNB",
-        "date": "2026-07-31",
+        "date": "2026-08-03",
         "direction": "bull",
-        "score": 86.1,
+        "score": 85.0,
         "grade": "A+",
         "confluence": 60.0,
-        "strength": 26.1,
-        "rr": 0.89,
-        "atr_pct": 2.87,
+        "strength": 25.0,
+        "rr": 1.08,
+        "atr_pct": 2.9,
         "parts": {
-          "momentum": 12.3,
-          "moxie": 10.2,
-          "freshness": 2.4,
-          "risk_reward": 1.2
+          "momentum": 11.6,
+          "moxie": 10.4,
+          "freshness": 1.6,
+          "risk_reward": 1.4
         }
       },
-      "prov_target": 162.39,
-      "prov_stop": 145.0,
+      "prov_target": 161.55,
+      "prov_stop": 144.09,
       "chart": "charts/ABNB.png"
     },
     {
       "symbol": "TMUS",
-      "date": "2026-07-31",
+      "date": "2026-08-03",
       "direction": "bear",
       "grade": "A++",
-      "close": 172.7100067138672,
-      "rsi": 41.164981420916654,
-      "ppo": -1.1373823145849762,
+      "close": 177.08999633789062,
+      "rsi": 45.524725442202204,
+      "ppo": -1.153945027508057,
       "squeeze_on": true,
-      "moxie_w": -0.9663509823219609,
-      "atr": 7.187192595366166,
-      "ema21": 181.82634979495973,
+      "moxie_w": -0.981072204547754,
+      "atr": 7.0406335647897205,
+      "ema21": 181.39577220795326,
       "lit_bull": 1,
       "lit_bear": 7,
-      "target_up": 199.7943,
-      "target_dn": 163.8584,
-      "stop": 161.9292,
-      "score": 20.1,
+      "target_up": 198.9974,
+      "target_dn": 163.7942,
+      "stop": 166.529,
+      "score": 20.4,
       "conviction_grade": "C",
       "score_parts": {
         "symbol": "TMUS",
-        "date": "2026-07-31",
+        "date": "2026-08-03",
         "direction": "bear",
-        "score": 20.1,
+        "score": 20.4,
         "grade": "C",
         "confluence": 10.0,
-        "strength": 10.1,
-        "rr": 0.82,
-        "atr_pct": 4.16,
+        "strength": 10.4,
+        "rr": 1.26,
+        "atr_pct": 3.98,
         "parts": {
-          "momentum": 3.9,
-          "moxie": 5.1,
+          "momentum": 3.8,
+          "moxie": 4.9,
           "freshness": 0.0,
-          "risk_reward": 1.1
+          "risk_reward": 1.7
         }
       },
-      "prov_target": 154.74,
-      "prov_stop": 183.49,
+      "prov_target": 159.49,
+      "prov_stop": 187.65,
       "chart": "charts/TMUS.png"
     }
   ],
   "watching": [
-    "XLF",
-    "XLU",
-    "ITB",
-    "CRM",
-    "NOW",
-    "SNOW",
-    "PLTR",
-    "JPM",
-    "GS",
-    "SCHW",
-    "V",
-    "MRK",
-    "FDX",
-    "MDLZ",
-    "IWM",
     "DIA",
     "RSP",
+    "XLF",
+    "XLU",
+    "IYT",
+    "JETS",
+    "HYG",
+    "CRM",
+    "TXN",
+    "NOW",
+    "SCHW",
+    "CMCSA",
+    "CL",
+    "MDLZ",
+    "DAL",
+    "UAL",
+    "MAR",
+    "SPY",
     "XLK",
     "XLV",
+    "XLI",
     "XLP",
     "XLRE",
-    "XHB",
-    "IYT",
+    "ITB",
     "IYR",
     "KRE",
-    "GDX",
     "GDXJ",
-    "HYG",
     "GLD",
     "SLV",
     "BITO",
-    "NVDA",
+    "AVGO",
     "AMD",
     "MU",
-    "TXN",
     "AMAT",
+    "LRCX",
     "PANW",
-    "UBER",
+    "CRWD",
+    "PLTR",
     "COIN",
+    "JPM",
     "BAC",
+    "MS",
+    "V",
+    "UNH",
     "JNJ",
-    "ABBV",
+    "LLY",
+    "MRK",
+    "OXY",
+    "DE",
     "GE",
+    "UNP",
+    "FDX",
     "WMT",
-    "HD",
-    "LOW",
+    "COST",
     "NKE",
-    "SBUX",
     "MCD",
-    "DIS",
-    "CMCSA",
     "PG",
     "FCX",
+    "IWM",
+    "XLB",
+    "XLC",
+    "XHB",
+    "OIH",
+    "GDX",
+    "XME",
+    "UBER",
+    "WFC",
+    "ABBV",
+    "LOW",
+    "SBUX",
+    "DIS",
     "NEM",
     "APD",
-    "DAL",
-    "SPY",
-    "XLI",
-    "XLB",
-    "XME",
-    "WFC",
-    "MS",
-    "UNH",
-    "LLY",
-    "DE",
-    "COST",
-    "CL",
-    "MAR",
-    "OIH",
-    "AVGO",
-    "CRWD",
+    "NVDA",
     "SHOP",
-    "PEP",
-    "UAL"
+    "HD",
+    "PEP"
   ],
   "watching_detail": [
+    {
+      "symbol": "DIA",
+      "lit": 6,
+      "lean": "bull"
+    },
+    {
+      "symbol": "RSP",
+      "lit": 6,
+      "lean": "bull"
+    },
     {
       "symbol": "XLF",
       "lit": 6,
@@ -173,7 +226,17 @@
       "lean": "bear"
     },
     {
-      "symbol": "ITB",
+      "symbol": "IYT",
+      "lit": 6,
+      "lean": "bear"
+    },
+    {
+      "symbol": "JETS",
+      "lit": 6,
+      "lean": "bull"
+    },
+    {
+      "symbol": "HYG",
       "lit": 6,
       "lean": "bear"
     },
@@ -183,29 +246,14 @@
       "lean": "bull"
     },
     {
+      "symbol": "TXN",
+      "lit": 6,
+      "lean": "bear"
+    },
+    {
       "symbol": "NOW",
       "lit": 6,
       "lean": "bull"
-    },
-    {
-      "symbol": "SNOW",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
-      "symbol": "PLTR",
-      "lit": 6,
-      "lean": "bear"
-    },
-    {
-      "symbol": "JPM",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
-      "symbol": "GS",
-      "lit": 6,
-      "lean": "bear"
     },
     {
       "symbol": "SCHW",
@@ -213,17 +261,12 @@
       "lean": "bull"
     },
     {
-      "symbol": "V",
+      "symbol": "CMCSA",
       "lit": 6,
       "lean": "bull"
     },
     {
-      "symbol": "MRK",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
-      "symbol": "FDX",
+      "symbol": "CL",
       "lit": 6,
       "lean": "bear"
     },
@@ -233,17 +276,22 @@
       "lean": "bull"
     },
     {
-      "symbol": "IWM",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "DIA",
-      "lit": 5,
+      "symbol": "DAL",
+      "lit": 6,
       "lean": "bull"
     },
     {
-      "symbol": "RSP",
+      "symbol": "UAL",
+      "lit": 6,
+      "lean": "bull"
+    },
+    {
+      "symbol": "MAR",
+      "lit": 6,
+      "lean": "bear"
+    },
+    {
+      "symbol": "SPY",
       "lit": 5,
       "lean": "bull"
     },
@@ -258,6 +306,11 @@
       "lean": "bull"
     },
     {
+      "symbol": "XLI",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
       "symbol": "XLP",
       "lit": 5,
       "lean": "bull"
@@ -268,12 +321,7 @@
       "lean": "bull"
     },
     {
-      "symbol": "XHB",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "IYT",
+      "symbol": "ITB",
       "lit": 5,
       "lean": "bear"
     },
@@ -288,17 +336,7 @@
       "lean": "bull"
     },
     {
-      "symbol": "GDX",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
       "symbol": "GDXJ",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "HYG",
       "lit": 5,
       "lean": "bear"
     },
@@ -318,9 +356,9 @@
       "lean": "bear"
     },
     {
-      "symbol": "NVDA",
+      "symbol": "AVGO",
       "lit": 5,
-      "lean": "bear"
+      "lean": "bull"
     },
     {
       "symbol": "AMD",
@@ -333,12 +371,12 @@
       "lean": "bear"
     },
     {
-      "symbol": "TXN",
+      "symbol": "AMAT",
       "lit": 5,
       "lean": "bear"
     },
     {
-      "symbol": "AMAT",
+      "symbol": "LRCX",
       "lit": 5,
       "lean": "bear"
     },
@@ -348,7 +386,12 @@
       "lean": "bull"
     },
     {
-      "symbol": "UBER",
+      "symbol": "CRWD",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "PLTR",
       "lit": 5,
       "lean": "bear"
     },
@@ -358,9 +401,29 @@
       "lean": "bear"
     },
     {
+      "symbol": "JPM",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
       "symbol": "BAC",
       "lit": 5,
       "lean": "bull"
+    },
+    {
+      "symbol": "MS",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
+      "symbol": "V",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "UNH",
+      "lit": 5,
+      "lean": "bear"
     },
     {
       "symbol": "JNJ",
@@ -368,7 +431,22 @@
       "lean": "bull"
     },
     {
-      "symbol": "ABBV",
+      "symbol": "LLY",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
+      "symbol": "MRK",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "OXY",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "DE",
       "lit": 5,
       "lean": "bull"
     },
@@ -378,19 +456,24 @@
       "lean": "bull"
     },
     {
+      "symbol": "UNP",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "FDX",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
       "symbol": "WMT",
       "lit": 5,
       "lean": "bear"
     },
     {
-      "symbol": "HD",
+      "symbol": "COST",
       "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "LOW",
-      "lit": 5,
-      "lean": "bear"
+      "lean": "bull"
     },
     {
       "symbol": "NKE",
@@ -398,24 +481,9 @@
       "lean": "bear"
     },
     {
-      "symbol": "SBUX",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
       "symbol": "MCD",
       "lit": 5,
       "lean": "bear"
-    },
-    {
-      "symbol": "DIS",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "CMCSA",
-      "lit": 5,
-      "lean": "bull"
     },
     {
       "symbol": "PG",
@@ -428,27 +496,7 @@
       "lean": "bull"
     },
     {
-      "symbol": "NEM",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "APD",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "DAL",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "SPY",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
-      "symbol": "XLI",
+      "symbol": "IWM",
       "lit": 4,
       "lean": "bear"
     },
@@ -458,7 +506,32 @@
       "lean": "bull"
     },
     {
+      "symbol": "XLC",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "XHB",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "OIH",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "GDX",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
       "symbol": "XME",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "UBER",
       "lit": 4,
       "lean": "bear"
     },
@@ -468,52 +541,37 @@
       "lean": "bull"
     },
     {
-      "symbol": "MS",
+      "symbol": "ABBV",
+      "lit": 4,
+      "lean": "bull"
+    },
+    {
+      "symbol": "LOW",
       "lit": 4,
       "lean": "bear"
     },
     {
-      "symbol": "UNH",
+      "symbol": "SBUX",
       "lit": 4,
       "lean": "bull"
     },
     {
-      "symbol": "LLY",
+      "symbol": "DIS",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "NEM",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "APD",
       "lit": 4,
       "lean": "bull"
     },
     {
-      "symbol": "DE",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "COST",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "CL",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "MAR",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "OIH",
-      "lit": 3,
-      "lean": "bull"
-    },
-    {
-      "symbol": "AVGO",
-      "lit": 3,
-      "lean": "bull"
-    },
-    {
-      "symbol": "CRWD",
+      "symbol": "NVDA",
       "lit": 3,
       "lean": "bear"
     },
@@ -523,14 +581,14 @@
       "lean": "bull"
     },
     {
-      "symbol": "PEP",
+      "symbol": "HD",
       "lit": 3,
       "lean": "bull"
     },
     {
-      "symbol": "UAL",
+      "symbol": "PEP",
       "lit": 3,
-      "lean": "bear"
+      "lean": "bull"
     }
   ]
 }
