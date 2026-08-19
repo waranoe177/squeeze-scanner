@@ -117,6 +117,43 @@ def test_broadcast_sends_charts_and_message_to_each(tmp_path):
                       ("222", str(charts / "IYT.png"))]
 
 
+def test_fired_line_shows_company_name():
+    line = notify._fired_line(_p("NVDA", "bull"), name="NVIDIA Corporation")
+    assert "NVDA" in line and "NVIDIA Corporation" in line
+
+
+def test_fired_line_ladder_bull_all_checked():
+    line = notify._fired_line(_p("NVDA", "bull"), show_ladder=True)
+    assert line.count("✅") == 7                 # all seven conditions checked
+    assert "Squeeze" in line and "RSI&gt;50" in line and "Moxie" in line
+
+
+def test_fired_line_ladder_bear_uses_mirror_labels():
+    line = notify._fired_line(_p("MMM", "bear"), show_ladder=True)
+    assert line.count("✅") == 7
+    assert "RSI&lt;50" in line                   # bear mirror, not RSI>50
+
+
+def test_format_message_stays_lean_no_ladder():
+    # the checklist belongs on the chart caption, not the text summary
+    msg = notify.format_message(_results([_p("IYT", "bull")]))
+    assert "✅" not in msg
+
+
+def test_broadcast_includes_company_name_in_caption(tmp_path):
+    charts = tmp_path / "charts"
+    charts.mkdir()
+    (charts / "NVDA.png").write_bytes(b"png")
+    caps = []
+    notify.broadcast(
+        "T", ["1"], [_p("NVDA", "bull")], charts, "S",
+        names={"NVDA": "NVIDIA Corporation"},
+        send_photo=lambda tok, cid, path, caption="": caps.append(caption),
+        send_message=lambda *a, **k: None,
+    )
+    assert "NVIDIA Corporation" in caps[0] and "✅" in caps[0]
+
+
 def test_broadcast_is_best_effort_one_bad_recipient_does_not_stop_others(tmp_path):
     def flaky_message(tok, cid, text):
         if cid == "111":

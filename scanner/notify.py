@@ -12,9 +12,26 @@ def _esc(text) -> str:
     return html.escape(str(text))
 
 
-def _fired_line(p: dict, cta: bool = False) -> str:
+# The seven buy conditions, bottom-to-top, as the user reads them off the B3
+# panel. A FIRED signal has all seven met by construction, so the chart caption
+# shows them all checked — a plain-English "why this fired" for a new reader.
+# HTML parse mode: > and < must be escaped in label text.
+_LADDER_BULL = ["Squeeze", "RSI&gt;50", "PPO≥0", "EMA8&gt;21", "Stack", "MACD↑", "Moxie↑"]
+_LADDER_BEAR = ["Squeeze", "RSI&lt;50", "PPO&lt;0", "EMA8&lt;21", "Stack↓", "MACD↓", "Moxie↓"]
+
+
+def _ladder(direction: str) -> str:
+    labels = _LADDER_BEAR if direction == "bear" else _LADDER_BULL
+    marks = [f"✅ {lbl}" for lbl in labels]
+    return f"\n   {'  '.join(marks[:4])}\n   {'  '.join(marks[4:])}"
+
+
+def _fired_line(p: dict, cta: bool = False, name: str | None = None,
+                show_ladder: bool = False) -> str:
     arrow = "🟢 BUY" if p["direction"] == "bull" else "🔴 SELL"
     head = f"{arrow} <b>{_esc(p['symbol'])}</b>"
+    if name:
+        head += f" — {_esc(name)}"
     if p.get("score") is not None:
         head += f" · score {p['score']:.0f}/100 ({_esc(p.get('conviction_grade', ''))})"
     tail = ""
@@ -28,12 +45,14 @@ def _fired_line(p: dict, cta: bool = False) -> str:
     else:
         levels = (f"   target {p['target_up']:.2f} / {p['target_dn']:.2f}"
                   f" · stop {p['stop']:.2f}")
+    ladder = _ladder(p["direction"]) if show_ladder else ""
     cta_line = "\n   ↩️ Reply to this chart: go or pass" if cta else ""
     return (
         f"{head}\n"
         f"   close {p['close']:.2f} · RSI {p['rsi']:.0f}\n"
         f"{levels}"
         f"{tail}"
+        f"{ladder}"
         f"{cta_line}"
     )
 
@@ -124,24 +143,29 @@ def parse_chat_ids(value) -> list[str]:
 
 
 def broadcast(token: str, chat_ids, fired: list[dict], charts_dir, message: str,
-              *, send_photo=send_photo, send_message=send_message) -> dict:
+              *, names=None, send_photo=send_photo, send_message=send_message) -> dict:
     """Best-effort copy of the daily alert (fired charts + summary) to each of
     `chat_ids`. Secondary recipients only — the primary owner send stays in
     run.py with its ledger/message-id capture and go/pass CTA.
 
+    Chart captions carry the company name (from `names`, a {symbol: name} map)
+    and the ✅ condition ladder, so a non-expert recipient can read the setup.
     Never raises: a recipient that fails (e.g. hasn't started the bot) is logged
     and marked False so it can't break the critical primary path. Returns
     {chat_id: delivered_bool}. The `send_*` params are injectable for testing.
     """
     from pathlib import Path
 
+    names = names or {}
     results: dict[str, bool] = {}
     for cid in chat_ids:
         try:
             for p in fired:
                 cpath = Path(charts_dir) / f"{p['symbol']}.png"
                 if cpath.exists():
-                    send_photo(token, cid, str(cpath), caption=_fired_line(p))
+                    caption = _fired_line(p, name=names.get(p["symbol"]),
+                                          show_ladder=True)
+                    send_photo(token, cid, str(cpath), caption=caption)
             send_message(token, cid, message)
             results[cid] = True
         except Exception as exc:

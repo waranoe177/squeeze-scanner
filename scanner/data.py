@@ -91,6 +91,41 @@ def drop_forming_bar(df: pd.DataFrame, now: datetime | None = None) -> pd.DataFr
     return df
 
 
+_NAME_CACHE: dict[str, str | None] = {}
+
+
+def company_name(symbol: str, fetch=None) -> str | None:
+    """Best-effort human name for a ticker (e.g. 'NVIDIA Corporation', 'SPDR
+    Gold Shares') so alerts read for a non-expert. Cached per process; returns
+    None if unavailable — callers must degrade to the bare ticker.
+
+    Network via yfinance unless `fetch` is injected (fetch(symbol) -> name|None),
+    which keeps this unit-testable and offline.
+    """
+    if symbol in _NAME_CACHE:
+        return _NAME_CACHE[symbol]
+    name = None
+    try:
+        if fetch is not None:
+            name = fetch(symbol)
+        else:
+            import yfinance as yf
+
+            info = yf.Ticker(symbol).info or {}
+            # longName is the full, un-truncated name ("Invesco DB US Dollar
+            # Index Bullish Fund"); shortName is often cut mid-word.
+            name = info.get("longName") or info.get("shortName")
+    except Exception as exc:  # network/parse hiccup — never break the alert
+        print(f"  [warn] no company name for {symbol}: {exc}")
+        name = None
+    name = str(name).strip() if name else ""
+    if len(name) > 42:  # keep the caption tidy on a phone
+        name = name[:41].rstrip() + "…"
+    result = name or None
+    _NAME_CACHE[symbol] = result
+    return result
+
+
 def fetch_daily(
     symbols: list[str],
     period: str = "2y",

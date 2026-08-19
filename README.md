@@ -69,6 +69,11 @@ scan). CI scans `universe.csv` (not `watchlist.csv`).
 4. In GitHub: repo **Settings → Secrets and variables → Actions** → add
    `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
 
+Each fired chart's caption leads with the **ticker + company name** (e.g.
+`NVDA — NVIDIA Corporation`, best-effort via yfinance) and shows the **✅ seven-
+condition checklist** (Squeeze · RSI · PPO · EMA8>21 · Stack · MACD · Moxie), so
+a non-expert can read *why* it fired at a glance.
+
 ### Send alerts to more than one account
 
 Set **`TELEGRAM_ALERT_CHAT_IDS`** (comma-separated chat ids) to also broadcast

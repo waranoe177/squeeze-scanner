@@ -86,14 +86,18 @@ def main(argv=None) -> dict:
         _persist()
         return results
 
+    # Human-readable company/fund names for the fired charts (best-effort).
+    names = {p["symbol"]: data.company_name(p["symbol"]) for p in results["fired"]}
+
     send_failed = False
     by_id = {r["id"]: r for r in records}
     for p in results["fired"]:
         cpath = out_dir / "charts" / f"{p['symbol']}.png"
         if cpath.exists():
             try:
-                body = notify.send_photo(token, chat_id, str(cpath),
-                                         caption=notify._fired_line(p, cta=True))
+                caption = notify._fired_line(p, cta=True, name=names.get(p["symbol"]),
+                                             show_ladder=True)
+                body = notify.send_photo(token, chat_id, str(cpath), caption=caption)
                 rec = by_id.get(f"{p['symbol']}-{p['date']}")
                 if rec is not None and rec.get("telegram_msg_id") is None:
                     rec["telegram_msg_id"] = body["result"]["message_id"]
@@ -118,7 +122,7 @@ def main(argv=None) -> dict:
               if c != chat_id]
     if extras:
         delivered = notify.broadcast(token, extras, results["fired"],
-                                     out_dir / "charts", message)
+                                     out_dir / "charts", message, names=names)
         print(f"[broadcast to extra chats: {delivered}]")
 
     _persist()

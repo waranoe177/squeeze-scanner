@@ -37,6 +37,37 @@ def test_shipped_universe_has_macro_proxies():
     assert {"GLD", "UUP", "BITO"} <= syms
 
 
+# ---------------------------------------------------------------------------
+# Company name lookup (for human-readable alerts)
+# ---------------------------------------------------------------------------
+
+def test_company_name_uses_fetch_and_caches():
+    data._NAME_CACHE.clear()
+    calls = []
+
+    def fake(sym):
+        calls.append(sym)
+        return "NVIDIA Corporation"
+
+    assert data.company_name("NVDA", fetch=fake) == "NVIDIA Corporation"
+    assert data.company_name("NVDA", fetch=fake) == "NVIDIA Corporation"  # cached
+    assert calls == ["NVDA"]  # fetched only once
+
+
+def test_company_name_none_on_failure():
+    data._NAME_CACHE.clear()
+
+    def boom(sym):
+        raise RuntimeError("no network")
+
+    assert data.company_name("ZZZZ", fetch=boom) is None
+
+
+def test_company_name_none_when_blank():
+    data._NAME_CACHE.clear()
+    assert data.company_name("ZZZZ", fetch=lambda s: "  ") is None
+
+
 def test_load_watchlist_drops_blanks_and_dedupes_preserving_order(tmp_path):
     f = tmp_path / "wl.csv"
     f.write_text("Ticker\nAAPL\n\n  MSFT  \nAAPL\n")
