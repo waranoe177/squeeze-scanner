@@ -19,7 +19,9 @@ to resolve. The loser is a one-line, past-tense footnote.
 - **Structure:** single-leg long **call** (BUY signals) or **put** (SELL signals).
   Spreads / multi-leg are explicitly out of scope (v2).
 - **Confidence:** a **trader-stated probability** the target is hit. Conviction
-  score only *suggests* a default; the displayed number is the user's own.
+  score only *suggests* a default; the number is the user's own and appears as a
+  labeled assumption line in the body, **never in the header** (it's an input, not
+  a finding).
 - **Expected value:** EV (3-scenario) is the **engine that picks the winner**. It
   is **not displayed** on the decision surface — it lives in a `full` detail tier.
   The decision's on-screen justification is reproducible facts only.
@@ -105,9 +107,10 @@ true and reproducible.
   real gap-risk edge); `target_reward = contracts·(v_target - premium)·100`,
   `v_target = BS(S=target, T=(DTE-H)/365, …)`.
 
-The `Kill below/above <stop>` level is a **discretionary exit** for the option — it
-can only reduce the loss below the premium, never increase it — shown for trade
-management, not for sizing.
+The option carries **no underlying stop** — its risk is the premium (defined). The
+`Kill below/above <stop>` line is **equity-only**. The option's downside is managed
+by the target, the exit date, and a sideways close for residual value; every option
+loss is bounded by the premium.
 
 Integer rounding means actual size ≠ budget exactly; **display the actuals** of the
 integer position, never the theoretical budget.
@@ -127,47 +130,73 @@ is naturally capped at the premium.
 - **Payout multiple** (reproducible WHY) `= option_target_reward /
   equity_target_reward` at equal stop-risk.
 - **Flip point** `p*`: EV is linear in `p` (with `p_neither` fixed), so solve
-  `option_ev(p*) = equity_ev(p*)` in closed form → "FLIPS to shares below p*%".
+  `option_ev(p*) = equity_ev(p*)` in closed form. This is a **sensitivity for the
+  `full` tier only** — it never appears on the decision surface.
 - **IV context:** compare option IV to realized vol of the underlying — `rich` if
   `IV > 1.2·RV`, `cheap` if `IV < 0.8·RV`, else neutral.
 
 ## Output
 
 ### Decision surface (default)
-Layout illustration — every hand-computable figure ties to `risk=$500`
-(entry $123.45, target $130.00, stop $118.00); `target ≈ $1,150` is the one
-model-derived number (BS repricing) and is marked `≈`.
-```
-NVDA · BUY CALLS · your call 65% · exit by Fri 08/29
 
-  BUY 2 × NVDA 128C exp 09/23 @ $2.50 or better
-  Max loss $500 (premium) · target ≈ $1,150 if $130 hit
-  Kill below $118
-
-  WHY   ~1.9× the payout of shares at the same $500 risk
-  COST  needs +5.3% ($123.45→$130) by 08/29; IV 42% is rich
-  FLIPS to shares below 58% confidence
-  SKIP  91 shares → ≈ +$596 at target, no clock, no decay
+**Worked from the acceptance-test inputs** (entry $123.45, target $130.00, stop
+$118.00, IV 42%, 35 DTE, hold 10 days, risk $840). Priced correctly the $130 call
+only *reaches* the money by exit, so its exit value is time premium (~$5.87) and
+**shares win** — this is the honest output, every number checkable on screen:
 ```
-(Shares 91×$5.45 ≈ $500 at the stop, 91×$6.55 ≈ $596 at target; option 2×$2.50×100
-= $500 premium; WHY = 1150 ÷ 596 ≈ 1.9×.)
+NVDA · BUY SHARES · exit by Fri 08/29
+  assumes ~65% you're right on +5.3%
+
+  BUY 154 sh @ $123.45
+  Kill below $118 (−$840) · target $130 (+$1,009)
+
+  WHY   3× the payout of the call at the same $840 risk
+  COST  $19,011 capital; full downside below $118
+  SKIP  2 × 130C 09/23 @ $4.20 → only +$334 at $130
+        (call ≈ $5.87 at exit vs $4.20 paid); −$840 if it never moves
+```
+Checks: 154×$5.45 ≈ $840 at stop; 154×$6.55 ≈ $1,009 at target; call exit value
+$5.87 (BS, 25 DTE left, ATM) → (5.87−4.20)×100×2 = $334; 1009 ÷ 334 ≈ 3×.
+
+**When the option wins** the block inverts (schematic — placeholders, never
+fabricated numbers):
+```
+SYM · BUY CALLS · exit by <day mm/dd>
+  assumes ~NN% you're right on +M.M%
+
+  BUY k × SYM <K>C <exp> @ $<mid> or better
+  Max loss $<premium> (all you can lose)
+  Target $<T> → ≈ $<gain>   (<K>C ≈ $<exit_val> vs $<mid> paid)
+  Flat by <exit> → close ≈ $<flat_val> back
+
+  WHY   ~<x>× the payout of shares at the same $<risk> risk
+  COST  needs +M.M% by <exit>; IV <iv>% is <rich/cheap>
+  SKIP  <n> sh → ≈ +$<eq_gain>, no clock, no decay
+```
 
 Rules enforced:
-- Header: `SYM · <ACTION> · your call NN% · exit by <day mm/dd>`.
-- Order line is a literal, typeable order with an "or better" limit.
-- `target ≈ $X` is the **only** model-derived number, singular and marked `≈`.
-  No EV, no R-multiples on this surface.
-- `Kill below/above <stop>` sits in the order block (read at entry).
-- WHY = reproducible payout multiple. COST = move % + exit date + IV label.
-  FLIPS = decision boundary in the trader's own units. SKIP = one-line footnote
-  for the rejected vehicle.
-- When the winner is **shares**, the shape inverts: BUY shares is the order, the
-  option becomes the SKIP footnote, WHY explains why the clock/decay/IV lost.
+- Header: `SYM · <ACTION> · exit by <day mm/dd>` — the **decision** only. No
+  confidence in the header; it's one labeled body line ("assumes ~NN% …") because
+  it's the trader's input, not a finding.
+- Order line is a literal, typeable order with an "or better" limit; integer size,
+  actuals recomputed from the rounded position.
+- The option's **estimated exit value** (`<K>C ≈ $X at exit`) is shown so the
+  payout is checkable at a glance — it is the one model-derived number. **No EV, no
+  R-multiples** on this surface.
+- **Three outcome lines, including the most-likely sideways case:** target; the
+  downside (equity kill / option's defined premium); and **flat-by-exit → close for
+  residual**. The sideways branch is mandatory — it's the case the reader most
+  often faces.
+- `Kill below/above <stop>` is **equity-only** (the option is defined-risk premium).
+- Labels: **WHY** (reproducible payout multiple) · **COST** (move % + exit date +
+  IV label, or capital tied up for shares) · **SKIP** (one-line rejected vehicle).
+  No FLIPS line — it's a sensitivity, moved to `full`.
 
 ### `full` audit tier (on `full`)
 Appends: chosen expiry + DTE, Δ/θ/IV raw, realized vol, the three scenario
-probabilities, each vehicle's payoff in every scenario, and both EV numbers — so
-the pick can be audited. This is the only place EV appears.
+probabilities, each vehicle's payoff in every scenario, both EV numbers, and the
+**flip point** `p*` (the confidence at which the decision changes) — so the pick
+can be audited. This is the only place EV and the flip point appear.
 
 ## Error handling
 
@@ -189,8 +218,28 @@ the pick can be audited. This is the only place EV appears.
 - `scanner/bot.py` — `parse_trade(update)`, `handle_trade(...)`, dispatch wiring.
   `fetch_chain(symbol)` (live, best-effort) lives here or in `data`.
 
+## Implementation order (engine before format)
+
+The layout presents numbers convincingly, so it must not be built until the numbers
+are proven right (this is what bit the first draft):
+
+1. `black_scholes` + `realized_vol` — validate vs known values and the
+   acceptance-test price (`v_target ≈ $5.87`).
+2. `select_contract`, `size`, `scenario_ev`, `decide`, `flip_point`,
+   `conviction_to_p` — pass the full acceptance test end-to-end on an injected
+   chain (calls ≈ +$334 vs shares ≈ +$1,009 → **BUY SHARES**).
+3. Only once the engine reproduces the independent numbers: build `optfmt`
+   (decision surface + `full` tier) from engine output, then wire
+   `parse_trade` / `handle_trade` into the bot.
+
 ## Testing (TDD)
 
+- **Acceptance test — the intrinsic-vs-exit-value guard.** Inputs: entry $123.45,
+  target $130.00, stop $118.00, IV 42%, 35 DTE, hold 10 days, risk $840. The engine
+  MUST produce `v_target ≈ $5.87` (ATM call, 25 DTE remaining — *exit* value, not
+  intrinsic $0), **calls ≈ +$334** (2 contracts) and **shares ≈ +$1,009** (154 sh),
+  and `decide()` MUST return **BUY SHARES**. This is the regression that would have
+  caught the original error; it is the gate to building the formatter.
 - `black_scholes`: known-value checks; put-call parity; `0≤delta_call≤1`, put delta
   in `[-1,0]`; `theta<0` for long options; monotonic in `sigma`.
 - `conviction_to_p`: monotonic, clamped to a sane band.
@@ -202,8 +251,11 @@ the pick can be audited. This is the only place EV appears.
   multiple; **flip point** ties to where the decision changes; IV rich/cheap label.
 - `parse_trade`: `trade nvda`, `trade nvda 60`, `risk=`, `dte=`, `full`; rejects
   non-trade and bare tickers (still chart).
-- `format_trade` / `format_trade_full`: contains the order line, kill level, dates,
-  no EV/R on the decision surface, EV present only in `full`.
+- `format_trade` / `format_trade_full`: order line present; **confidence not in the
+  header** (labeled body line only); **three outcome lines incl. the sideways
+  close**; option **exit value** shown; kill line equity-only; **no EV, no
+  R-multiples, no FLIPS** on the decision surface; EV + flip point present only in
+  `full`.
 - Live `fetch_chain` and `handle_trade` end-to-end: smoke only (like `fetch_daily`).
 
 ## Stated simplifications / non-goals (surfaced to the user)
