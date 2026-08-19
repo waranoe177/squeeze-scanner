@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-19T08:52:04+00:00",
+  "generated_at": "2026-08-19T09:30:32+00:00",
   "as_of": "2026-08-18",
-  "universe": 126,
+  "universe": 125,
   "fired_count": 3,
   "fired": [
     {
@@ -10,12 +10,12 @@
       "direction": "bull",
       "grade": "A++",
       "close": 165.55999755859375,
-      "rsi": 72.35365791990985,
-      "ppo": 2.0874054983206403,
+      "rsi": 72.35365785429254,
+      "ppo": 2.0874054965326994,
       "squeeze_on": true,
-      "moxie_w": 3.1092902546671786,
-      "atr": 3.6518426823880623,
-      "ema21": 155.29828804483833,
+      "moxie_w": 3.109289457180129,
+      "atr": 3.651842690579679,
+      "ema21": 155.29828804864417,
       "lit_bull": 7,
       "lit_bear": 1,
       "target_up": 164.4279,
@@ -50,12 +50,12 @@
       "direction": "bull",
       "grade": "A++",
       "close": 135.1699981689453,
-      "rsi": 65.93868941259495,
-      "ppo": 1.550290886555966,
+      "rsi": 65.93868940877155,
+      "ppo": 1.5502908865362106,
       "squeeze_on": true,
-      "moxie_w": 2.167869670101056,
-      "atr": 3.237041727414601,
-      "ema21": 130.8775003218118,
+      "moxie_w": 2.1678697109141183,
+      "atr": 3.237041727730736,
+      "ema21": 130.87750032185315,
       "lit_bull": 7,
       "lit_bear": 1,
       "target_up": 138.9701,
@@ -93,7 +93,7 @@
       "rsi": 36.20089105509177,
       "ppo": -1.5167479593472621,
       "squeeze_on": true,
-      "moxie_w": -7.395670015933476,
+      "moxie_w": -7.395669962031473,
       "atr": 22.175820035473546,
       "ema21": 588.4299813728393,
       "lit_bull": 1,
@@ -143,10 +143,9 @@
     "VZ",
     "PG",
     "XLP",
-    "ITB",
     "XHB",
-    "IYT",
     "KRE",
+    "TAN",
     "AMD",
     "INTC",
     "QCOM",
@@ -168,9 +167,11 @@
     "CL",
     "MDLZ",
     "APD",
-    "TAN",
+    "ITB",
+    "IYT",
     "BITO",
     "PM",
+    "XLC",
     "HD"
   ],
   "watching_detail": [
@@ -260,17 +261,7 @@
       "lean": "bull"
     },
     {
-      "symbol": "ITB",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
       "symbol": "XHB",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "IYT",
       "lit": 5,
       "lean": "bear"
     },
@@ -278,6 +269,11 @@
       "symbol": "KRE",
       "lit": 5,
       "lean": "bull"
+    },
+    {
+      "symbol": "TAN",
+      "lit": 5,
+      "lean": "bear"
     },
     {
       "symbol": "AMD",
@@ -385,9 +381,14 @@
       "lean": "bull"
     },
     {
-      "symbol": "TAN",
+      "symbol": "ITB",
       "lit": 4,
       "lean": "bear"
+    },
+    {
+      "symbol": "IYT",
+      "lit": 4,
+      "lean": "bull"
     },
     {
       "symbol": "BITO",
@@ -398,6 +399,11 @@
       "symbol": "PM",
       "lit": 4,
       "lean": "bear"
+    },
+    {
+      "symbol": "XLC",
+      "lit": 3,
+      "lean": "bull"
     },
     {
       "symbol": "HD",
