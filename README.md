@@ -69,6 +69,18 @@ scan). CI scans `universe.csv` (not `watchlist.csv`).
 4. In GitHub: repo **Settings → Secrets and variables → Actions** → add
    `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
 
+### Send alerts to more than one account
+
+Set **`TELEGRAM_ALERT_CHAT_IDS`** (comma-separated chat ids) to also broadcast
+the daily scan alert — fired charts + summary — to additional recipients (a
+second phone on a different Telegram account, a partner, a group). The primary
+`TELEGRAM_CHAT_ID` stays the owner: it drives the ledger + go/pass replies and
+the delivery-failure page. Extra recipients get a **clean copy** (no go/pass
+CTA) on a **best-effort** basis — a recipient that fails (e.g. hasn't tapped
+**Start** on the bot yet) is logged but never fails the day's job. Each extra
+account must open **@Note_squeeze_bot** and tap **Start** first; get its chat id
+from **@userinfobot**.
+
 ## Request a chart on demand (two-way Telegram)
 
 Text the bot a ticker and it replies with that symbol's TOS-matched chart plus a

@@ -36,6 +36,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_ALERT_CHAT_IDS: ${{ secrets.TELEGRAM_ALERT_CHAT_IDS }}
           TELEGRAM_FOOTER: ${{ vars.TELEGRAM_FOOTER }}
           SITE_CHANNEL_USERNAME: ${{ vars.SITE_CHANNEL_USERNAME }}
           SITE_CHANNEL_URL: ${{ vars.SITE_CHANNEL_URL }}

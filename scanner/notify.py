@@ -110,3 +110,41 @@ def send_photo(token: str, chat_id: str, photo_path: str, caption: str = "") -> 
             timeout=60,
         )
     return _check(resp)
+
+
+def parse_chat_ids(value) -> list[str]:
+    """Parse a comma/space-separated chat-id string into a clean, de-duplicated
+    list (order preserved). Blank/None -> []. Used for extra alert recipients."""
+    if not value:
+        return []
+    seen: dict[str, None] = {}
+    for tok in str(value).replace(",", " ").split():
+        seen.setdefault(tok, None)
+    return list(seen.keys())
+
+
+def broadcast(token: str, chat_ids, fired: list[dict], charts_dir, message: str,
+              *, send_photo=send_photo, send_message=send_message) -> dict:
+    """Best-effort copy of the daily alert (fired charts + summary) to each of
+    `chat_ids`. Secondary recipients only — the primary owner send stays in
+    run.py with its ledger/message-id capture and go/pass CTA.
+
+    Never raises: a recipient that fails (e.g. hasn't started the bot) is logged
+    and marked False so it can't break the critical primary path. Returns
+    {chat_id: delivered_bool}. The `send_*` params are injectable for testing.
+    """
+    from pathlib import Path
+
+    results: dict[str, bool] = {}
+    for cid in chat_ids:
+        try:
+            for p in fired:
+                cpath = Path(charts_dir) / f"{p['symbol']}.png"
+                if cpath.exists():
+                    send_photo(token, cid, str(cpath), caption=_fired_line(p))
+            send_message(token, cid, message)
+            results[cid] = True
+        except Exception as exc:
+            print(f"[warn] broadcast to {cid} failed (non-fatal): {exc}")
+            results[cid] = False
+    return results

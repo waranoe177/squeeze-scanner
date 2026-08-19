@@ -110,6 +110,17 @@ def main(argv=None) -> dict:
         print(f"[telegram send FAILED: {exc}]")
         print("[hint: open YOUR bot in Telegram and tap Start, and check the secrets]")
         send_failed = True
+
+    # Broadcast a clean copy of the alert to any extra recipients. Best-effort:
+    # a secondary recipient's failure is logged but never marks the day failed
+    # (the primary owner send above is the trust anchor).
+    extras = [c for c in notify.parse_chat_ids(os.environ.get("TELEGRAM_ALERT_CHAT_IDS"))
+              if c != chat_id]
+    if extras:
+        delivered = notify.broadcast(token, extras, results["fired"],
+                                     out_dir / "charts", message)
+        print(f"[broadcast to extra chats: {delivered}]")
+
     _persist()
     if send_failed:
         # A silently missed alert day is a trust leak: persist everything,

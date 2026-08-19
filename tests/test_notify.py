@@ -85,3 +85,46 @@ def test_fired_line_cta_only_when_asked():
 def test_format_message_never_contains_cta():
     msg = notify.format_message(_results([_p("TSLA", "bear")]))
     assert "Reply to this chart" not in msg
+
+
+# ---- multi-recipient broadcast --------------------------------------------
+
+def test_parse_chat_ids_splits_dedups_and_drops_blanks():
+    assert notify.parse_chat_ids("111,222") == ["111", "222"]
+    assert notify.parse_chat_ids("  111 , 222 ,, 333 ") == ["111", "222", "333"]
+    assert notify.parse_chat_ids("111,111,222") == ["111", "222"]  # dedup, order kept
+    assert notify.parse_chat_ids("") == []
+    assert notify.parse_chat_ids(None) == []
+
+
+def test_broadcast_sends_charts_and_message_to_each(tmp_path):
+    charts = tmp_path / "charts"
+    charts.mkdir()
+    (charts / "IYT.png").write_bytes(b"png")  # only IYT has a chart on disk
+    fired = [_p("IYT", "bull"), _p("NODATA", "bull")]
+    photos, msgs = [], []
+
+    res = notify.broadcast(
+        "T", ["111", "222"], fired, charts, "SUMMARY",
+        send_photo=lambda tok, cid, path, caption="": photos.append((cid, path)),
+        send_message=lambda tok, cid, text: msgs.append((cid, text)),
+    )
+
+    assert res == {"111": True, "222": True}
+    assert msgs == [("111", "SUMMARY"), ("222", "SUMMARY")]
+    # each recipient got IYT's photo; NODATA (no file) is skipped
+    assert photos == [("111", str(charts / "IYT.png")),
+                      ("222", str(charts / "IYT.png"))]
+
+
+def test_broadcast_is_best_effort_one_bad_recipient_does_not_stop_others(tmp_path):
+    def flaky_message(tok, cid, text):
+        if cid == "111":
+            raise RuntimeError("chat not found — hasn't started the bot")
+
+    res = notify.broadcast(
+        "T", ["111", "222"], [], tmp_path, "SUMMARY",
+        send_photo=lambda *a, **k: None,
+        send_message=flaky_message,
+    )
+    assert res == {"111": False, "222": True}  # never raises; 222 still delivered
