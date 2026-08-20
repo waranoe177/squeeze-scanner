@@ -52,3 +52,13 @@ def test_format_trade_equity_only_when_no_options():
             "capital": 9500.0}
     msg = optfmt.format_trade(plan)
     assert "BUY SHARES" in msg and "no options" in msg.lower()
+
+
+def test_format_trade_full_appends_audit_block_with_ev_and_flip():
+    msg = optfmt.format_trade_full(_shares_win_plan())
+    assert "BUY SHARES" in msg                 # includes the decision surface
+    assert "AUDIT" in msg
+    assert "EV" in msg                         # EV appears ONLY here
+    assert "IV 42%" in msg or "IV 42.0%" in msg
+    assert "flip" in msg.lower() and "72" in msg   # flip point 0.72
+    assert "p_stop" in msg or "stop 15%" in msg

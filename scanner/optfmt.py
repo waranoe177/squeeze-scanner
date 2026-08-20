@@ -98,3 +98,26 @@ def _fmt_expiry(iso):
         return ""
     y, m, d = iso.split("-")
     return f"{m}/{d}"
+
+
+def format_trade_full(plan) -> str:
+    surface = format_trade(plan)
+    if not plan.get("options_available"):
+        return surface
+    c = plan["contract"]
+    flip = plan.get("flip")
+    flip_line = (f"flips to shares below {round(flip * 100)}% confidence"
+                 if flip is not None else "no flip in range")
+    audit = "\n".join([
+        "",
+        "— AUDIT —",
+        f"contract {c['strike']:.0f}{'C' if c['kind'] == 'call' else 'P'} "
+        f"{c['expiry']} · {c['dte']}DTE · IV {c['iv'] * 100:.0f}%",
+        f"exit values: target ${plan['v_target']:.2f} · stop ${plan['v_stop']:.2f} "
+        f"· flat ${plan['v_unchanged']:.2f}",
+        f"scenarios: target {round(plan['p'] * 100)}% · "
+        f"stop {round(plan['p_stop'] * 100)}% · flat {round(plan['p_neither'] * 100)}%",
+        f"EV: shares ${plan['equity_ev']:,.0f} · option ${plan['option_ev']:,.0f}",
+        flip_line,
+    ])
+    return surface + "\n" + audit
