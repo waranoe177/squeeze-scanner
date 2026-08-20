@@ -50,6 +50,8 @@ def black_scholes(S, K, T, r, sigma, kind="call") -> dict:
 def conviction_to_p(score) -> float:
     """Rough, clearly-labeled default probability from the conviction score.
     NOT calibrated — a starting point the trader overrides. Clamped [0.35,0.70]."""
+    # 0.01 is a rough, uncalibrated slope: ~+1 point of confidence per
+    # conviction point above 60.
     p = 0.45 + (float(score) - 60.0) * 0.01
     return max(0.35, min(0.70, p))
 
@@ -103,10 +105,10 @@ def select_contract(chain, spot, direction, target_dte=35, hold_days=10,
 
     dte, exp = min(cands, key=rank)
     rows = exp["calls"] if kind == "call" else exp["puts"]
-    usable = [r for r in rows if _mid(r) > 0]
+    usable = [(abs(r["strike"] - spot), r) for r in rows if _mid(r) > 0]
     if not usable:
         return None
-    row = max(usable, key=lambda r: r["strike"])
+    _, row = min(usable, key=lambda t: t[0])
     iv = row.get("iv") or 0.0
     if iv <= 0:
         iv = rv_fallback
@@ -191,8 +193,8 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=35,
 
     contract = select_contract(chain, spot, signal["direction"], target_dte,
                                hold_days, asof, rv_fallback=rv)
-    s = size(spot, stop, target, contract or _EMPTY_CONTRACT, risk_budget,
-             hold_days, r) if contract else _equity_only_size(spot, stop, target, risk_budget)
+    s = size(spot, stop, target, contract, risk_budget, hold_days, r) if contract \
+        else _equity_only_size(spot, stop, target, risk_budget)
 
     if contract is None:
         return {**base, "options_available": False, "winner": "equity",
@@ -220,10 +222,6 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=35,
             "equity_ev": ev["equity_ev"], "option_ev": ev["option_ev"],
             "p_stop": ev["p_stop"], "p_neither": ev["p_neither"],
             "flip": flip_point(spot, stop, target, contract, s, p_neither, hold_days, r)}
-
-
-_EMPTY_CONTRACT = {"kind": "call", "strike": 0.0, "expiry": "", "dte": 0,
-                   "premium": 0.0, "iv": 0.0}
 
 
 def _equity_only_size(entry, stop, target, risk_budget):

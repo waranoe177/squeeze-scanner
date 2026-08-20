@@ -1,4 +1,9 @@
 import math
+from datetime import date
+
+import numpy as np
+import pandas as pd
+
 from scanner import options
 
 
@@ -29,10 +34,6 @@ def test_black_scholes_monotonic_in_vol():
     assert hi > lo
 
 
-import numpy as np
-import pandas as pd
-
-
 def test_conviction_to_p_monotonic_and_clamped():
     assert options.conviction_to_p(40) == 0.35          # clamped floor
     assert options.conviction_to_p(100) == 0.70         # clamped ceiling
@@ -54,9 +55,6 @@ def test_iv_context_labels():
     assert options.iv_context(0.42, 0.0) == "n/a"
 
 
-from datetime import date
-
-
 def _chain():
     def row(k, bid, ask, last, iv):
         return {"strike": k, "bid": bid, "ask": ask, "last": last, "iv": iv}
@@ -64,7 +62,7 @@ def _chain():
         {"expiry": "2026-08-24",  # 5 DTE from 08-19 -> excluded (<= hold_days)
          "calls": [row(130, 1.0, 1.2, 1.1, 0.40)], "puts": []},
         {"expiry": "2026-09-23",  # 35 DTE -> chosen (nearest target, in band)
-         "calls": [row(120, 6.0, 6.4, 6.2, 0.41), row(130, 4.1, 4.3, 4.2, 0.42)],
+         "calls": [row(140, 1.5, 1.7, 1.6, 0.41), row(130, 4.1, 4.3, 4.2, 0.42)],
          "puts": [row(120, 2.0, 2.2, 2.1, 0.45)]},
         {"expiry": "2026-11-21",  # 94 DTE -> out of band
          "calls": [row(130, 7.0, 7.4, 7.2, 0.43)], "puts": []},
@@ -75,7 +73,7 @@ def test_select_contract_picks_in_band_expiry_and_atm_strike():
     c = options.select_contract(_chain(), spot=123.45, direction="bull",
                                 target_dte=35, hold_days=10, asof=date(2026, 8, 19))
     assert c["expiry"] == "2026-09-23"
-    assert c["strike"] == 130.0            # nearest to 123.45 among {120,130}
+    assert c["strike"] == 130.0            # nearest to 123.45 among {130,140}
     assert c["kind"] == "call"
     assert abs(c["premium"] - 4.2) < 1e-9  # mid (4.1+4.3)/2
     assert c["dte"] == 35
@@ -134,7 +132,7 @@ def _accept_chain():
         return {"strike": k, "bid": bid, "ask": ask, "last": last, "iv": iv}
     return {"expiries": [
         {"expiry": "2026-09-23",  # 35 DTE from 2026-08-19
-         "calls": [row(125, 6.9, 7.1, 7.0, 0.42), row(130, 4.1, 4.3, 4.2, 0.42)],
+         "calls": [row(130, 4.1, 4.3, 4.2, 0.42), row(135, 2.1, 2.3, 2.2, 0.42)],
          "puts": [row(120, 2.0, 2.2, 2.1, 0.45)]},
     ]}
 
