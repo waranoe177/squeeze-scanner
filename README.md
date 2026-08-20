@@ -118,11 +118,19 @@ instant (~1–2 s) back-and-forth. Only one poller may run at a time.
 Text `trade NVDA` and the bot replies with a single, executable decision — buy
 shares or a call/put — sized to the same dollar risk, with the option priced at
 its **exit value** (Black–Scholes, remaining time to expiry), not intrinsic.
-Overrides: `trade NVDA 65` (your confidence %), `risk=1000`, `dte=45`, `full`
-(adds the EV / greeks audit tier). Options are defined-risk (premium); the kill
-line is shares-only. It will honestly say "buy shares" when a modest move doesn't
-clear the option's premium — that's the point (`scanner/options.py`,
-`scanner/optfmt.py`).
+
+The default contract follows **Playbook B**, reverse-engineered from a discretionary
+trader running the same daily-squeeze setup: **near-the-money, ~21 DTE (2-3 weeks),
+priced for a 3-5 day hold.** The idea is to buy a comfortable margin more time than
+the hold needs (so a squeeze that fires a day or two late doesn't decay you) and
+exit into the move well before the theta cliff. Leverage comes from the short hold
+against the expiry, not from reaching for a cheap far-OTM strike.
+
+Overrides: `trade NVDA 65` (your confidence %), `risk=1000`, `dte=45` (push the
+expiry out for a slower setup, e.g. a weekly squeeze), `full` (adds the EV / greeks
+audit tier). Options are defined-risk (premium); the kill line is shares-only. It
+will honestly say "buy shares" when a modest move doesn't clear the option's
+premium — that's the point (`scanner/options.py`, `scanner/optfmt.py`).
 
 ## Conviction score (decision layer)
 

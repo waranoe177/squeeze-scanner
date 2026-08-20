@@ -161,8 +161,11 @@ def _accept_signal():
 
 
 def test_decide_acceptance_shares_win_with_exit_value_pricing():
+    # Engine-math gate: pin the historical 35-DTE / 10-day-hold scenario so the
+    # exit-value numbers stay verified independently of the default policy.
     plan = options.decide(_accept_signal(), _accept_chain(), p=0.65,
-                          risk_budget=840.0, asof=date(2026, 8, 19))
+                          risk_budget=840.0, target_dte=35, hold_days=10,
+                          asof=date(2026, 8, 19))
     assert plan["options_available"] is True
     assert plan["contract"]["strike"] == 130.0 and plan["contract"]["dte"] == 35
     assert 5.5 < plan["v_target"] < 6.2                 # EXIT value, not intrinsic 0
@@ -177,7 +180,7 @@ def test_decide_defaults_p_from_conviction_and_reports_move_and_exit():
                           risk_budget=840.0, asof=date(2026, 8, 19))
     assert abs(plan["p"] - options.conviction_to_p(88)) < 1e-9
     assert abs(plan["move_pct"] - 5.3) < 0.2
-    assert plan["exit_date"] == date(2026, 8, 29)       # asof + 10 days
+    assert plan["exit_date"] == date(2026, 8, 23)       # asof + 4 days (Playbook B hold)
 
 
 def test_decide_equity_only_when_no_chain():
@@ -185,6 +188,44 @@ def test_decide_equity_only_when_no_chain():
                           risk_budget=840.0, asof=date(2026, 8, 19))
     assert plan["options_available"] is False
     assert plan["winner"] == "equity" and plan["shares"] == 154
+
+
+def _pb_chain():
+    # Multi-expiry chain to exercise the Playbook B default (near-ATM, ~21 DTE).
+    def row(k, bid, ask, last, iv):
+        return {"strike": k, "bid": bid, "ask": ask, "last": last, "iv": iv}
+    return {"expiries": [
+        {"expiry": "2026-08-22",  # 3 DTE -> excluded (<= default hold_days 4)
+         "calls": [row(130, 1.0, 1.2, 1.1, 0.40)], "puts": []},
+        {"expiry": "2026-08-25",  # 6 DTE -> survives hold, out of band
+         "calls": [row(130, 1.4, 1.6, 1.5, 0.40)], "puts": []},
+        {"expiry": "2026-09-09",  # 21 DTE -> Playbook B target, chosen
+         "calls": [row(130, 3.1, 3.3, 3.2, 0.42), row(140, 1.3, 1.5, 1.4, 0.41)],
+         "puts": []},
+        {"expiry": "2026-09-23",  # 35 DTE -> in band but farther from 21
+         "calls": [row(130, 4.1, 4.3, 4.2, 0.42)], "puts": []},
+        {"expiry": "2026-11-21",  # 94 DTE -> out of band
+         "calls": [row(130, 7.0, 7.4, 7.2, 0.43)], "puts": []},
+    ]}
+
+
+def test_select_contract_default_targets_playbook_b_21dte():
+    # Playbook B: with no explicit target/hold, pick the ~21 DTE (2-3 week)
+    # near-ATM contract, not the 35-DTE stock-replacement one.
+    c = options.select_contract(_pb_chain(), spot=123.45, direction="bull",
+                                asof=date(2026, 8, 19))
+    assert c["expiry"] == "2026-09-09"
+    assert c["dte"] == 21
+    assert c["strike"] == 130.0            # nearest ATM to 123.45
+
+
+def test_decide_default_contract_is_21dte_near_atm():
+    # decide() with no dte/hold overrides flows the Playbook B contract through.
+    plan = options.decide(_accept_signal(), _pb_chain(),
+                          risk_budget=840.0, asof=date(2026, 8, 19))
+    assert plan["contract"]["dte"] == 21
+    assert plan["contract"]["strike"] == 130.0
+    assert plan["exit_date"] == date(2026, 8, 23)   # asof + 4 days
 
 
 def test_fetch_chain_normalizes_injected_yfinance_shape():

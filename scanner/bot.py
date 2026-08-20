@@ -292,7 +292,7 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
     plan = options.decide(
         signal, chain or {"expiries": []},
         p=opts.get("p"), risk_budget=opts.get("risk") or 500.0,
-        target_dte=opts.get("dte") or 35, asof=asof)
+        target_dte=opts.get("dte") or 21, asof=asof)
     msg = (optfmt.format_trade_full(plan) if opts.get("full")
            else optfmt.format_trade(plan))
     send_message(token, chat_id, msg)

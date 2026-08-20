@@ -83,10 +83,13 @@ def _mid(row: dict) -> float:
     return last if last > 0 else 0.0
 
 
-def select_contract(chain, spot, direction, target_dte=35, hold_days=10,
+def select_contract(chain, spot, direction, target_dte=21, hold_days=4,
                     asof=None, rv_fallback=0.0):
     """Pick the in-band expiry nearest `target_dte` (and > hold_days) and the
-    at-the-money strike with a usable premium. Returns None if nothing usable."""
+    at-the-money strike with a usable premium. Returns None if nothing usable.
+
+    Playbook B default: ~21 DTE (2-3 week) near-ATM, exited after a 3-5 day hold.
+    Leverage comes from the short hold vs. the expiry, not from a far-OTM strike."""
     kind = "call" if direction != "bear" else "put"
     cands = []
     for exp in chain.get("expiries", []):
@@ -100,7 +103,7 @@ def select_contract(chain, spot, direction, target_dte=35, hold_days=10,
 
     def rank(c):
         dte = c[0]
-        in_band = 0 if 25 <= dte <= 60 else 1
+        in_band = 0 if 10 <= dte <= 35 else 1
         return (in_band, abs(dte - target_dte))
 
     dte, exp = min(cands, key=rank)
@@ -116,7 +119,7 @@ def select_contract(chain, spot, direction, target_dte=35, hold_days=10,
             "dte": dte, "premium": _mid(row), "iv": iv}
 
 
-def size(entry, stop, target, contract, risk_budget=500.0, hold_days=10, r=0.043):
+def size(entry, stop, target, contract, risk_budget=500.0, hold_days=4, r=0.043):
     """Size both vehicles to the same dollars: shares via the stop, the option
     via its premium (defined risk). Option value at target is its EXIT value
     (remaining time to expiry), never intrinsic."""
@@ -140,7 +143,7 @@ def size(entry, stop, target, contract, risk_budget=500.0, hold_days=10, r=0.043
 
 
 def scenario_ev(entry, stop, target, contract, sizing, p, p_neither=0.20,
-                hold_days=10, r=0.043):
+                hold_days=4, r=0.043):
     """3-scenario EV after the hold horizon: target (p), stop (p_stop), sideways
     (p_neither). The option is repriced in each, so its loss is capped at premium.
     Engine only — never displayed on the decision surface."""
@@ -162,7 +165,7 @@ def scenario_ev(entry, stop, target, contract, sizing, p, p_neither=0.20,
 
 
 def flip_point(entry, stop, target, contract, sizing, p_neither=0.20,
-               hold_days=10, r=0.043):
+               hold_days=4, r=0.043):
     """Confidence p at which option_ev == equity_ev. EV is linear in p, so
     interpolate between p=0 and p=1. Returns None if the two never cross."""
     def diff(p):
@@ -175,8 +178,8 @@ def flip_point(entry, stop, target, contract, sizing, p_neither=0.20,
     return max(0.0, min(1.0, -d0 / (d1 - d0)))
 
 
-def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=35,
-           hold_days=10, r=0.043, p_neither=0.20, asof=None):
+def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=21,
+           hold_days=4, r=0.043, p_neither=0.20, asof=None):
     """Full equity-vs-option decision for one signal. Pure given `chain`.
     `winner` is the higher-EV vehicle; EV/flip are engine-only fields."""
     asof = asof or date.today()
