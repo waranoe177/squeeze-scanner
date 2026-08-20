@@ -280,10 +280,12 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
     conv = score.conviction(df, symbol=symbol)
     direction = sig["direction"]
     if direction == "none":
-        direction = "bull" if (sig["ppo"] >= 0 and sig.get("moxie_w", 0) is not None) else "bear"
+        direction = "bull" if sig["ppo"] >= 0 else "bear"
+    stop = (sig["close"] - sig["atr"] * 1.5 if direction != "bear"
+            else sig["close"] + sig["atr"] * 1.5)
     signal = {"symbol": symbol, "direction": direction, "entry": sig["close"],
               "target": sig["target_up"] if direction != "bear" else sig["target_dn"],
-              "stop": sig["stop"], "score": conv["score"],
+              "stop": stop, "score": conv["score"],
               "realized_vol": options.realized_vol(df["close"])}
 
     chain = chain_fetcher(symbol)

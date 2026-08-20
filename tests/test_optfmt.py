@@ -56,6 +56,18 @@ def test_format_trade_equity_only_when_no_options():
     assert "BUY SHARES" in msg and "no options" in msg.lower()
 
 
+def test_format_trade_equity_only_bear_kill_above():
+    plan = {"symbol": "META", "options_available": False, "winner": "equity",
+            "spot": 200.0, "target": 180.0, "stop": 210.0, "move_pct": -10.0,
+            "exit_date": date(2026, 8, 29), "p": 0.6, "shares": 50,
+            "equity_stop_loss": 500.0, "equity_target_reward": 1000.0,
+            "capital": 10000.0}
+    msg = optfmt.format_trade(plan)
+    assert "SHORT SHARES" in msg
+    assert "Kill above 210" in msg or "Kill above $210" in msg
+    assert "Kill below" not in msg
+
+
 def _bear_plan():
     return {"symbol": "META", "options_available": True, "winner": "equity",
             "spot": 200.0, "target": 180.0, "stop": 210.0, "move_pct": -10.0,
@@ -75,6 +87,8 @@ def test_format_trade_bear_side_short_and_puts():
     equity_plan = _bear_plan()
     msg_equity = optfmt.format_trade(equity_plan)
     assert "SHORT SHARES" in msg_equity
+    assert "Kill above 210" in msg_equity or "Kill above $210" in msg_equity
+    assert "Kill below" not in msg_equity
     assert "EV" not in msg_equity and "R:R" not in msg_equity and \
         "FLIP" not in msg_equity.upper()
 

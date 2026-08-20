@@ -32,6 +32,8 @@ def format_trade(plan) -> str:
     conf = _pct(plan["p"])
     move = f"{plan['move_pct']:+.1f}%"
 
+    kill_word = "below" if d != "bear" else "above"
+
     if not plan.get("options_available"):
         action = _ACTION[("equity", d)]
         return "\n".join([
@@ -39,10 +41,10 @@ def format_trade(plan) -> str:
             f"  assumes {conf} you're right on {move}",
             "",
             f"  BUY {plan['shares']} sh @ ${plan['spot']:.2f}",
-            f"  Kill below {plan['stop']:.0f} (−${plan['equity_stop_loss']:.0f}) · "
+            f"  Kill {kill_word} {plan['stop']:.0f} (−${plan['equity_stop_loss']:.0f}) · "
             f"target {plan['target']:.0f} (+${plan['equity_target_reward']:.0f})",
             "",
-            f"  COST  ${plan['capital']:,.0f} capital; full downside below {plan['stop']:.0f}",
+            f"  COST  ${plan['capital']:,.0f} capital; full downside {kill_word} {plan['stop']:.0f}",
             f"  NOTE  no options listed for {notify._esc(sym)} — shares only",
         ])
 
@@ -65,11 +67,11 @@ def format_trade(plan) -> str:
             f"  assumes {conf} you're right on {move}",
             "",
             f"  BUY {plan['shares']} sh @ ${plan['spot']:.2f}",
-            f"  Kill below {plan['stop']:.0f} (−${plan['equity_stop_loss']:.0f}) · "
+            f"  Kill {kill_word} {plan['stop']:.0f} (−${plan['equity_stop_loss']:.0f}) · "
             f"target {plan['target']:.0f} (+${plan['equity_target_reward']:.0f})",
             "",
             why,
-            f"  COST  ${plan['capital']:,.0f} capital; full downside below {plan['stop']:.0f}",
+            f"  COST  ${plan['capital']:,.0f} capital; full downside {kill_word} {plan['stop']:.0f}",
             skip,
         ])
 

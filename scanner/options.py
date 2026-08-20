@@ -179,6 +179,7 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=35,
            hold_days=10, r=0.043, p_neither=0.20, asof=None):
     """Full equity-vs-option decision for one signal. Pure given `chain`.
     `winner` is the higher-EV vehicle; EV/flip are engine-only fields."""
+    asof = asof or date.today()
     spot = signal["entry"]
     stop = signal["stop"]
     target = signal["target"]

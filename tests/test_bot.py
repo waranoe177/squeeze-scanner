@@ -204,6 +204,40 @@ def test_handle_trade_no_data_replies_text():
     assert ok is False and "ZZZZ" in sent[0]
 
 
+def _ohlc_down(n=320):
+    idx = pd.bdate_range("2023-01-02", periods=n)
+    close = pd.Series(200 - np.arange(n) * 0.12, index=idx)
+    return pd.DataFrame({"open": close, "high": close + 0.6, "low": close - 0.6,
+                         "close": close, "volume": 1_000_000}, index=idx)
+
+
+def test_handle_trade_bear_stop_is_above_entry_and_kill_above():
+    sent = []
+
+    def fake_chain(symbol):
+        return {"expiries": [{"expiry": "2026-09-23", "calls": [],
+                "puts": [{"strike": 44.0, "bid": 3.0, "ask": 3.2, "last": 3.1,
+                          "iv": 0.42}]}]}
+
+    ok = bot.handle_trade(
+        {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False},
+        chat_id="1", token="T",
+        fetcher=lambda syms: {"TEST": _ohlc_down()},
+        chain_fetcher=fake_chain,
+        send_message=lambda tok, cid, text: sent.append(text),
+        asof=date(2026, 8, 19),
+    )
+    assert ok is True
+    msg = sent[0]
+    assert "TEST" in msg
+    assert "Kill above" in msg
+    assert "Kill below" not in msg
+    if "SHORT SHARES" in msg or "BUY PUTS" in msg:
+        pass  # direction-appropriate action rendered
+    else:
+        raise AssertionError(f"expected a short-side action in: {msg}")
+
+
 def test_poll_once_routes_trade(tmp_path, monkeypatch):
     lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
     ledger.save(lpath, [])
