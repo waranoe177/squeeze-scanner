@@ -110,7 +110,7 @@ def select_contract(chain, spot, direction, target_dte=35, hold_days=10,
         return None
     _, row = min(usable, key=lambda t: t[0])
     iv = row.get("iv") or 0.0
-    if iv <= 0:
+    if not (0.01 <= iv <= 5.0):   # implausible or NaN (NaN fails the comparison) -> realized-vol fallback
         iv = rv_fallback
     return {"kind": kind, "strike": float(row["strike"]), "expiry": exp["expiry"],
             "dte": dte, "premium": _mid(row), "iv": iv}

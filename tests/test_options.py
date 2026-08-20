@@ -87,6 +87,24 @@ def test_select_contract_iv_fallback_and_bear_uses_puts():
     assert c["kind"] == "put" and c["iv"] == 0.33
 
 
+def test_select_contract_tiny_positive_iv_falls_back_to_rv():
+    # yfinance sometimes returns a garbage near-zero IV (e.g. 0.0039) for a
+    # real contract; that must fall back to realized vol too, not just iv<=0.
+    ch = _chain()
+    ch["expiries"][1]["puts"][0]["iv"] = 0.004
+    c = options.select_contract(ch, spot=121.0, direction="bear",
+                                hold_days=10, asof=date(2026, 8, 19), rv_fallback=0.33)
+    assert c["kind"] == "put" and c["iv"] == 0.33
+
+
+def test_select_contract_nan_iv_falls_back_to_rv():
+    ch = _chain()
+    ch["expiries"][1]["puts"][0]["iv"] = float("nan")
+    c = options.select_contract(ch, spot=121.0, direction="bear",
+                                hold_days=10, asof=date(2026, 8, 19), rv_fallback=0.33)
+    assert c["kind"] == "put" and c["iv"] == 0.33
+
+
 def test_select_contract_none_when_no_expiry_beyond_hold():
     near = {"expiries": [{"expiry": "2026-08-24", "calls": [
         {"strike": 130, "bid": 1, "ask": 1.2, "last": 1.1, "iv": 0.4}], "puts": []}]}
