@@ -101,6 +101,44 @@ def test_format_trade_bear_side_short_and_puts():
         "FLIP" not in msg_option.upper()
 
 
+def test_skip_line_shows_real_flat_loss_not_full_premium():
+    # Item (b): "if it never moves" must be premium - residual, not full premium.
+    # 2 contracts, $4.20 premium, $3.10 flat value -> flat loss 2*100*(4.20-3.10)=220,
+    # residual 3.10*2*100=620. Full premium ($840) is the MAX loss, not the flat loss.
+    msg = optfmt.format_trade(_shares_win_plan())
+    assert "220" in msg                     # real flat loss (premium - residual)
+    assert "620" in msg                     # residual still on the contract at exit
+    assert "never moves" in msg
+    assert "840 if it never moves" not in msg.replace(",", "")
+
+
+def test_why_keeps_parity_when_risk_matched():
+    plan = _shares_win_plan()
+    plan["risk_matched"] = True
+    msg = optfmt.format_trade(plan)
+    assert "same $840 risk" in msg.replace(",", "")
+
+
+def test_why_discloses_both_risks_when_not_matched():
+    # Item (a): 1-contract floor exceeds budget -> no false "same $X risk" claim.
+    plan = _shares_win_plan()
+    plan.update(risk_matched=False, contracts=1, option_max_loss=835.0,
+                equity_stop_loss=497.0)
+    msg = optfmt.format_trade(plan)
+    assert "not risk-matched" in msg
+    assert "835" in msg and "497" in msg
+    assert "at the same" not in msg          # false parity claim dropped
+
+
+def test_option_win_discloses_both_risks_when_not_matched():
+    plan = _shares_win_plan()
+    plan.update(winner="option", payout_mult=1.6, risk_matched=False,
+                contracts=1, option_max_loss=835.0, equity_stop_loss=497.0)
+    msg = optfmt.format_trade(plan)
+    assert "not risk-matched" in msg
+    assert "at the same" not in msg
+
+
 def test_format_trade_full_appends_audit_block_with_ev_and_flip():
     msg = optfmt.format_trade_full(_shares_win_plan())
     assert "BUY SHARES" in msg                 # includes the decision surface

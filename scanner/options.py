@@ -193,7 +193,8 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=21,
     exit_date = asof + timedelta(days=hold_days)
 
     base = {"symbol": signal["symbol"], "spot": spot, "target": target,
-            "stop": stop, "move_pct": move_pct, "exit_date": exit_date, "p": p}
+            "stop": stop, "move_pct": move_pct, "exit_date": exit_date, "p": p,
+            "risk_budget": risk_budget}
 
     contract = select_contract(chain, spot, signal["direction"], target_dte,
                                hold_days, asof, rv_fallback=rv)
@@ -208,6 +209,10 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=21,
 
     ev = scenario_ev(spot, stop, target, contract, s, p, p_neither, hold_days, r)
     winner = "option" if ev["option_ev"] > ev["equity_ev"] else "equity"
+    # Risk-matched only when the option fits the budget. When 1 contract (the
+    # floor) costs more than the budget, the vehicles are NOT risk-matched and
+    # the "same $X risk" framing would be false — the formatter discloses instead.
+    risk_matched = s["option_max_loss"] <= risk_budget + 1.0
     etr, otr = s["equity_target_reward"], s["option_target_reward"]
     if winner == "option" and etr > 0:
         payout_mult = otr / etr
@@ -216,6 +221,7 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=21,
     else:
         payout_mult = None
     return {**base, "options_available": True, "winner": winner,
+            "risk_matched": risk_matched,
             "shares": s["shares"], "equity_stop_loss": s["equity_stop_loss"],
             "equity_target_reward": etr, "capital": s["shares"] * spot,
             "contract": contract, "contracts": s["contracts"],

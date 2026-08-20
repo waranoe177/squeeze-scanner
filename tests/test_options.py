@@ -183,6 +183,26 @@ def test_decide_defaults_p_from_conviction_and_reports_move_and_exit():
     assert plan["exit_date"] == date(2026, 8, 23)       # asof + 4 days (Playbook B hold)
 
 
+def test_decide_flags_risk_matched_when_option_fits_budget():
+    plan = options.decide(_accept_signal(), _accept_chain(), p=0.65,
+                          risk_budget=840.0, target_dte=35, hold_days=10,
+                          asof=date(2026, 8, 19))
+    assert plan["risk_budget"] == 840.0
+    assert plan["risk_matched"] is True     # 2 contracts * $4.20 * 100 == $840 <= budget
+
+
+def test_decide_flags_risk_not_matched_when_one_contract_exceeds_budget():
+    sig = {"symbol": "AAPL", "direction": "bull", "entry": 315.0, "target": 330.0,
+           "stop": 308.0, "score": 80, "realized_vol": 0.30}
+    chain = {"expiries": [{"expiry": "2026-09-09", "calls": [
+        {"strike": 315, "bid": 8.2, "ask": 8.5, "last": 8.35, "iv": 0.27}],
+        "puts": []}]}
+    plan = options.decide(sig, chain, p=0.60, risk_budget=500.0, asof=date(2026, 8, 19))
+    assert plan["contracts"] == 1               # floored to the minimum
+    assert plan["option_max_loss"] > 500.0      # $835 > the $500 budget
+    assert plan["risk_matched"] is False
+
+
 def test_decide_equity_only_when_no_chain():
     plan = options.decide(_accept_signal(), {"expiries": []},
                           risk_budget=840.0, asof=date(2026, 8, 19))

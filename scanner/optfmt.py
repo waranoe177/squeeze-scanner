@@ -55,13 +55,15 @@ def format_trade(plan) -> str:
 
     if winner == "equity":
         action = _ACTION[("equity", d)]
+        # Flat ("never moves") loss is premium MINUS the residual time value still
+        # on the contract at exit — not the full premium (that's the max loss).
+        residual = plan["v_unchanged"] * plan["contracts"] * 100.0
+        flat_loss = max(0.0, plan["option_max_loss"] - residual)
         skip = (f"  SKIP  {plan['contracts']} × {strike} {exp} @ ${c['premium']:.2f} → "
                 f"only +${plan['option_target_reward']:.0f} at {plan['target']:.0f} "
                 f"({strike} ≈ ${plan['v_target']:.2f} vs ${c['premium']:.2f} paid); "
-                f"−${plan['option_max_loss']:,.0f} if it never moves")
-        why = (f"  WHY   {plan['payout_mult']:.0f}× the payout of the call "
-               f"at the same ${plan['option_max_loss']:,.0f} risk"
-               if plan.get("payout_mult") is not None else "  WHY   shares keep the edge")
+                f"−${flat_loss:,.0f} if it never moves (keeps ~${residual:,.0f})")
+        why = _why_equity(plan)
         return "\n".join([
             _hdr(sym, action, exit_date),
             f"  assumes {conf} you're right on {move}",
@@ -87,12 +89,35 @@ def format_trade(plan) -> str:
         f"({strike} ≈ ${plan['v_target']:.2f} vs ${c['premium']:.2f} paid)",
         f"  Flat by {exit_date:%m/%d} → close ≈ ${plan['v_unchanged'] * plan['contracts'] * 100:,.0f} back",
         "",
-        f"  WHY   ~{plan['payout_mult']:.1f}× the payout of shares at the same "
-        f"${plan['option_max_loss']:,.0f} risk" if plan.get("payout_mult") is not None
-        else "  WHY   convex payoff beats shares at your odds",
+        _why_option(plan),
         f"  COST  needs {move} by {exit_date:%m/%d}; IV {c['iv'] * 100:.0f}% is {plan['iv_label']}",
         f"  SKIP  {plan['shares']} sh → ≈ +${plan['equity_target_reward']:,.0f}, no clock, no decay",
     ])
+
+
+def _why_equity(plan) -> str:
+    """WHY line when shares win. Only claims 'same $X risk' when the vehicles
+    are actually risk-matched; otherwise discloses both real risk figures."""
+    if plan.get("payout_mult") is None:
+        return "  WHY   shares keep the edge"
+    if plan.get("risk_matched", True):
+        return (f"  WHY   {plan['payout_mult']:.0f}× the payout of the call "
+                f"at the same ${plan['option_max_loss']:,.0f} risk")
+    return (f"  WHY   1 contract (the minimum) risks ${plan['option_max_loss']:,.0f} "
+            f"vs ${plan['equity_stop_loss']:,.0f} on the shares — "
+            f"not risk-matched, and it still earns less")
+
+
+def _why_option(plan) -> str:
+    """WHY line when the option wins. Same risk-matched honesty as _why_equity."""
+    if plan.get("payout_mult") is None:
+        return "  WHY   convex payoff beats shares at your odds"
+    if plan.get("risk_matched", True):
+        return (f"  WHY   ~{plan['payout_mult']:.1f}× the payout of shares "
+                f"at the same ${plan['option_max_loss']:,.0f} risk")
+    return (f"  WHY   convex payoff wins, but 1 contract risks "
+            f"${plan['option_max_loss']:,.0f} vs ${plan['equity_stop_loss']:,.0f} "
+            f"on the shares — not risk-matched")
 
 
 def _fmt_expiry(iso):
