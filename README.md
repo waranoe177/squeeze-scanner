@@ -113,6 +113,17 @@ frequent schedules, though, so cloud replies are best-effort and land erraticall
 (~15–60 min, occasionally a slot is skipped). Run `--serve` locally when you want
 instant (~1–2 s) back-and-forth. Only one poller may run at a time.
 
+## Options vs equity on demand
+
+Text `trade NVDA` and the bot replies with a single, executable decision — buy
+shares or a call/put — sized to the same dollar risk, with the option priced at
+its **exit value** (Black–Scholes, remaining time to expiry), not intrinsic.
+Overrides: `trade NVDA 65` (your confidence %), `risk=1000`, `dte=45`, `full`
+(adds the EV / greeks audit tier). Options are defined-risk (premium); the kill
+line is shares-only. It will honestly say "buy shares" when a modest move doesn't
+clear the option's premium — that's the point (`scanner/options.py`,
+`scanner/optfmt.py`).
+
 ## Conviction score (decision layer)
 
 Every fired ticker gets a **conviction score (0-100 + grade)** — a confluence
