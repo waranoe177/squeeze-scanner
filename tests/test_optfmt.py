@@ -42,6 +42,8 @@ def test_format_trade_option_win_shows_exit_value_and_sideways():
     assert "130C" in msg and "5.87" in msg      # exit value on the surface
     assert "Flat by 08/29" in msg               # mandatory sideways branch
     assert "Max loss $840" in msg.replace(",", "")
+    # reproducibility: no EV, no R-multiples, no FLIPS on the option-win surface either
+    assert "EV" not in msg and "R:R" not in msg and "FLIP" not in msg.upper()
 
 
 def test_format_trade_equity_only_when_no_options():
@@ -52,6 +54,37 @@ def test_format_trade_equity_only_when_no_options():
             "capital": 9500.0}
     msg = optfmt.format_trade(plan)
     assert "BUY SHARES" in msg and "no options" in msg.lower()
+
+
+def _bear_plan():
+    return {"symbol": "META", "options_available": True, "winner": "equity",
+            "spot": 200.0, "target": 180.0, "stop": 210.0, "move_pct": -10.0,
+            "exit_date": date(2026, 8, 29), "p": 0.6,
+            "shares": 50, "equity_stop_loss": 500.0, "equity_target_reward": 1000.0,
+            "capital": 10000.0,
+            "contract": {"kind": "put", "strike": 180.0, "expiry": "2026-09-23",
+                         "dte": 35, "premium": 5.00, "iv": 0.55},
+            "contracts": 3, "option_max_loss": 1500.0, "option_target_reward": 600.0,
+            "v_target": 8.00, "v_stop": 1.5, "v_unchanged": 4.0,
+            "payout_mult": 1.5, "iv_label": "rich",
+            "equity_ev": 400.0, "option_ev": 100.0, "p_stop": 0.2,
+            "p_neither": 0.2, "flip": 0.55}
+
+
+def test_format_trade_bear_side_short_and_puts():
+    equity_plan = _bear_plan()
+    msg_equity = optfmt.format_trade(equity_plan)
+    assert "SHORT SHARES" in msg_equity
+    assert "EV" not in msg_equity and "R:R" not in msg_equity and \
+        "FLIP" not in msg_equity.upper()
+
+    option_plan = _bear_plan()
+    option_plan.update(winner="option")
+    msg_option = optfmt.format_trade(option_plan)
+    assert "BUY PUTS" in msg_option
+    assert "180P" in msg_option
+    assert "EV" not in msg_option and "R:R" not in msg_option and \
+        "FLIP" not in msg_option.upper()
 
 
 def test_format_trade_full_appends_audit_block_with_ev_and_flip():
