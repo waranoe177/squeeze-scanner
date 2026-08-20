@@ -112,3 +112,26 @@ def select_contract(chain, spot, direction, target_dte=35, hold_days=10,
         iv = rv_fallback
     return {"kind": kind, "strike": float(row["strike"]), "expiry": exp["expiry"],
             "dte": dte, "premium": _mid(row), "iv": iv}
+
+
+def size(entry, stop, target, contract, risk_budget=500.0, hold_days=10, r=0.043):
+    """Size both vehicles to the same dollars: shares via the stop, the option
+    via its premium (defined risk). Option value at target is its EXIT value
+    (remaining time to expiry), never intrinsic."""
+    stop_dist = abs(entry - stop)
+    shares = int(risk_budget // stop_dist) if stop_dist > 0 else 0
+    equity_stop_loss = shares * stop_dist
+    equity_target_reward = shares * abs(target - entry)
+
+    t_remaining = max(contract["dte"] - hold_days, 0) / 365.0
+    K, iv, kind, prem = (contract["strike"], contract["iv"],
+                         contract["kind"], contract["premium"])
+    v_target = black_scholes(target, K, t_remaining, r, iv, kind)["price"]
+    contracts = max(1, int(risk_budget // (prem * 100.0)))
+    option_max_loss = contracts * prem * 100.0
+    option_target_reward = contracts * (v_target - prem) * 100.0
+    return {"shares": shares, "equity_stop_loss": equity_stop_loss,
+            "equity_target_reward": equity_target_reward, "contracts": contracts,
+            "option_max_loss": option_max_loss,
+            "option_target_reward": option_target_reward,
+            "v_target": v_target, "t_remaining": t_remaining}

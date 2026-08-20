@@ -94,3 +94,20 @@ def test_select_contract_none_when_no_expiry_beyond_hold():
         {"strike": 130, "bid": 1, "ask": 1.2, "last": 1.1, "iv": 0.4}], "puts": []}]}
     assert options.select_contract(near, 130, "bull", hold_days=10,
                                    asof=date(2026, 8, 19)) is None
+
+
+def _accept_contract():
+    return {"kind": "call", "strike": 130.0, "expiry": "2026-09-23",
+            "dte": 35, "premium": 4.20, "iv": 0.42}
+
+
+def test_size_matches_acceptance_numbers():
+    s = options.size(123.45, 118.0, 130.0, _accept_contract(),
+                     risk_budget=840.0, hold_days=10, r=0.043)
+    assert s["shares"] == 154                       # floor(840/5.45)
+    assert abs(s["equity_stop_loss"] - 839.3) < 1.0
+    assert abs(s["equity_target_reward"] - 1009) < 2.0
+    assert s["contracts"] == 2                       # floor(840/420)
+    assert abs(s["option_max_loss"] - 840.0) < 1e-6  # 2*4.20*100
+    assert 5.5 < s["v_target"] < 6.2                 # EXIT value ~5.87, not 0
+    assert abs(s["option_target_reward"] - 334) < 8.0  # 2*(5.87-4.20)*100
