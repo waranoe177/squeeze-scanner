@@ -7,6 +7,7 @@ No scipy — the normal CDF is math.erf.
 """
 
 import math
+from datetime import date, timedelta
 
 import numpy as np
 
@@ -69,3 +70,45 @@ def iv_context(iv: float, rv: float) -> str:
     if iv < 0.8 * rv:
         return "cheap"
     return "fair"
+
+
+def _mid(row: dict) -> float:
+    bid = row.get("bid") or 0.0
+    ask = row.get("ask") or 0.0
+    last = row.get("last") or 0.0
+    if bid > 0 and ask > 0:
+        return (bid + ask) / 2.0
+    return last if last > 0 else 0.0
+
+
+def select_contract(chain, spot, direction, target_dte=35, hold_days=10,
+                    asof=None, rv_fallback=0.0):
+    """Pick the in-band expiry nearest `target_dte` (and > hold_days) and the
+    at-the-money strike with a usable premium. Returns None if nothing usable."""
+    kind = "call" if direction != "bear" else "put"
+    cands = []
+    for exp in chain.get("expiries", []):
+        y, m, d = (int(x) for x in exp["expiry"].split("-"))
+        dte = (date(y, m, d) - asof).days
+        if dte <= hold_days:
+            continue
+        cands.append((dte, exp))
+    if not cands:
+        return None
+
+    def rank(c):
+        dte = c[0]
+        in_band = 0 if 25 <= dte <= 60 else 1
+        return (in_band, abs(dte - target_dte))
+
+    dte, exp = min(cands, key=rank)
+    rows = exp["calls"] if kind == "call" else exp["puts"]
+    usable = [r for r in rows if _mid(r) > 0]
+    if not usable:
+        return None
+    row = max(usable, key=lambda r: r["strike"])
+    iv = row.get("iv") or 0.0
+    if iv <= 0:
+        iv = rv_fallback
+    return {"kind": kind, "strike": float(row["strike"]), "expiry": exp["expiry"],
+            "dte": dte, "premium": _mid(row), "iv": iv}
