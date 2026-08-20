@@ -5,6 +5,8 @@ the reply summary, the single-symbol handler, and the unified poll dispatch that
 routes go/pass to decisions and ticker requests to the chart handler.
 """
 
+from datetime import date
+
 import numpy as np
 import pandas as pd
 
@@ -158,3 +160,58 @@ def test_parse_trade_rejects_non_trade_and_bad_symbol():
     assert bot.parse_trade(_update("trade")) is None          # no symbol
     assert bot.parse_trade(_update("go tsla")) is None
     assert bot.parse_trade({"update_id": 5}) is None          # no message
+
+
+# ---- handle_trade + poll dispatch -------------------------------------------
+
+def _ohlc_up(n=320):
+    idx = pd.bdate_range("2023-01-02", periods=n)
+    close = pd.Series(50 + np.arange(n) * 0.12, index=idx)
+    return pd.DataFrame({"open": close, "high": close + 0.6, "low": close - 0.6,
+                         "close": close, "volume": 1_000_000}, index=idx)
+
+
+def test_handle_trade_sends_decision_message():
+    sent = []
+
+    def fake_chain(symbol):
+        return {"expiries": [{"expiry": "2026-09-23",
+                "calls": [{"strike": 88.0, "bid": 3.0, "ask": 3.2, "last": 3.1,
+                           "iv": 0.42}], "puts": []}]}
+
+    ok = bot.handle_trade(
+        {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False},
+        chat_id="1", token="T",
+        fetcher=lambda syms: {"TEST": _ohlc_up()},
+        chain_fetcher=fake_chain,
+        send_message=lambda tok, cid, text: sent.append(text),
+        asof=date(2026, 8, 19),
+    )
+    assert ok is True
+    assert "TEST" in sent[0] and ("BUY" in sent[0] or "SHARES" in sent[0])
+
+
+def test_handle_trade_no_data_replies_text():
+    sent = []
+    ok = bot.handle_trade(
+        {"symbol": "ZZZZ", "p": None, "risk": None, "dte": None, "full": False},
+        chat_id="1", token="T",
+        fetcher=lambda syms: {},
+        chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: sent.append(text),
+        asof=date(2026, 8, 19),
+    )
+    assert ok is False and "ZZZZ" in sent[0]
+
+
+def test_poll_once_routes_trade(tmp_path, monkeypatch):
+    lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
+    ledger.save(lpath, [])
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("trade nvda 60", uid=3)], 4))
+    routed = []
+    bot.poll_once(token="T", chat_id="1", ledger_path=lpath, state_path=spath,
+                  command_handler=lambda sym: routed.append(("chart", sym)) or True,
+                  trade_handler=lambda opts: routed.append(("trade", opts["symbol"])) or True)
+    assert ("trade", "NVDA") in routed
+    assert not any(r[0] == "chart" for r in routed)   # trade did NOT fall through to chart

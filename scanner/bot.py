@@ -25,9 +25,10 @@ import os
 import re
 import sys
 import tempfile
+from datetime import date
 from pathlib import Path
 
-from scanner import chart, data, decisions, notify, score, signals
+from scanner import chart, data, decisions, notify, optfmt, options, score, signals
 
 # A ticker: letter-led, then letters/digits and the few punctuation marks real
 # symbols use (BRK-B, BRK.B, GC=F, ^VIX). Up to 12 chars total.
@@ -124,7 +125,7 @@ def _from_owner(update: dict, allowed_chat) -> bool:
 
 def poll_once(token=None, chat_id=None, ledger_path=None,
               state_path=decisions.DEFAULT_STATE_PATH, timeout: int = 0,
-              command_handler=None) -> dict:
+              command_handler=None, trade_handler=None) -> dict:
     """Drain updates once and dispatch: go/pass -> ledger, tickers -> charts.
 
     The ledger is saved BEFORE the offset (a crash between the two replays the
@@ -142,6 +143,8 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
     ledger_path = ledger_path or ledger.DEFAULT_PATH
     command_handler = command_handler or (
         lambda sym: handle_command(sym, chat_id, token))
+    trade_handler = trade_handler or (
+        lambda opts: handle_trade(opts, chat_id, token))
 
     state = decisions.load_state(state_path)
     updates, next_offset = decisions.fetch_updates(token, state["offset"], timeout=timeout)
@@ -153,10 +156,22 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
     decisions.apply_decisions(records, parsed)
     ledger.save(ledger_path, records)
 
-    # 2) chart requests (anything not already a decision)
+    # 2) trade requests + chart requests (anything not already a decision)
     charts = 0
     for u in owned:
         if decisions.parse_decision(u):
+            continue
+        t = parse_trade(u)
+        if t:
+            try:
+                if trade_handler(t):
+                    charts += 1
+            except Exception as exc:  # a bad request must not stall the poller
+                print(f"  [bot] trade failed for {t['symbol']}: {exc}")
+                try:
+                    notify.send_message(token, chat_id, f"Couldn't analyze {t['symbol']}: {exc}")
+                except Exception:
+                    pass
             continue
         sym = parse_command(u)
         if not sym:
@@ -240,6 +255,46 @@ def parse_trade(update: dict) -> dict | None:
         elif re.fullmatch(r"\d{1,3}", tok):
             opts["p"] = _to_p(tok)
     return opts
+
+
+def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
+                 send_message=None, asof=None) -> bool:
+    """Compute + send the equity-vs-options decision for one ticker.
+
+    Collaborators are injectable so this is unit-testable without network.
+    Returns True on a decision send, False when there's no price data.
+    """
+    fetcher = fetcher or (lambda syms: data.fetch_daily(syms, period="2y"))
+    chain_fetcher = chain_fetcher or options.fetch_chain
+    send_message = send_message or notify.send_message
+    asof = asof or date.today()
+
+    symbol = opts["symbol"]
+    frames = fetcher([symbol])
+    df = frames.get(symbol)
+    if df is None or getattr(df, "empty", True):
+        send_message(token, chat_id, f"No data for {symbol} — check the ticker?")
+        return False
+
+    sig = signals.latest_signal(df, symbol=symbol)
+    conv = score.conviction(df, symbol=symbol)
+    direction = sig["direction"]
+    if direction == "none":
+        direction = "bull" if (sig["ppo"] >= 0 and sig.get("moxie_w", 0) is not None) else "bear"
+    signal = {"symbol": symbol, "direction": direction, "entry": sig["close"],
+              "target": sig["target_up"] if direction != "bear" else sig["target_dn"],
+              "stop": sig["stop"], "score": conv["score"],
+              "realized_vol": options.realized_vol(df["close"])}
+
+    chain = chain_fetcher(symbol)
+    plan = options.decide(
+        signal, chain or {"expiries": []},
+        p=opts.get("p"), risk_budget=opts.get("risk") or 500.0,
+        target_dte=opts.get("dte") or 35, asof=asof)
+    msg = (optfmt.format_trade_full(plan) if opts.get("full")
+           else optfmt.format_trade(plan))
+    send_message(token, chat_id, msg)
+    return True
 
 
 def main(argv=None) -> None:
