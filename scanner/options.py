@@ -231,3 +231,41 @@ def _equity_only_size(entry, stop, target, risk_budget):
     shares = int(risk_budget // dist) if dist > 0 else 0
     return {"shares": shares, "equity_stop_loss": shares * dist,
             "equity_target_reward": shares * abs(target - entry)}
+
+
+def _rows_from_df(df):
+    """Normalize a yfinance calls/puts DataFrame (or list of dicts) to our rows."""
+    records = df.to_dict("records") if hasattr(df, "to_dict") else list(df)
+    out = []
+    for rec in records:
+        out.append({"strike": float(rec.get("strike")),
+                    "bid": float(rec.get("bid") or 0.0),
+                    "ask": float(rec.get("ask") or 0.0),
+                    "last": float(rec.get("lastPrice") or 0.0),
+                    "iv": float(rec.get("impliedVolatility") or 0.0)})
+    return out
+
+
+def fetch_chain(symbol, fetch=None, max_expiries=8):
+    """Live option chain via yfinance, normalized. Best-effort -> None on failure.
+
+    `fetch(symbol) -> (expiries_list, {expiry: chain_obj})` is injectable, where
+    chain_obj has `.calls` and `.puts` (DataFrames or lists of dicts).
+    """
+    try:
+        if fetch is not None:
+            expiries, chains = fetch(symbol)
+        else:
+            import yfinance as yf
+            tk = yf.Ticker(symbol)
+            expiries = list(tk.options or [])[:max_expiries]
+            chains = {e: tk.option_chain(e) for e in expiries}
+        out = []
+        for e in expiries[:max_expiries]:
+            ch = chains[e]
+            out.append({"expiry": e, "calls": _rows_from_df(ch.calls),
+                        "puts": _rows_from_df(ch.puts)})
+        return {"expiries": out} if out else None
+    except Exception as exc:  # network/shape hiccup — never break the bot
+        print(f"  [warn] no option chain for {symbol}: {exc}")
+        return None

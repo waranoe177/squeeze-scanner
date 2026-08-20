@@ -169,3 +169,28 @@ def test_decide_equity_only_when_no_chain():
                           risk_budget=840.0, asof=date(2026, 8, 19))
     assert plan["options_available"] is False
     assert plan["winner"] == "equity" and plan["shares"] == 154
+
+
+def test_fetch_chain_normalizes_injected_yfinance_shape():
+    class FakeChain:
+        def __init__(self, calls, puts):
+            self.calls, self.puts = calls, puts
+
+    def fake(symbol):
+        # mimic yfinance: .options list + option_chain(exp) -> namedtuple-ish
+        calls = [{"strike": 130.0, "bid": 4.1, "ask": 4.3, "lastPrice": 4.2,
+                  "impliedVolatility": 0.42}]
+        puts = [{"strike": 120.0, "bid": 2.0, "ask": 2.2, "lastPrice": 2.1,
+                 "impliedVolatility": 0.45}]
+        return ["2026-09-23"], {"2026-09-23": FakeChain(calls, puts)}
+
+    ch = options.fetch_chain("NVDA", fetch=fake)
+    assert ch["expiries"][0]["expiry"] == "2026-09-23"
+    assert ch["expiries"][0]["calls"][0]["iv"] == 0.42
+    assert ch["expiries"][0]["puts"][0]["strike"] == 120.0
+
+
+def test_fetch_chain_none_on_failure():
+    def boom(symbol):
+        raise RuntimeError("no network")
+    assert options.fetch_chain("ZZZZ", fetch=boom) is None
