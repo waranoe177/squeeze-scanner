@@ -111,3 +111,19 @@ def test_size_matches_acceptance_numbers():
     assert abs(s["option_max_loss"] - 840.0) < 1e-6  # 2*4.20*100
     assert 5.5 < s["v_target"] < 6.2                 # EXIT value ~5.87, not 0
     assert abs(s["option_target_reward"] - 334) < 8.0  # 2*(5.87-4.20)*100
+
+
+def test_scenario_ev_shares_win_the_acceptance_case():
+    c = _accept_contract()
+    s = options.size(123.45, 118.0, 130.0, c, risk_budget=840.0)
+    ev = options.scenario_ev(123.45, 118.0, 130.0, c, s, p=0.65)
+    assert ev["equity_ev"] > ev["option_ev"]     # shares win, priced correctly
+    assert abs(ev["p_stop"] - 0.15) < 1e-9        # 1 - 0.65 - 0.20
+    assert ev["v_stop"] < c["premium"]            # loses value at the stop
+
+
+def test_flip_point_is_between_zero_and_one():
+    c = _accept_contract()
+    s = options.size(123.45, 118.0, 130.0, c, risk_budget=840.0)
+    fp = options.flip_point(123.45, 118.0, 130.0, c, s)
+    assert fp is None or 0.0 <= fp <= 1.0

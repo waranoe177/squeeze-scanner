@@ -135,3 +135,39 @@ def size(entry, stop, target, contract, risk_budget=500.0, hold_days=10, r=0.043
             "option_max_loss": option_max_loss,
             "option_target_reward": option_target_reward,
             "v_target": v_target, "t_remaining": t_remaining}
+
+
+def scenario_ev(entry, stop, target, contract, sizing, p, p_neither=0.20,
+                hold_days=10, r=0.043):
+    """3-scenario EV after the hold horizon: target (p), stop (p_stop), sideways
+    (p_neither). The option is repriced in each, so its loss is capped at premium.
+    Engine only — never displayed on the decision surface."""
+    p_stop = max(0.0, 1.0 - p - p_neither)
+    K, iv, kind, prem = (contract["strike"], contract["iv"],
+                         contract["kind"], contract["premium"])
+    t_rem = sizing["t_remaining"]
+    v_target = sizing["v_target"]
+    v_stop = black_scholes(stop, K, t_rem, r, iv, kind)["price"]
+    v_unch = black_scholes(entry, K, t_rem, r, iv, kind)["price"]
+    equity_ev = p * sizing["equity_target_reward"] - p_stop * sizing["equity_stop_loss"]
+    c = sizing["contracts"]
+    option_ev = c * 100.0 * (p * (v_target - prem)
+                             + p_stop * (v_stop - prem)
+                             + p_neither * (v_unch - prem))
+    return {"equity_ev": equity_ev, "option_ev": option_ev, "p": p,
+            "p_stop": p_stop, "p_neither": p_neither,
+            "v_stop": v_stop, "v_unchanged": v_unch}
+
+
+def flip_point(entry, stop, target, contract, sizing, p_neither=0.20,
+               hold_days=10, r=0.043):
+    """Confidence p at which option_ev == equity_ev. EV is linear in p, so
+    interpolate between p=0 and p=1. Returns None if the two never cross."""
+    def diff(p):
+        ev = scenario_ev(entry, stop, target, contract, sizing, p, p_neither,
+                         hold_days, r)
+        return ev["option_ev"] - ev["equity_ev"]
+    d0, d1 = diff(0.0), diff(1.0)
+    if d0 == d1:
+        return None
+    return max(0.0, min(1.0, -d0 / (d1 - d0)))
