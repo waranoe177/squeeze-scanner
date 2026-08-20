@@ -171,3 +171,63 @@ def flip_point(entry, stop, target, contract, sizing, p_neither=0.20,
     if d0 == d1:
         return None
     return max(0.0, min(1.0, -d0 / (d1 - d0)))
+
+
+def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=35,
+           hold_days=10, r=0.043, p_neither=0.20, asof=None):
+    """Full equity-vs-option decision for one signal. Pure given `chain`.
+    `winner` is the higher-EV vehicle; EV/flip are engine-only fields."""
+    spot = signal["entry"]
+    stop = signal["stop"]
+    target = signal["target"]
+    rv = signal.get("realized_vol", 0.0)
+    if p is None:
+        p = conviction_to_p(signal.get("score", 50))
+    move_pct = (target - spot) / spot * 100.0 if spot else 0.0
+    exit_date = asof + timedelta(days=hold_days)
+
+    base = {"symbol": signal["symbol"], "spot": spot, "target": target,
+            "stop": stop, "move_pct": move_pct, "exit_date": exit_date, "p": p}
+
+    contract = select_contract(chain, spot, signal["direction"], target_dte,
+                               hold_days, asof, rv_fallback=rv)
+    s = size(spot, stop, target, contract or _EMPTY_CONTRACT, risk_budget,
+             hold_days, r) if contract else _equity_only_size(spot, stop, target, risk_budget)
+
+    if contract is None:
+        return {**base, "options_available": False, "winner": "equity",
+                "shares": s["shares"], "equity_stop_loss": s["equity_stop_loss"],
+                "equity_target_reward": s["equity_target_reward"],
+                "capital": s["shares"] * spot}
+
+    ev = scenario_ev(spot, stop, target, contract, s, p, p_neither, hold_days, r)
+    winner = "option" if ev["option_ev"] > ev["equity_ev"] else "equity"
+    etr, otr = s["equity_target_reward"], s["option_target_reward"]
+    if winner == "option" and etr > 0:
+        payout_mult = otr / etr
+    elif winner == "equity" and otr != 0:
+        payout_mult = etr / otr
+    else:
+        payout_mult = None
+    return {**base, "options_available": True, "winner": winner,
+            "shares": s["shares"], "equity_stop_loss": s["equity_stop_loss"],
+            "equity_target_reward": etr, "capital": s["shares"] * spot,
+            "contract": contract, "contracts": s["contracts"],
+            "option_max_loss": s["option_max_loss"], "option_target_reward": otr,
+            "v_target": s["v_target"], "v_stop": ev["v_stop"],
+            "v_unchanged": ev["v_unchanged"], "payout_mult": payout_mult,
+            "iv_label": iv_context(contract["iv"], rv),
+            "equity_ev": ev["equity_ev"], "option_ev": ev["option_ev"],
+            "p_stop": ev["p_stop"], "p_neither": ev["p_neither"],
+            "flip": flip_point(spot, stop, target, contract, s, p_neither, hold_days, r)}
+
+
+_EMPTY_CONTRACT = {"kind": "call", "strike": 0.0, "expiry": "", "dte": 0,
+                   "premium": 0.0, "iv": 0.0}
+
+
+def _equity_only_size(entry, stop, target, risk_budget):
+    dist = abs(entry - stop)
+    shares = int(risk_budget // dist) if dist > 0 else 0
+    return {"shares": shares, "equity_stop_loss": shares * dist,
+            "equity_target_reward": shares * abs(target - entry)}

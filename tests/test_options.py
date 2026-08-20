@@ -127,3 +127,45 @@ def test_flip_point_is_between_zero_and_one():
     s = options.size(123.45, 118.0, 130.0, c, risk_budget=840.0)
     fp = options.flip_point(123.45, 118.0, 130.0, c, s)
     assert fp is None or 0.0 <= fp <= 1.0
+
+
+def _accept_chain():
+    def row(k, bid, ask, last, iv):
+        return {"strike": k, "bid": bid, "ask": ask, "last": last, "iv": iv}
+    return {"expiries": [
+        {"expiry": "2026-09-23",  # 35 DTE from 2026-08-19
+         "calls": [row(125, 6.9, 7.1, 7.0, 0.42), row(130, 4.1, 4.3, 4.2, 0.42)],
+         "puts": [row(120, 2.0, 2.2, 2.1, 0.45)]},
+    ]}
+
+
+def _accept_signal():
+    return {"symbol": "NVDA", "direction": "bull", "entry": 123.45,
+            "target": 130.0, "stop": 118.0, "score": 88, "realized_vol": 0.33}
+
+
+def test_decide_acceptance_shares_win_with_exit_value_pricing():
+    plan = options.decide(_accept_signal(), _accept_chain(), p=0.65,
+                          risk_budget=840.0, asof=date(2026, 8, 19))
+    assert plan["options_available"] is True
+    assert plan["contract"]["strike"] == 130.0 and plan["contract"]["dte"] == 35
+    assert 5.5 < plan["v_target"] < 6.2                 # EXIT value, not intrinsic 0
+    assert abs(plan["option_target_reward"] - 334) < 8.0
+    assert abs(plan["equity_target_reward"] - 1009) < 3.0
+    assert plan["winner"] == "equity"                   # shares win, decisively
+    assert plan["shares"] == 154 and plan["contracts"] == 2
+
+
+def test_decide_defaults_p_from_conviction_and_reports_move_and_exit():
+    plan = options.decide(_accept_signal(), _accept_chain(),
+                          risk_budget=840.0, asof=date(2026, 8, 19))
+    assert abs(plan["p"] - options.conviction_to_p(88)) < 1e-9
+    assert abs(plan["move_pct"] - 5.3) < 0.2
+    assert plan["exit_date"] == date(2026, 8, 29)       # asof + 10 days
+
+
+def test_decide_equity_only_when_no_chain():
+    plan = options.decide(_accept_signal(), {"expiries": []},
+                          risk_budget=840.0, asof=date(2026, 8, 19))
+    assert plan["options_available"] is False
+    assert plan["winner"] == "equity" and plan["shares"] == 154
