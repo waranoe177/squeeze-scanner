@@ -196,6 +196,52 @@ def serve(token=None, chat_id=None, ledger_path=None,
             print(f"[bot] poll error (continuing): {exc}")
 
 
+_TRADE_SYM = re.compile(r"^[A-Za-z][A-Za-z0-9.\-=^]{0,11}$")
+
+
+def _to_p(tok):
+    try:
+        v = float(tok)
+    except ValueError:
+        return None
+    v = v / 100.0 if v > 1 else v
+    return max(0.01, min(0.99, v))
+
+
+def parse_trade(update: dict) -> dict | None:
+    """Parse `trade SYM [CONF] [risk=N] [dte=N] [full]`. None if not a trade."""
+    msg = update.get("message") or {}
+    text = (msg.get("text") or "").strip()
+    if not text:
+        return None
+    parts = text.split()
+    if parts[0].lower() not in ("trade", "/trade") or len(parts) < 2:
+        return None
+    if not _TRADE_SYM.match(parts[1]):
+        return None
+    opts = {"symbol": parts[1].upper(), "p": None, "risk": None,
+            "dte": None, "full": False}
+    for tok in parts[2:]:
+        low = tok.lower()
+        if low == "full":
+            opts["full"] = True
+        elif low.startswith("risk="):
+            try:
+                opts["risk"] = float(tok[5:])
+            except ValueError:
+                pass
+        elif low.startswith("dte="):
+            try:
+                opts["dte"] = int(tok[4:])
+            except ValueError:
+                pass
+        elif low.startswith("p="):
+            opts["p"] = _to_p(tok[2:])
+        elif re.fullmatch(r"\d{1,3}", tok):
+            opts["p"] = _to_p(tok)
+    return opts
+
+
 def main(argv=None) -> None:
     try:  # emoji in captions/prints choke cp1252 consoles otherwise
         sys.stdout.reconfigure(encoding="utf-8")

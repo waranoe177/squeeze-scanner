@@ -141,3 +141,20 @@ def test_poll_once_without_token_is_noop(tmp_path, monkeypatch):
     res = bot.poll_once(token=None, ledger_path=tmp_path / "l.jsonl",
                         state_path=tmp_path / "s.json")
     assert res["charts"] == 0 and res["decisions"] == 0
+
+
+# ---- parse_trade ------------------------------------------------------------
+
+def test_parse_trade_basic_and_overrides():
+    assert bot.parse_trade(_update("trade nvda"))["symbol"] == "NVDA"
+    t = bot.parse_trade(_update("trade nvda 65 risk=1000 dte=45 full"))
+    assert t["symbol"] == "NVDA" and abs(t["p"] - 0.65) < 1e-9
+    assert t["risk"] == 1000.0 and t["dte"] == 45 and t["full"] is True
+    assert bot.parse_trade(_update("/trade tsla p=70"))["p"] == 0.70
+
+
+def test_parse_trade_rejects_non_trade_and_bad_symbol():
+    assert bot.parse_trade(_update("nvda")) is None          # bare ticker = chart
+    assert bot.parse_trade(_update("trade")) is None          # no symbol
+    assert bot.parse_trade(_update("go tsla")) is None
+    assert bot.parse_trade({"update_id": 5}) is None          # no message
