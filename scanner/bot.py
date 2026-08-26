@@ -28,7 +28,7 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from scanner import chart, data, decisions, notify, optfmt, options, score, signals
+from scanner import captionparse, chart, data, decisions, notify, optfmt, options, score, signals
 
 # A ticker: letter-led, then letters/digits and the few punctuation marks real
 # symbols use (BRK-B, BRK.B, GC=F, ^VIX). Up to 12 chars total.
@@ -282,18 +282,54 @@ def parse_trade(update: dict) -> dict | None:
     return opts
 
 
-def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
-                 send_message=None, asof=None) -> bool:
-    """Compute + send the equity-vs-options decision for one ticker.
+_TRADE_FALLBACK = ("Can't find that chart's signal — send `trade SYM` and "
+                   "I'll pull a fresh one.")
 
-    Collaborators are injectable so this is unit-testable without network.
-    Returns True on a decision send, False when there's no price data.
-    """
-    fetcher = fetcher or (lambda syms: data.fetch_daily(syms, period="2y"))
-    chain_fetcher = chain_fetcher or options.fetch_chain
-    send_message = send_message or notify.send_message
-    asof = asof or date.today()
 
+def _decide_and_format(opts, symbol, direction, entry, target, stop, rv, *,
+                       chain_fetcher, asof):
+    signal = {"symbol": symbol, "direction": direction, "entry": entry,
+              "target": target, "stop": stop, "realized_vol": rv}
+    chain = chain_fetcher(symbol)
+    plan = options.decide(
+        signal, chain or {"expiries": []},
+        p=opts.get("p"), risk_budget=opts.get("risk") or 500.0,
+        target_dte=opts.get("dte") or 21, asof=asof)
+    return (optfmt.format_trade_full(plan) if opts.get("full")
+            else optfmt.format_trade(plan))
+
+
+def _handle_trade_reply(opts, chat_id, token, caption_text, *, fetcher,
+                        chain_fetcher, send_message, asof) -> bool:
+    """Caption-anchored path: direction/entry/target/stop come ONLY from the
+    replied-to chart's caption — never re-inferred from a fresh signal eval.
+    That's the whole point: a BUY caption can never yield a SHORT card."""
+    parsed = captionparse.parse_caption(caption_text)
+    if parsed is None:
+        send_message(token, chat_id, _TRADE_FALLBACK)
+        return False
+
+    symbol = parsed["symbol"]
+    direction, entry = parsed["direction"], parsed["entry"]
+    target, stop, bar_date = parsed["target"], parsed["stop"], parsed["bar_date"]
+
+    frames = fetcher([symbol])
+    df = frames.get(symbol)
+    rv = options.realized_vol(df["close"]) if df is not None and not getattr(df, "empty", True) else 0.0
+
+    msg = _decide_and_format(opts, symbol, direction, entry, target, stop, rv,
+                             chain_fetcher=chain_fetcher, asof=asof)
+    vintage = f"follows your {symbol} chart · bar {bar_date} · target {target:.2f} / stop {stop:.2f}" \
+              if bar_date else f"follows your {symbol} chart · target {target:.2f} / stop {stop:.2f}"
+    send_message(token, chat_id, vintage + "\n" + msg)
+    return True
+
+
+def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
+                       send_message, renderer, send_photo, tmp_dir,
+                       asof) -> bool:
+    """Bare `trade SYM`: ONE latest_signal eval feeds both the chart caption
+    and the card — no second, possibly-divergent re-derivation."""
     symbol = opts["symbol"]
     frames = fetcher([symbol])
     df = frames.get(symbol)
@@ -302,26 +338,53 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
         return False
 
     sig = signals.latest_signal(df, symbol=symbol)
-    conv = score.conviction(df, symbol=symbol)
+    caption = build_summary(symbol, df)
+    out_path = Path(tmp_dir or tempfile.gettempdir()) / f"req_{symbol}.png"
+    renderer(df, symbol, str(out_path), lookback=140)
+    send_photo(token, chat_id, str(out_path), caption=caption)
+
     direction = sig["direction"]
     if direction == "none":
-        direction = "bull" if sig["ppo"] >= 0 else "bear"
+        send_message(token, chat_id, f"no active signal on {symbol}")
+        return True
+
     stop = (sig["close"] - sig["atr"] * 1.5 if direction != "bear"
             else sig["close"] + sig["atr"] * 1.5)
-    signal = {"symbol": symbol, "direction": direction, "entry": sig["close"],
-              "target": sig["target_up"] if direction != "bear" else sig["target_dn"],
-              "stop": stop, "score": conv["score"],
-              "realized_vol": options.realized_vol(df["close"])}
-
-    chain = chain_fetcher(symbol)
-    plan = options.decide(
-        signal, chain or {"expiries": []},
-        p=opts.get("p"), risk_budget=opts.get("risk") or 500.0,
-        target_dte=opts.get("dte") or 21, asof=asof)
-    msg = (optfmt.format_trade_full(plan) if opts.get("full")
-           else optfmt.format_trade(plan))
+    target = sig["target_up"] if direction != "bear" else sig["target_dn"]
+    msg = _decide_and_format(opts, symbol, direction, sig["close"], target, stop,
+                             options.realized_vol(df["close"]),
+                             chain_fetcher=chain_fetcher, asof=asof)
     send_message(token, chat_id, msg)
     return True
+
+
+def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
+                 send_message=None, asof=None, renderer=None, send_photo=None,
+                 tmp_dir=None) -> bool:
+    """Compute + send the equity-vs-options decision for one ticker, either
+    from a `trade` reply to a chart (caption-anchored) or a bare `trade SYM`
+    (one fresh signal eval, chart + card from the same read).
+
+    Collaborators are injectable so this is unit-testable without network.
+    Returns True on a decision send, False when there's no price data (bare)
+    or the replied-to caption couldn't be parsed (reply).
+    """
+    fetcher = fetcher or (lambda syms: data.fetch_daily(syms, period="2y"))
+    chain_fetcher = chain_fetcher or options.fetch_chain
+    send_message = send_message or notify.send_message
+    renderer = renderer or chart.render_layers
+    send_photo = send_photo or notify.send_photo
+    asof = asof or date.today()
+
+    caption_text = opts.get("caption")
+    if caption_text:
+        return _handle_trade_reply(opts, chat_id, token, caption_text,
+                                   fetcher=fetcher, chain_fetcher=chain_fetcher,
+                                   send_message=send_message, asof=asof)
+    return _handle_trade_bare(opts, chat_id, token, fetcher=fetcher,
+                              chain_fetcher=chain_fetcher, send_message=send_message,
+                              renderer=renderer, send_photo=send_photo,
+                              tmp_dir=tmp_dir, asof=asof)
 
 
 def main(argv=None) -> None:

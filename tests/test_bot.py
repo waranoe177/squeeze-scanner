@@ -189,8 +189,22 @@ def _ohlc_up(n=320):
                          "close": close, "volume": 1_000_000}, index=idx)
 
 
-def test_handle_trade_sends_decision_message():
-    sent = []
+def _fixed_signal(direction, close=88.28, atr=1.2, ema21=87.0):
+    """A `latest_signal`-shaped payload with a forced direction, so bare-path
+    card tests can check bull/bear formatting without hand-tuning raw OHLC to
+    satisfy all seven live squeeze conditions."""
+    return {"symbol": "TEST", "date": "2026-08-19", "direction": direction,
+            "grade": "A", "close": close, "rsi": 62.0 if direction == "bull" else 38.0,
+            "ppo": 0.8 if direction == "bull" else -0.8, "squeeze_on": True,
+            "moxie_w": 1.0, "atr": atr, "ema21": ema21, "lit_bull": 6, "lit_bear": 0,
+            "target_up": round(ema21 + atr * 2.5, 4), "target_dn": round(ema21 - atr * 2.5, 4),
+            "stop": round(close - atr * 1.5, 4)}
+
+
+def test_handle_trade_sends_decision_message(monkeypatch):
+    sent, photos = [], []
+    monkeypatch.setattr(bot.signals, "latest_signal",
+                        lambda df, symbol=None: _fixed_signal("bull"))
 
     def fake_chain(symbol):
         return {"expiries": [{"expiry": "2026-09-23",
@@ -198,14 +212,18 @@ def test_handle_trade_sends_decision_message():
                            "iv": 0.42}], "puts": []}]}
 
     ok = bot.handle_trade(
-        {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False},
+        {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False,
+         "caption": None},
         chat_id="1", token="T",
         fetcher=lambda syms: {"TEST": _ohlc_up()},
         chain_fetcher=fake_chain,
         send_message=lambda tok, cid, text: sent.append(text),
+        renderer=lambda df, sym, path, lookback=140: open(path, "wb").close(),
+        send_photo=lambda tok, cid, path, caption="": photos.append(caption),
         asof=date(2026, 8, 19),
     )
     assert ok is True
+    assert "TEST" in photos[0]                              # chart sent from the one eval
     assert "TEST" in sent[0] and ("BUY" in sent[0] or "SHARES" in sent[0])
 
 
@@ -229,8 +247,11 @@ def _ohlc_down(n=320):
                          "close": close, "volume": 1_000_000}, index=idx)
 
 
-def test_handle_trade_bear_stop_is_above_entry_and_kill_above():
+def test_handle_trade_bear_stop_is_above_entry_and_kill_above(monkeypatch):
     sent = []
+    monkeypatch.setattr(bot.signals, "latest_signal",
+                        lambda df, symbol=None: _fixed_signal(
+                            "bear", close=44.7, atr=1.0, ema21=45.5))
 
     def fake_chain(symbol):
         return {"expiries": [{"expiry": "2026-09-23", "calls": [],
@@ -238,11 +259,14 @@ def test_handle_trade_bear_stop_is_above_entry_and_kill_above():
                           "iv": 0.42}]}]}
 
     ok = bot.handle_trade(
-        {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False},
+        {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False,
+         "caption": None},
         chat_id="1", token="T",
         fetcher=lambda syms: {"TEST": _ohlc_down()},
         chain_fetcher=fake_chain,
         send_message=lambda tok, cid, text: sent.append(text),
+        renderer=lambda df, sym, path, lookback=140: open(path, "wb").close(),
+        send_photo=lambda tok, cid, path, caption="": None,
         asof=date(2026, 8, 19),
     )
     assert ok is True
@@ -254,6 +278,36 @@ def test_handle_trade_bear_stop_is_above_entry_and_kill_above():
         pass  # direction-appropriate action rendered
     else:
         raise AssertionError(f"expected a short-side action in: {msg}")
+
+
+def _fake_df_fetcher():
+    """Generic fetcher usable for any requested symbol — reply-path
+    handle_trade only needs the df for options.realized_vol."""
+    return lambda syms: {sym: _ohlc_up() for sym in syms}
+
+
+def test_handle_trade_reply_uses_caption_direction_never_inverts():
+    sent = {}
+
+    def fake_send(token, chat, msg):
+        sent["msg"] = msg
+
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    bot.handle_trade(opts, "chat", "tok", fetcher=_fake_df_fetcher(),
+                     chain_fetcher=lambda s: None, send_message=fake_send,
+                     asof=date(2026, 8, 19))
+    assert "BUY" in sent["msg"] and "SHORT" not in sent["msg"]
+    assert "follows your V chart · bar 2026-08-25" in sent["msg"]
+
+
+def test_handle_trade_reply_unparseable_caption_sends_fallback():
+    sent = {}
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "hello there"}
+    bot.handle_trade(opts, "chat", "tok", send_message=lambda t, c, m: sent.setdefault("m", m),
+                     asof=date(2026, 8, 19))
+    assert "trade SYM" in sent["m"]
 
 
 def test_poll_once_routes_trade(tmp_path, monkeypatch):
