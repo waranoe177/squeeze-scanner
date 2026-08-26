@@ -191,10 +191,13 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=21,
         p = conviction_to_p(signal.get("score", 50))
     move_pct = (target - spot) / spot * 100.0 if spot else 0.0
     exit_date = asof + timedelta(days=hold_days)
+    direction = signal["direction"]
+    extended = (direction != "bear" and target <= spot) or \
+               (direction == "bear" and target >= spot)
 
     base = {"symbol": signal["symbol"], "spot": spot, "target": target,
             "stop": stop, "move_pct": move_pct, "exit_date": exit_date, "p": p,
-            "risk_budget": risk_budget}
+            "risk_budget": risk_budget, "direction": direction, "extended": extended}
 
     contract = select_contract(chain, spot, signal["direction"], target_dte,
                                hold_days, asof, rv_fallback=rv)

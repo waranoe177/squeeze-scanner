@@ -160,6 +160,22 @@ def _accept_signal():
             "target": 130.0, "stop": 118.0, "score": 88, "realized_vol": 0.33}
 
 
+def test_decide_surfaces_direction_and_extended_false_normal():
+    plan = options.decide(_accept_signal(), _accept_chain(), p=0.65,
+                          risk_budget=840.0, target_dte=35, hold_days=10,
+                          asof=date(2026, 8, 19))
+    assert plan["direction"] == "bull"
+    assert plan["extended"] is False           # target 130 > entry 123.45
+
+
+def test_decide_flags_extended_when_target_past_entry():
+    sig = dict(_accept_signal(), target=123.00)   # target below entry 123.45 (extended bull)
+    plan = options.decide(sig, _accept_chain(), p=0.65, risk_budget=840.0,
+                          asof=date(2026, 8, 19))
+    assert plan["direction"] == "bull"
+    assert plan["extended"] is True
+
+
 def test_decide_acceptance_shares_win_with_exit_value_pricing():
     # Engine-math gate: pin the historical 35-DTE / 10-day-hold scenario so the
     # exit-value numbers stay verified independently of the default policy.
