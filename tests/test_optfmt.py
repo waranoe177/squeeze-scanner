@@ -6,6 +6,7 @@ from scanner import optfmt
 
 def _shares_win_plan():
     return {"symbol": "NVDA", "options_available": True, "winner": "equity",
+            "direction": "bull", "extended": False,
             "spot": 123.45, "target": 130.0, "stop": 118.0, "move_pct": 5.3,
             "exit_date": date(2026, 8, 29), "p": 0.65,
             "shares": 154, "equity_stop_loss": 839.3, "equity_target_reward": 1008.7,
@@ -17,6 +18,23 @@ def _shares_win_plan():
             "payout_mult": 3.02, "iv_label": "rich",
             "equity_ev": 530.0, "option_ev": 40.0, "p_stop": 0.15,
             "p_neither": 0.20, "flip": 0.72}
+
+
+def test_direction_comes_from_plan_not_target_vs_spot():
+    # A degenerate target (<= spot) must NOT flip a BUY into SHORT.
+    plan = _shares_win_plan()
+    plan.update(direction="bull", extended=False, target=123.40, move_pct=-0.0)
+    msg = optfmt.format_trade(plan)
+    assert "BUY SHARES" in msg and "SHORT" not in msg
+
+
+def test_extended_refuses_with_reason_not_a_card():
+    plan = _shares_win_plan()
+    plan.update(direction="bull", extended=True, target=380.0, spot=384.14)
+    msg = optfmt.format_trade(plan)
+    assert "extended" in msg.lower()
+    assert "BUY SHARES" not in msg and "SKIP" not in msg     # no comparison card
+    assert "SHORT" not in msg                                # never inverts
 
 
 def test_format_trade_shares_win_surface_rules():
@@ -48,6 +66,7 @@ def test_format_trade_option_win_shows_exit_value_and_sideways():
 
 def test_format_trade_equity_only_when_no_options():
     plan = {"symbol": "GLD", "options_available": False, "winner": "equity",
+            "direction": "bull", "extended": False,
             "spot": 380.0, "target": 400.0, "stop": 370.0, "move_pct": 5.3,
             "exit_date": date(2026, 8, 29), "p": 0.6, "shares": 25,
             "equity_stop_loss": 250.0, "equity_target_reward": 500.0,
@@ -58,6 +77,7 @@ def test_format_trade_equity_only_when_no_options():
 
 def test_format_trade_equity_only_bear_kill_above():
     plan = {"symbol": "META", "options_available": False, "winner": "equity",
+            "direction": "bear", "extended": False,
             "spot": 200.0, "target": 180.0, "stop": 210.0, "move_pct": -10.0,
             "exit_date": date(2026, 8, 29), "p": 0.6, "shares": 50,
             "equity_stop_loss": 500.0, "equity_target_reward": 1000.0,
@@ -70,6 +90,7 @@ def test_format_trade_equity_only_bear_kill_above():
 
 def _bear_plan():
     return {"symbol": "META", "options_available": True, "winner": "equity",
+            "direction": "bear", "extended": False,
             "spot": 200.0, "target": 180.0, "stop": 210.0, "move_pct": -10.0,
             "exit_date": date(2026, 8, 29), "p": 0.6,
             "shares": 50, "equity_stop_loss": 500.0, "equity_target_reward": 1000.0,

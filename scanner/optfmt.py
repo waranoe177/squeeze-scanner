@@ -20,13 +20,11 @@ def _pct(p):
     return f"~{round(p * 100)}%"
 
 
-def _direction(plan):
-    # infer from target vs spot (bull when target above spot)
-    return "bull" if plan["target"] >= plan["spot"] else "bear"
-
-
 def format_trade(plan) -> str:
-    d = _direction(plan)
+    if plan.get("extended"):
+        return _extended_note(plan)
+
+    d = plan["direction"]
     sym = plan["symbol"]
     exit_date = plan["exit_date"]
     conf = _pct(plan["p"])
@@ -92,6 +90,19 @@ def format_trade(plan) -> str:
         _why_option(plan),
         f"  COST  needs {move} by {exit_date:%m/%d}; IV {c['iv'] * 100:.0f}% is {plan['iv_label']}",
         f"  SKIP  {plan['shares']} sh → ≈ +${plan['equity_target_reward']:,.0f}, no clock, no decay",
+    ])
+
+
+def _extended_note(plan) -> str:
+    d = plan["direction"]
+    verb = "BUY" if d != "bear" else "SHORT"
+    side = "below" if d != "bear" else "above"
+    sym = notify._esc(plan["symbol"])
+    return "\n".join([
+        f"<b>{sym} · {verb} signal — but extended</b>",
+        f"  target {plan['target']:.0f} sits {side} the current "
+        f"{plan['spot']:.0f}, so there's no room left to size.",
+        "  This is a chase. Wait for a pullback toward EMA21, or set your own target.",
     ])
 
 
