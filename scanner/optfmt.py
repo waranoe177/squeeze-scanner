@@ -140,7 +140,7 @@ def _fmt_expiry(iso):
 
 def format_trade_full(plan) -> str:
     surface = format_trade(plan)
-    if not plan.get("options_available"):
+    if plan.get("extended") or not plan.get("options_available"):
         return surface
     c = plan["contract"]
     flip = plan.get("flip")

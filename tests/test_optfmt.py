@@ -168,3 +168,14 @@ def test_format_trade_full_appends_audit_block_with_ev_and_flip():
     assert "IV 42%" in msg or "IV 42.0%" in msg
     assert "flip" in msg.lower() and "72" in msg   # flip point 0.72
     assert "p_stop" in msg or "stop 15%" in msg
+
+
+def test_format_trade_full_extended_refuses_no_audit_leak():
+    # `trade SYM full` on an extended name must refuse just like the plain
+    # surface — never print the refusal note followed by a full audit block
+    # that leaks sizing/EV for a trade that was refused.
+    plan = _shares_win_plan()
+    plan.update(direction="bull", extended=True, target=380.0, spot=384.14)
+    msg = optfmt.format_trade_full(plan)
+    assert "extended" in msg.lower()
+    assert "AUDIT" not in msg and "EV" not in msg
