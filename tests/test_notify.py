@@ -59,6 +59,17 @@ def test_fired_line_prefers_provisional_levels():
     assert "next open" in msg.lower()
 
 
+def test_fired_line_includes_parseable_bar_date():
+    p = {"symbol": "V", "direction": "bull", "close": 384.14, "rsi": 71.0,
+         "score": 91, "conviction_grade": "A+", "date": "2026-08-25",
+         "prov_target": 401.85, "prov_stop": 373.52}
+    line = notify._fired_line(p, cta=True, name="Visa Inc.")
+    assert "bar 2026-08-25" in line
+    assert "BUY" in line and "V" in line
+    assert "close 384.14" in line
+    assert "target 401.85" in line and "stop 373.52" in line
+
+
 def test_no_fire_message_shows_building_squeezes():
     results = _results([], watching=["QQQ", "SPY"])
     results["watching_detail"] = [

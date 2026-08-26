@@ -34,6 +34,8 @@ def _fired_line(p: dict, cta: bool = False, name: str | None = None,
         head += f" — {_esc(name)}"
     if p.get("score") is not None:
         head += f" · score {p['score']:.0f}/100 ({_esc(p.get('conviction_grade', ''))})"
+    if p.get("date"):
+        head += f" · bar {p['date']}"
     tail = ""
     if p.get("recommendation"):
         extra = f" (final {p['final_score']:.0f}, news {_esc(p.get('stance', ''))})" \
