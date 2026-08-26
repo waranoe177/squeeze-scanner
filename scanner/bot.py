@@ -81,11 +81,18 @@ def build_summary(symbol: str, df, sig=None, conv=None) -> str:
     ]
     ladder = " ".join(f"{'✅' if ok else '▫️'}{name}" for name, ok in checks)
 
+    # latest_signal's own "stop" field is always the below-price long-side
+    # figure (close - 1.5*ATR); a bear signal's actual kill level is above
+    # price (close + 1.5*ATR). Display-only — latest_signal itself is left
+    # unchanged since it feeds the ledger/daily scan, not just this caption.
+    display_stop = (sig["close"] + sig["atr"] * 1.5 if direction == "bear"
+                    else sig["stop"])
+
     return "\n".join([
         f"{arrow} <b>{notify._esc(symbol)}</b> · bar {sig['date']}",
         f"score {conv['score']:.0f}/100 ({conv['grade']}) · {lit}/7 lit · R:R {conv['rr']:.1f}",
         f"close {sig['close']:.2f} · RSI {sig['rsi']:.0f}",
-        f"target {sig['target_up']:.2f} / {sig['target_dn']:.2f} · stop {sig['stop']:.2f}",
+        f"target {sig['target_up']:.2f} / {sig['target_dn']:.2f} · stop {display_stop:.2f}",
         ladder,
     ])
 
@@ -292,14 +299,14 @@ _TRADE_FALLBACK = ("Can't find that chart's signal — send `trade SYM` and "
 
 
 def _decide_and_format(opts, symbol, direction, entry, target, stop, rv, *,
-                       chain_fetcher, asof, score=None):
+                       chain_fetcher, asof, conv_score=None):
     signal = {"symbol": symbol, "direction": direction, "entry": entry,
               "target": target, "stop": stop, "realized_vol": rv}
-    if score is not None:
+    if conv_score is not None:
         # Feeds options.decide's conviction_to_p fallback when no `p=`
-        # override is given — omitting this silently sizes every bare
-        # `trade SYM` at conviction_to_p(50) regardless of the real score.
-        signal["score"] = score
+        # override is given — omitting this silently sizes every trade
+        # at conviction_to_p(50) regardless of the real score.
+        signal["score"] = conv_score
     chain = chain_fetcher(symbol)
     plan = options.decide(
         signal, chain or {"expiries": []},
@@ -328,7 +335,8 @@ def _handle_trade_reply(opts, chat_id, token, caption_text, *, fetcher,
     rv = options.realized_vol(df["close"]) if df is not None and not getattr(df, "empty", True) else 0.0
 
     msg = _decide_and_format(opts, symbol, direction, entry, target, stop, rv,
-                             chain_fetcher=chain_fetcher, asof=asof)
+                             chain_fetcher=chain_fetcher, asof=asof,
+                             conv_score=parsed.get("score"))
     vintage = f"follows your {symbol} chart · bar {bar_date} · target {target:.2f} / stop {stop:.2f}" \
               if bar_date else f"follows your {symbol} chart · target {target:.2f} / stop {stop:.2f}"
     send_message(token, chat_id, vintage + "\n" + msg)
@@ -365,7 +373,7 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
     msg = _decide_and_format(opts, symbol, direction, sig["close"], target, stop,
                              options.realized_vol(df["close"]),
                              chain_fetcher=chain_fetcher, asof=asof,
-                             score=conv["score"])
+                             conv_score=conv["score"])
     send_message(token, chat_id, msg)
     return True
 

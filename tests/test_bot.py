@@ -61,6 +61,22 @@ def test_build_summary_has_key_facts():
     assert any(m in s for m in ["BUY", "SELL", "no signal"])
 
 
+def test_build_summary_bear_stop_is_above_close_not_below():
+    # Regression: latest_signal's "stop" field is always the below-price
+    # long-side figure (close - 1.5*ATR). For a bear signal the real kill
+    # level is above price (close + 1.5*ATR), matching what the trade card
+    # prints ("Kill above") and what a later reply must inherit.
+    sig = {"symbol": "TEST", "date": "2026-08-19", "direction": "bear",
+           "grade": "A", "close": 100.0, "rsi": 30.0, "ppo": -0.8,
+           "squeeze_on": True, "moxie_w": -1.0, "atr": 2.0, "ema21": 101.0,
+           "lit_bull": 0, "lit_bear": 6, "target_up": 108.5, "target_dn": 96.0,
+           "stop": 97.0}  # latest_signal's own (wrong-for-display) below-price figure
+    conv = {"score": 80.0, "grade": "A", "rr": 2.0}
+    caption = bot.build_summary("TEST", _ohlc_up(), sig=sig, conv=conv)
+    assert "stop 103.00" in caption          # close + 1.5*ATR, above price
+    assert "stop 97.00" not in caption       # not latest_signal's below-price figure
+
+
 # ---- handle_command -------------------------------------------------------
 
 def test_handle_command_sends_chart():
@@ -299,6 +315,24 @@ def test_handle_trade_reply_uses_caption_direction_never_inverts():
                      asof=date(2026, 8, 19))
     assert "BUY" in sent["msg"] and "SHORT" not in sent["msg"]
     assert "follows your V chart · bar 2026-08-25" in sent["msg"]
+
+
+def test_handle_trade_reply_sizes_from_captions_own_score_not_default():
+    # Regression: a `trade` REPLY must size using the score printed IN the
+    # caption (score 91/100), not the conviction_to_p(50) default — otherwise
+    # a reply to a 91/100 chart sizes at ~35% while a bare `trade V` on the
+    # SAME chart sizes at ~70%: two confidences for one signal.
+    sent = {}
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nscore 91/100 (A+) · 7/7 lit · R:R 1.5\n"
+                       "close 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    bot.handle_trade(opts, "chat", "tok", fetcher=_fake_df_fetcher(),
+                     chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     asof=date(2026, 8, 19))
+    from scanner import options as opt_mod
+    assert f"~{round(opt_mod.conviction_to_p(91.0) * 100)}%" in sent["m"]
+    assert f"~{round(opt_mod.conviction_to_p(50) * 100)}%" not in sent["m"]
 
 
 def test_handle_trade_reply_unparseable_caption_sends_fallback():

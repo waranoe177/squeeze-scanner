@@ -13,6 +13,7 @@ _CLOSE = re.compile(r"close\s+([0-9]+(?:\.[0-9]+)?)")
 _TARGET = re.compile(r"target\s+([0-9]+(?:\.[0-9]+)?)(?:\s*/\s*([0-9]+(?:\.[0-9]+)?))?")
 _STOP = re.compile(r"stop\s+([0-9]+(?:\.[0-9]+)?)")
 _BAR = re.compile(r"bar\s+(\d{4}-\d{2}-\d{2})")
+_SCORE = re.compile(r"score\s+([0-9]+(?:\.[0-9]+)?)\s*/\s*100")
 
 
 def parse_caption(text: str) -> dict | None:
@@ -37,6 +38,8 @@ def parse_caption(text: str) -> dict | None:
     else:
         target = up
     mb = _BAR.search(text)
+    ms_score = _SCORE.search(text)
     return {"symbol": symbol, "direction": direction, "entry": entry,
             "target": target, "stop": stop,
-            "bar_date": mb.group(1) if mb else None}
+            "bar_date": mb.group(1) if mb else None,
+            "score": float(ms_score.group(1)) if ms_score else None}
