@@ -310,6 +310,21 @@ def test_handle_trade_reply_unparseable_caption_sends_fallback():
     assert "trade SYM" in sent["m"]
 
 
+def test_acceptance_buy_caption_never_yields_short_card():
+    # The V/MA regression: a BUY caption must never produce a SHORT card.
+    sent = {}
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V — Visa Inc. · score 91/100 (A+) · bar 2026-08-25\n"
+                       "close 384.14 · RSI 71\ntarget 401.85 · stop 373.52 (finalize at next open)"}
+    bot.handle_trade(opts, "chat", "tok", fetcher=_fake_df_fetcher(),
+                     chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     asof=date(2026, 8, 19))
+    m = sent["m"]
+    assert "SHORT" not in m and "SELL" not in m
+    assert "BUY" in m and "401" in m and "373" in m    # inherited target + stop
+
+
 def test_poll_once_routes_trade(tmp_path, monkeypatch):
     lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
     ledger.save(lpath, [])
