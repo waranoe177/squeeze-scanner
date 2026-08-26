@@ -57,11 +57,16 @@ def parse_command(update: dict) -> str | None:
     return sym
 
 
-def build_summary(symbol: str, df) -> str:
+def build_summary(symbol: str, df, sig=None, conv=None) -> str:
     """One-caption read of the latest bar: direction, score, levels, condition
-    ladder. HTML (Telegram parse_mode), comfortably under the 1024-char cap."""
-    sig = signals.latest_signal(df, symbol=symbol)
-    conv = score.conviction(df, symbol=symbol)
+    ladder. HTML (Telegram parse_mode), comfortably under the 1024-char cap.
+
+    `sig`/`conv` are optionally precomputed by the caller (e.g. handle_trade's
+    bare path, which needs the same latest_signal/conviction read for its
+    card) so this doesn't silently re-run those evals a second time.
+    """
+    sig = sig if sig is not None else signals.latest_signal(df, symbol=symbol)
+    conv = conv if conv is not None else score.conviction(df, symbol=symbol)
     bd = signals.condition_breakdown(df)
 
     direction = sig["direction"]
@@ -287,9 +292,14 @@ _TRADE_FALLBACK = ("Can't find that chart's signal — send `trade SYM` and "
 
 
 def _decide_and_format(opts, symbol, direction, entry, target, stop, rv, *,
-                       chain_fetcher, asof):
+                       chain_fetcher, asof, score=None):
     signal = {"symbol": symbol, "direction": direction, "entry": entry,
               "target": target, "stop": stop, "realized_vol": rv}
+    if score is not None:
+        # Feeds options.decide's conviction_to_p fallback when no `p=`
+        # override is given — omitting this silently sizes every bare
+        # `trade SYM` at conviction_to_p(50) regardless of the real score.
+        signal["score"] = score
     chain = chain_fetcher(symbol)
     plan = options.decide(
         signal, chain or {"expiries": []},
@@ -338,7 +348,8 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
         return False
 
     sig = signals.latest_signal(df, symbol=symbol)
-    caption = build_summary(symbol, df)
+    conv = score.conviction(df, symbol=symbol)
+    caption = build_summary(symbol, df, sig=sig, conv=conv)
     out_path = Path(tmp_dir or tempfile.gettempdir()) / f"req_{symbol}.png"
     renderer(df, symbol, str(out_path), lookback=140)
     send_photo(token, chat_id, str(out_path), caption=caption)
@@ -353,7 +364,8 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
     target = sig["target_up"] if direction != "bear" else sig["target_dn"]
     msg = _decide_and_format(opts, symbol, direction, sig["close"], target, stop,
                              options.realized_vol(df["close"]),
-                             chain_fetcher=chain_fetcher, asof=asof)
+                             chain_fetcher=chain_fetcher, asof=asof,
+                             score=conv["score"])
     send_message(token, chat_id, msg)
     return True
 

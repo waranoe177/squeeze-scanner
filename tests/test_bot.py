@@ -325,6 +325,35 @@ def test_acceptance_buy_caption_never_yields_short_card():
     assert "BUY" in m and "401" in m and "373" in m    # inherited target + stop
 
 
+def test_handle_trade_bare_sizes_from_real_conviction_score_not_default(monkeypatch):
+    # Regression: the bare path must feed options.decide the REAL conviction
+    # score (via signal["score"]) when no `p=` override is given. A 91/100
+    # A+ setup must NOT get sized as if it were the score=50 default
+    # (conviction_to_p(50) = 0.35 vs conviction_to_p(95) clamped to 0.70 —
+    # unmistakably different confidence lines on the card).
+    sent, photos = [], []
+    monkeypatch.setattr(bot.signals, "latest_signal",
+                        lambda df, symbol=None: _fixed_signal("bull"))
+    monkeypatch.setattr(bot.score, "conviction",
+                        lambda df, symbol=None: {"score": 95.0, "grade": "A+", "rr": 3.0})
+
+    ok = bot.handle_trade(
+        {"symbol": "TEST", "p": None, "risk": None, "dte": None, "full": False,
+         "caption": None},
+        chat_id="1", token="T",
+        fetcher=lambda syms: {"TEST": _ohlc_up()},
+        chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: sent.append(text),
+        renderer=lambda df, sym, path, lookback=140: open(path, "wb").close(),
+        send_photo=lambda tok, cid, path, caption="": photos.append(caption),
+        asof=date(2026, 8, 19),
+    )
+    assert ok is True
+    from scanner import options as opt_mod
+    assert f"~{round(opt_mod.conviction_to_p(95.0) * 100)}%" in sent[0]
+    assert f"~{round(opt_mod.conviction_to_p(50) * 100)}%" not in sent[0]
+
+
 def test_poll_once_routes_trade(tmp_path, monkeypatch):
     lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
     ledger.save(lpath, [])
