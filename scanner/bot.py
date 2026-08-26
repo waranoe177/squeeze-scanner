@@ -35,7 +35,7 @@ from scanner import chart, data, decisions, notify, optfmt, options, score, sign
 _TICKER = r"[A-Za-z][A-Za-z0-9.\-=^]{0,11}"
 _CMD = re.compile(rf"^(?:/?chart\s+)?({_TICKER})$", re.IGNORECASE)
 # Words that are commands/decisions, never chart requests.
-_RESERVED = {"go", "pass", "skip", "chart", "help"}
+_RESERVED = {"go", "pass", "skip", "chart", "help", "trade"}
 
 
 def parse_command(update: dict) -> str | None:
@@ -223,20 +223,16 @@ def _to_p(tok):
     return max(0.01, min(0.99, v))
 
 
-def parse_trade(update: dict) -> dict | None:
-    """Parse `trade SYM [CONF] [risk=N] [dte=N] [full]`. None if not a trade."""
-    msg = update.get("message") or {}
-    text = (msg.get("text") or "").strip()
-    if not text:
-        return None
-    parts = text.split()
-    if parts[0].lower() not in ("trade", "/trade") or len(parts) < 2:
-        return None
-    if not _TRADE_SYM.match(parts[1]):
-        return None
-    opts = {"symbol": parts[1].upper(), "p": None, "risk": None,
-            "dte": None, "full": False}
-    for tok in parts[2:]:
+def _is_override_token(tok: str) -> bool:
+    """True for a `trade` argument that's an override (conf/risk/dte/full),
+    never a symbol — used to tell a reply's bare overrides from a bare SYM."""
+    low = tok.lower()
+    return (low == "full" or low.startswith("risk=") or low.startswith("dte=")
+            or low.startswith("p=") or bool(re.fullmatch(r"\d{1,3}", tok)))
+
+
+def _apply_overrides(opts: dict, tokens) -> None:
+    for tok in tokens:
         low = tok.lower()
         if low == "full":
             opts["full"] = True
@@ -254,6 +250,35 @@ def parse_trade(update: dict) -> dict | None:
             opts["p"] = _to_p(tok[2:])
         elif re.fullmatch(r"\d{1,3}", tok):
             opts["p"] = _to_p(tok)
+
+
+def parse_trade(update: dict) -> dict | None:
+    """Parse `trade SYM [CONF] [risk=N] [dte=N] [full]` (bare) or a `trade
+    [CONF] [risk=N] [dte=N] [full]` reply to a chart (caption-anchored, no
+    symbol token — the symbol/direction/levels come from the caption).
+    None if not a trade at all.
+    """
+    msg = update.get("message") or {}
+    text = (msg.get("text") or "").strip()
+    if not text:
+        return None
+    parts = text.split()
+    if parts[0].lower() not in ("trade", "/trade"):
+        return None
+    rest = parts[1:]
+    caption = (msg.get("reply_to_message") or {}).get("caption")
+
+    if caption and all(_is_override_token(t) for t in rest):
+        opts = {"symbol": None, "p": None, "risk": None, "dte": None,
+                "full": False, "caption": caption}
+        _apply_overrides(opts, rest)
+        return opts
+
+    if not rest or not _TRADE_SYM.match(rest[0]):
+        return None
+    opts = {"symbol": rest[0].upper(), "p": None, "risk": None,
+            "dte": None, "full": False, "caption": None}
+    _apply_overrides(opts, rest[1:])
     return opts
 
 

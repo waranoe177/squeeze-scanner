@@ -162,6 +162,24 @@ def test_parse_trade_rejects_non_trade_and_bad_symbol():
     assert bot.parse_trade({"update_id": 5}) is None          # no message
 
 
+def test_parse_trade_reply_carries_caption_no_symbol():
+    upd = {"message": {"text": "trade risk=1000",
+                       "reply_to_message": {"caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}}}
+    t = bot.parse_trade(upd)
+    assert t is not None and t["symbol"] is None
+    assert t["risk"] == 1000 and t["caption"].startswith("🟢 BUY V")
+
+
+def test_parse_trade_bare_symbol_unchanged():
+    upd = {"message": {"text": "trade V 65"}}
+    t = bot.parse_trade(upd)
+    assert t["symbol"] == "V" and t["p"] == 0.65 and t["caption"] is None
+
+
+def test_trade_is_reserved_word():
+    assert bot.parse_command({"message": {"text": "trade"}}) is None
+
+
 # ---- handle_trade + poll dispatch -------------------------------------------
 
 def _ohlc_up(n=320):
