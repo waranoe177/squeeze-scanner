@@ -382,7 +382,12 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
     symbol = opts["symbol"]
     results = _load_results()
     payload = _anchor_payload(symbol, results)
-    if payload is None:
+    # No payload, or a payload missing the direction-aware prov_* levels: treat
+    # both as "nothing safe to anchor to". Without prov_target/prov_stop,
+    # _fired_line falls back to target_up/target_dn + the raw long-side stop
+    # (close - 1.5*ATR) — for a bear signal that's the exact long-side-stop
+    # trap this anchor path exists to kill. Refuse rather than risk it.
+    if payload is None or payload.get("prov_target") is None or payload.get("prov_stop") is None:
         as_of = (results or {}).get("as_of", "the latest scan")
         send_message(token, chat_id,
                      f"{symbol} has no active signal in the latest scan (as of "
@@ -427,7 +432,12 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
         cpath = Path("out") / chart_rel
         if cpath.exists():
             try:
-                send_photo(token, chat_id, str(cpath), caption=_anchor_caption(payload))
+                # Raw _fired_line, not the tag-stripped _anchor_caption — under
+                # parse_mode=HTML this is exactly what the daily alert sends
+                # (keeps bold, safe against stray angle brackets). Parsing
+                # still goes through _anchor_caption/render_html; this only
+                # changes what's shown on the photo.
+                send_photo(token, chat_id, str(cpath), caption=notify._fired_line(payload))
             except Exception as exc:
                 print(f"  [bot] anchor chart send failed for {symbol}: {exc}")
 

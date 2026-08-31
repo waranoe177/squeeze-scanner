@@ -557,6 +557,57 @@ def test_bare_trade_does_not_rederive_direction(monkeypatch):
 
 # ---- anchored bare trade: freshness guard -----------------------------------
 
+def test_bare_trade_missing_prov_target_refuses(monkeypatch):
+    # F1: a fired payload without prov_target (so _fired_line would fall back
+    # to target_up/target_dn + the raw long-side stop) must refuse just like
+    # off-list — otherwise a bear signal could reintroduce the long-side-stop
+    # trap the anchor path exists to kill.
+    results = {"as_of": "2026-08-28", "fired": [
+        {"symbol": "APD", "direction": "bear", "close": 308.09, "rsi": 58.0,
+         "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+         "target_up": 320.0, "target_dn": 286.0, "stop": 299.0,
+         "chart": "charts/APD.png"}]}   # no prov_target / prov_stop
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+    sent = {}
+    ok = bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                           "full": False, "caption": None}, "chat", "tok",
+                          fetcher=_fake_df_fetcher(spot=308.0), chain_fetcher=lambda s: None,
+                          send_message=lambda t, c, m: sent.setdefault("m", m),
+                          send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    assert ok is False
+    assert "no active signal" in sent["m"].lower() and "chart APD" in sent["m"]
+    assert "BUY" not in sent["m"] and "SHORT" not in sent["m"] and "SELL" not in sent["m"]
+
+
+def test_bare_trade_chart_photo_caption_is_raw_fired_line(monkeypatch):
+    # F2: the committed-chart photo caption must be the RAW _fired_line HTML
+    # (what the daily alert sends), not the tag-stripped _anchor_caption —
+    # under parse_mode=HTML the raw version keeps bold and is what parse_caption
+    # itself is derived from via render_html.
+    chart_dir = Path("out/charts")
+    chart_dir.mkdir(parents=True, exist_ok=True)
+    chart_path = chart_dir / "TEST_F2_CAPTION.png"
+    chart_path.write_bytes(b"\x89PNG\r\n")
+    try:
+        results = {"as_of": "2026-08-28", "fired": [
+            {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
+             "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+             "prov_target": 323.69, "prov_stop": 298.73,
+             "chart": "charts/TEST_F2_CAPTION.png"}]}
+        monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+        photos = []
+        bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                          "full": False, "caption": None}, "chat", "tok",
+                         fetcher=_fake_df_fetcher(spot=308.0), chain_fetcher=lambda s: None,
+                         send_message=lambda *a, **k: None,
+                         send_photo=lambda tok, cid, path, caption="": photos.append(caption),
+                         asof=date(2026, 8, 30))
+        assert len(photos) == 1
+        assert "<b>" in photos[0]           # raw HTML tag survives — not stripped
+    finally:
+        chart_path.unlink(missing_ok=True)
+
+
 def test_bare_trade_refuses_when_price_moved_past_target(monkeypatch):
     monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
     sent = {}
@@ -580,6 +631,61 @@ def test_bare_trade_prices_card_when_price_near_entry(monkeypatch):
                      send_message=lambda t, c, m: sent.setdefault("m", m),
                      send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
     assert "BUY" in sent["m"]                            # within 1 ATR -> card priced
+
+
+_APD_BEAR_RESULTS = {"as_of": "2026-08-28", "fired": [
+    {"symbol": "APD", "direction": "bear", "close": 308.09, "rsi": 38.0,
+     "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+     "prov_target": 292.49, "prov_stop": 317.45, "chart": "charts/APD.png"}]}
+
+
+def test_bare_trade_bear_refuses_when_price_moved_past_target(monkeypatch):
+    # F4: the guard is symmetric — a bear signal must also refuse when the
+    # live price crosses the (lower) target.
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_BEAR_RESULTS)
+    sent = {}
+    # anchored entry 308.09, target 292.49; live spot 290 => crossed (spot <= target)
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=290.0), chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    m = sent["m"]
+    assert "2026-08-28" in m and "moved" in m.lower()
+    assert "SHORT" not in m and "SELL" not in m and "SKIP" not in m   # no card priced
+
+
+def test_bare_trade_bear_refuses_when_price_moved_past_atr(monkeypatch):
+    # F4: bear signal, price hasn't crossed the target but has drifted more
+    # than 1 ATR away from entry (down, away from the short) — also refuses.
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_BEAR_RESULTS)
+    sent = {}
+    # anchored entry 308.09, atr 6.0; live spot 300 => |300 - 308.09| = 8.09 > 6.0, not crossed (300 > 292.49)
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=300.0), chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    m = sent["m"]
+    assert "2026-08-28" in m and "moved" in m.lower()
+    assert "SHORT" not in m and "SELL" not in m
+
+
+def test_bare_trade_bear_prices_card_when_price_near_entry(monkeypatch):
+    # F4: bear signal, live spot within 1 ATR of entry and short of target ->
+    # card prices normally.
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_BEAR_RESULTS)
+    sent = {}
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=307.0), chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    m = sent["m"]
+    if "SHORT SHARES" in m or "BUY PUTS" in m:
+        pass  # direction-appropriate short-side action rendered
+    else:
+        raise AssertionError(f"expected a short-side action in: {m}")
 
 
 # ---- acceptance: APD anchors, no stale-bar contradiction --------------------
