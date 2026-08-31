@@ -53,6 +53,14 @@ def _anchor_payload(symbol, results):
     return None
 
 
+def _anchor_caption(payload):
+    """Reproduce the alert's caption from a fired payload and render it to the
+    text parse_caption expects. Reuses notify._fired_line so the direction-aware
+    prov_target/prov_stop levels are what get parsed — one anchor path with the
+    reply flow, and the long-side-stop trap can't appear."""
+    return captionparse.render_html(notify._fired_line(payload))
+
+
 # A ticker: letter-led, then letters/digits and the few punctuation marks real
 # symbols use (BRK-B, BRK.B, GC=F, ^VIX). Up to 12 chars total.
 _TICKER = r"[A-Za-z][A-Za-z0-9.\-=^]{0,11}"

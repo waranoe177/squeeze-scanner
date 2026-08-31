@@ -414,3 +414,16 @@ def test_anchor_payload_found_and_missing(tmp_path):
 
 def test_load_results_missing_file_returns_none(tmp_path):
     assert bot._load_results(str(tmp_path / "nope.json")) is None
+
+
+def test_anchor_caption_roundtrips_to_prov_levels():
+    from scanner import captionparse as cp
+    p = {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
+         "date": "2026-08-28", "score": 84, "conviction_grade": "A",
+         "prov_target": 323.69, "prov_stop": 298.73}
+    parsed = cp.parse_caption(bot._anchor_caption(p))
+    assert parsed["symbol"] == "APD" and parsed["direction"] == "bull"
+    assert parsed["entry"] == 308.09
+    assert parsed["target"] == 323.69 and parsed["stop"] == 298.73  # prov_*, not raw
+    assert parsed["bar_date"] == "2026-08-28"
+    assert parsed["score"] == 84.0
