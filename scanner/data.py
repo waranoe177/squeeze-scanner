@@ -78,6 +78,12 @@ def drop_forming_bar(df: pd.DataFrame, now: datetime | None = None) -> pd.DataFr
     must only evaluate completed daily sessions.
 
     `now` is injectable for testing; defaults to the current US/Eastern time.
+
+    NOTE: this is correct (drops the incomplete current-day bar), but its result
+    depends on `now`. Any code that RE-DERIVES a signal at request time (vs the
+    post-close daily scan) can therefore land on an earlier bar than the scan —
+    that skew, plus yfinance re-adjusting history, is why `trade` anchors to the
+    persisted scan snapshot instead of re-deriving. Do not re-derive on the hot path.
     """
     if df.empty:
         return df
