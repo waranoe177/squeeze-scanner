@@ -6,6 +6,7 @@ routes go/pass to decisions and ticker requests to the chart handler.
 """
 
 from datetime import date
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -205,18 +206,6 @@ def _ohlc_up(n=320):
                          "close": close, "volume": 1_000_000}, index=idx)
 
 
-def _fixed_signal(direction, close=88.28, atr=1.2, ema21=87.0):
-    """A `latest_signal`-shaped payload with a forced direction, so bare-path
-    card tests can check bull/bear formatting without hand-tuning raw OHLC to
-    satisfy all seven live squeeze conditions."""
-    return {"symbol": "TEST", "date": "2026-08-19", "direction": direction,
-            "grade": "A", "close": close, "rsi": 62.0 if direction == "bull" else 38.0,
-            "ppo": 0.8 if direction == "bull" else -0.8, "squeeze_on": True,
-            "moxie_w": 1.0, "atr": atr, "ema21": ema21, "lit_bull": 6, "lit_bear": 0,
-            "target_up": round(ema21 + atr * 2.5, 4), "target_dn": round(ema21 - atr * 2.5, 4),
-            "stop": round(close - atr * 1.5, 4)}
-
-
 def test_handle_trade_sends_decision_message(monkeypatch):
     # Anchored bare path: direction/levels come from results.json, not a
     # fresh latest_signal eval.
@@ -246,7 +235,16 @@ def test_handle_trade_sends_decision_message(monkeypatch):
     assert "TEST" in sent[0] and ("BUY" in sent[0] or "SHARES" in sent[0])
 
 
-def test_handle_trade_no_data_replies_text():
+def test_handle_trade_bare_offlist_symbol_refuses(monkeypatch):
+    # Renamed from test_handle_trade_no_data_replies_text: this doesn't test
+    # "no data" (it never reaches the fetcher) — it's the off-list refuse+
+    # redirect path. Explicitly mocks _load_results so it doesn't depend on
+    # ZZZZ happening to be absent from the real out/results.json.
+    results = {"as_of": "2026-08-19", "fired": [
+        {"symbol": "TEST", "direction": "bull", "close": 88.28, "rsi": 62.0,
+         "date": "2026-08-19", "score": 84, "conviction_grade": "A", "atr": 1.2,
+         "prov_target": 95.0, "prov_stop": 86.48, "chart": "charts/TEST.png"}]}
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
     sent = []
     ok = bot.handle_trade(
         {"symbol": "ZZZZ", "p": None, "risk": None, "dte": None, "full": False},
@@ -256,14 +254,105 @@ def test_handle_trade_no_data_replies_text():
         send_message=lambda tok, cid, text: sent.append(text),
         asof=date(2026, 8, 19),
     )
-    assert ok is False and "ZZZZ" in sent[0]
+    assert ok is False and "ZZZZ" in sent[0] and "no active signal" in sent[0].lower()
 
 
-def _ohlc_down(n=320):
-    idx = pd.bdate_range("2023-01-02", periods=n)
-    close = pd.Series(200 - np.arange(n) * 0.12, index=idx)
-    return pd.DataFrame({"open": close, "high": close + 0.6, "low": close - 0.6,
-                         "close": close, "volume": 1_000_000}, index=idx)
+def test_handle_trade_bare_empty_live_df_refuses_no_card(monkeypatch):
+    # I3: an anchored symbol whose live fetch comes back empty must refuse
+    # (freshness can't be checked, rv=0.0 would degrade option pricing) —
+    # never price a degenerate card.
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    sent = []
+    ok = bot.handle_trade(
+        {"symbol": "APD", "p": None, "risk": 500.0, "dte": None, "full": False,
+         "caption": None},
+        chat_id="1", token="T",
+        fetcher=lambda syms: {},   # empty dict -> df is None
+        chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: sent.append(text),
+        send_photo=lambda *a, **k: None,
+        asof=date(2026, 8, 30),
+    )
+    assert ok is False
+    msg = sent[0]
+    assert "couldn't fetch live price" in msg.lower() and "APD" in msg
+    assert "BUY" not in msg and "SKIP" not in msg
+
+
+def test_handle_trade_bare_empty_frame_also_refuses(monkeypatch):
+    # Same as above but the fetcher returns an empty (not missing) frame.
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    sent = []
+    ok = bot.handle_trade(
+        {"symbol": "APD", "p": None, "risk": 500.0, "dte": None, "full": False,
+         "caption": None},
+        chat_id="1", token="T",
+        fetcher=lambda syms: {"APD": pd.DataFrame(columns=["open", "high", "low", "close", "volume"])},
+        chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: sent.append(text),
+        send_photo=lambda *a, **k: None,
+        asof=date(2026, 8, 30),
+    )
+    assert ok is False and "couldn't fetch live price" in sent[0].lower()
+
+
+def test_handle_trade_bare_chart_send_guarded_on_missing_file(monkeypatch):
+    # m4: a payload whose chart doesn't exist on disk must not call
+    # send_photo — the card still sends.
+    results = {"as_of": "2026-08-28", "fired": [
+        {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
+         "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+         "prov_target": 323.69, "prov_stop": 298.73,
+         "chart": "charts/DOES_NOT_EXIST_XYZ.png"}]}
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+    sent, photos = [], []
+    ok = bot.handle_trade(
+        {"symbol": "APD", "p": None, "risk": 500.0, "dte": None, "full": False,
+         "caption": None},
+        chat_id="1", token="T",
+        fetcher=_fake_df_fetcher(spot=308.0),
+        chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: sent.append(text),
+        send_photo=lambda *a, **k: photos.append(a),
+        asof=date(2026, 8, 30),
+    )
+    assert ok is True
+    assert photos == []          # never sent — file doesn't exist
+    assert "BUY" in sent[0]      # card still sent
+
+
+def test_handle_trade_bare_chart_sent_when_file_exists(monkeypatch):
+    # m4 (b): when the chart file exists, send_photo IS called. Creates its
+    # own throwaway file under out/charts/ rather than relying on a
+    # pre-existing committed chart (the cpath prefix is the hardcoded "out/",
+    # not injectable, so this is the only way to control existence cleanly).
+    chart_dir = Path("out/charts")
+    chart_dir.mkdir(parents=True, exist_ok=True)
+    chart_path = chart_dir / "TEST_M4_EXISTS.png"
+    chart_path.write_bytes(b"\x89PNG\r\n")
+    try:
+        results = {"as_of": "2026-08-28", "fired": [
+            {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
+             "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+             "prov_target": 323.69, "prov_stop": 298.73,
+             "chart": "charts/TEST_M4_EXISTS.png"}]}
+        monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+        sent, photos = [], []
+        ok = bot.handle_trade(
+            {"symbol": "APD", "p": None, "risk": 500.0, "dte": None, "full": False,
+             "caption": None},
+            chat_id="1", token="T",
+            fetcher=_fake_df_fetcher(spot=308.0),
+            chain_fetcher=lambda s: None,
+            send_message=lambda tok, cid, text: sent.append(text),
+            send_photo=lambda *a, **k: photos.append(a),
+            asof=date(2026, 8, 30),
+        )
+        assert ok is True
+        assert len(photos) == 1
+        assert "TEST_M4_EXISTS" in photos[0][2]   # (token, chat_id, path, ...)
+    finally:
+        chart_path.unlink(missing_ok=True)
 
 
 def test_handle_trade_bear_stop_is_above_entry_and_kill_above(monkeypatch):

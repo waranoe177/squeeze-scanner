@@ -397,22 +397,29 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
     # live df for realized-vol (IV fallback) + the Task-5 freshness guard only
     frames = fetcher([symbol])
     df = frames.get(symbol)
-    rv = options.realized_vol(df["close"]) if df is not None and not getattr(df, "empty", True) else 0.0
+    if df is None or getattr(df, "empty", True):
+        # Without a live price we can't run the freshness guard, and rv=0.0
+        # would degrade option pricing silently — refuse rather than price a
+        # degenerate card. The anchored levels themselves are still correct.
+        send_message(token, chat_id,
+                     f"couldn't fetch live price for {symbol} to check "
+                     f"freshness — try again in a moment.")
+        return False
+    rv = options.realized_vol(df["close"])
 
     # freshness guard: refuse a card when the live price has moved past the
     # anchored levels — the persisted target/stop are stale by then.
-    live_spot = float(df["close"].iloc[-1]) if df is not None and not getattr(df, "empty", True) else None
+    live_spot = float(df["close"].iloc[-1])
     atr = float(payload.get("atr") or 0.0)
-    if live_spot is not None:
-        crossed = (direction != "bear" and live_spot >= target) or \
-                  (direction == "bear" and live_spot <= target)
-        moved = atr > 0 and abs(live_spot - entry) > atr
-        if crossed or moved:
-            send_message(token, chat_id,
-                         f"levels are from {bar_date}; {symbol} has moved to "
-                         f"{live_spot:.2f} — pull a fresh chart (`chart {symbol}`) "
-                         f"and reply `trade`.")
-            return False
+    crossed = (direction != "bear" and live_spot >= target) or \
+              (direction == "bear" and live_spot <= target)
+    moved = atr > 0 and abs(live_spot - entry) > atr
+    if crossed or moved:
+        send_message(token, chat_id,
+                     f"levels are from {bar_date}; {symbol} has moved to "
+                     f"{live_spot:.2f} — pull a fresh chart (`chart {symbol}`) "
+                     f"and reply `trade`.")
+        return False
 
     # send the committed daily chart (same picture the alert sent), best-effort
     chart_rel = payload.get("chart")
@@ -439,11 +446,14 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
                  tmp_dir=None) -> bool:
     """Compute + send the equity-vs-options decision for one ticker, either
     from a `trade` reply to a chart (caption-anchored) or a bare `trade SYM`
-    (one fresh signal eval, chart + card from the same read).
+    (anchored to the persisted daily-scan snapshot in results.json — no live
+    signal eval; direction and levels come from the scan, never re-derived).
 
     Collaborators are injectable so this is unit-testable without network.
-    Returns True on a decision send, False when there's no price data (bare)
-    or the replied-to caption couldn't be parsed (reply).
+    Returns True on a decision send, False when there's no active signal for
+    the symbol, live price can't be fetched to check freshness, the price has
+    moved past the anchored levels (bare), or the replied-to caption couldn't
+    be parsed (reply).
     """
     fetcher = fetcher or (lambda syms: data.fetch_daily(syms, period="2y"))
     chain_fetcher = chain_fetcher or options.fetch_chain
