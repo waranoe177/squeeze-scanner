@@ -5,7 +5,20 @@ The trade command uses this so a `trade` reply inherits EXACTLY the direction an
 levels the user is looking at. Returns None when there is no BUY/SELL signal.
 """
 
+import html as _html
 import re
+
+_TAG = re.compile(r"<[^>]+>")
+
+
+def render_html(text: str) -> str:
+    """Turn raw caption HTML (from _fired_line/build_summary) into the rendered
+    text Telegram delivers in reply_to_message.caption — tags stripped, entities
+    decoded. parse_caption operates on rendered text."""
+    if not text:
+        return ""
+    return _html.unescape(_TAG.sub("", text))
+
 
 _DIR = re.compile(r"\b(BUY|SELL)\s+([A-Z][A-Z0-9.\-=^]{0,11})\b")
 _CLOSE = re.compile(r"close\s+([0-9]+(?:\.[0-9]+)?)")

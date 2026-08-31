@@ -2,22 +2,11 @@
 caption text so a `trade` reply follows the chart it was replying to.
 """
 
-import html as _html
-import re
 from pathlib import Path
 
 import pandas as pd
 
 from scanner import bot, captionparse as cp, notify, signals
-
-_TAG = re.compile(r"<[^>]+>")
-
-
-def _render(text: str) -> str:
-    """Strip HTML tags and decode entities, mirroring what a Telegram client
-    shows the user. `parse_caption` reads rendered text, not raw HTML source
-    (see the module docstring / global caption-format contract)."""
-    return _html.unescape(_TAG.sub("", text))
 
 _ONDEMAND = (
     "🟢 BUY V · bar 2026-08-25\n"
@@ -38,6 +27,11 @@ _BEAR = (
     "close 200.00 · RSI 28\n"
     "target 240.00 / 180.00 · stop 210.00\n"
 )
+
+
+def test_render_html_strips_tags_and_unescapes():
+    assert cp.render_html("🟢 BUY <b>V</b> · RSI&gt;50") == "🟢 BUY V · RSI>50"
+    assert cp.render_html("plain text") == "plain text"
 
 
 def test_parse_ondemand_bull_picks_target_up():
@@ -78,7 +72,7 @@ def test_roundtrip_fired_line():
     p = {"symbol": "V", "direction": "bull", "close": 384.14, "rsi": 71.0,
          "score": 91, "conviction_grade": "A+", "date": "2026-08-25",
          "prov_target": 401.85, "prov_stop": 373.52}
-    r = cp.parse_caption(_render(notify._fired_line(p, cta=True, name="Visa Inc.")))
+    r = cp.parse_caption(cp.render_html(notify._fired_line(p, cta=True, name="Visa Inc.")))
     assert r["symbol"] == "V" and r["direction"] == "bull"
     assert r["entry"] == 384.14 and r["target"] == 401.85 and r["stop"] == 373.52
     assert r["bar_date"] == "2026-08-25"
@@ -95,7 +89,7 @@ def test_roundtrip_build_summary():
     assert expected["direction"] == "bull"  # sanity: fixture is a bull fire
 
     caption = bot.build_summary("IYT", df)
-    r = cp.parse_caption(_render(caption))
+    r = cp.parse_caption(cp.render_html(caption))
     assert r is not None, f"build_summary emitted an unparseable caption:\n{caption}"
     assert r["symbol"] == "IYT" and r["direction"] == "bull"
     assert r["entry"] == round(expected["close"], 2)
