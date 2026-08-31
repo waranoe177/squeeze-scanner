@@ -218,9 +218,14 @@ def _fixed_signal(direction, close=88.28, atr=1.2, ema21=87.0):
 
 
 def test_handle_trade_sends_decision_message(monkeypatch):
-    sent, photos = [], []
-    monkeypatch.setattr(bot.signals, "latest_signal",
-                        lambda df, symbol=None: _fixed_signal("bull"))
+    # Anchored bare path: direction/levels come from results.json, not a
+    # fresh latest_signal eval.
+    results = {"as_of": "2026-08-19", "fired": [
+        {"symbol": "TEST", "direction": "bull", "close": 88.28, "rsi": 62.0,
+         "date": "2026-08-19", "score": 84, "conviction_grade": "A", "atr": 1.2,
+         "prov_target": 95.0, "prov_stop": 86.48, "chart": "charts/TEST.png"}]}
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+    sent = []
 
     def fake_chain(symbol):
         return {"expiries": [{"expiry": "2026-09-23",
@@ -231,15 +236,13 @@ def test_handle_trade_sends_decision_message(monkeypatch):
         {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False,
          "caption": None},
         chat_id="1", token="T",
-        fetcher=lambda syms: {"TEST": _ohlc_up()},
+        fetcher=lambda syms: {"TEST": _ohlc_up()},   # last close 88.28 == anchored entry
         chain_fetcher=fake_chain,
         send_message=lambda tok, cid, text: sent.append(text),
-        renderer=lambda df, sym, path, lookback=140: open(path, "wb").close(),
-        send_photo=lambda tok, cid, path, caption="": photos.append(caption),
+        send_photo=lambda tok, cid, path, caption="": None,
         asof=date(2026, 8, 19),
     )
     assert ok is True
-    assert "TEST" in photos[0]                              # chart sent from the one eval
     assert "TEST" in sent[0] and ("BUY" in sent[0] or "SHARES" in sent[0])
 
 
@@ -264,10 +267,13 @@ def _ohlc_down(n=320):
 
 
 def test_handle_trade_bear_stop_is_above_entry_and_kill_above(monkeypatch):
+    # Anchored bare path, bear direction: levels come from results.json.
+    results = {"as_of": "2026-08-19", "fired": [
+        {"symbol": "TEST", "direction": "bear", "close": 44.7, "rsi": 38.0,
+         "date": "2026-08-19", "score": 84, "conviction_grade": "A", "atr": 1.0,
+         "prov_target": 43.0, "prov_stop": 46.2, "chart": "charts/TEST.png"}]}
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
     sent = []
-    monkeypatch.setattr(bot.signals, "latest_signal",
-                        lambda df, symbol=None: _fixed_signal(
-                            "bear", close=44.7, atr=1.0, ema21=45.5))
 
     def fake_chain(symbol):
         return {"expiries": [{"expiry": "2026-09-23", "calls": [],
@@ -278,10 +284,9 @@ def test_handle_trade_bear_stop_is_above_entry_and_kill_above(monkeypatch):
         {"symbol": "TEST", "p": 0.6, "risk": 840.0, "dte": 35, "full": False,
          "caption": None},
         chat_id="1", token="T",
-        fetcher=lambda syms: {"TEST": _ohlc_down()},
+        fetcher=_fake_df_fetcher(spot=44.7),   # last close == anchored entry
         chain_fetcher=fake_chain,
         send_message=lambda tok, cid, text: sent.append(text),
-        renderer=lambda df, sym, path, lookback=140: open(path, "wb").close(),
         send_photo=lambda tok, cid, path, caption="": None,
         asof=date(2026, 8, 19),
     )
@@ -296,10 +301,24 @@ def test_handle_trade_bear_stop_is_above_entry_and_kill_above(monkeypatch):
         raise AssertionError(f"expected a short-side action in: {msg}")
 
 
-def _fake_df_fetcher():
-    """Generic fetcher usable for any requested symbol — reply-path
-    handle_trade only needs the df for options.realized_vol."""
-    return lambda syms: {sym: _ohlc_up() for sym in syms}
+def _fake_df_fetcher(spot=None):
+    """Generic fetcher usable for any requested symbol.
+
+    With no `spot`, returns the shared uptrending fixture — reply-path
+    handle_trade only needs *a* frame for options.realized_vol. With `spot=`,
+    returns a tiny ascending-close frame whose LAST close == spot, for the
+    bare-anchor path where the live close also feeds the Task-5 freshness
+    guard (`df["close"].iloc[-1]`).
+    """
+    if spot is None:
+        return lambda syms: {sym: _ohlc_up() for sym in syms}
+
+    def _mk():
+        idx = pd.bdate_range("2026-07-01", periods=30)
+        close = pd.Series(np.linspace(spot - 6, spot, 30), index=idx)
+        return pd.DataFrame({"open": close, "high": close + 0.3, "low": close - 0.3,
+                             "close": close, "volume": 1_000_000}, index=idx)
+    return lambda syms: {sym: _mk() for sym in syms}
 
 
 def test_handle_trade_reply_uses_caption_direction_never_inverts():
@@ -360,32 +379,135 @@ def test_acceptance_buy_caption_never_yields_short_card():
 
 
 def test_handle_trade_bare_sizes_from_real_conviction_score_not_default(monkeypatch):
-    # Regression: the bare path must feed options.decide the REAL conviction
-    # score (via signal["score"]) when no `p=` override is given. A 91/100
-    # A+ setup must NOT get sized as if it were the score=50 default
-    # (conviction_to_p(50) = 0.35 vs conviction_to_p(95) clamped to 0.70 —
-    # unmistakably different confidence lines on the card).
-    sent, photos = [], []
-    monkeypatch.setattr(bot.signals, "latest_signal",
-                        lambda df, symbol=None: _fixed_signal("bull"))
-    monkeypatch.setattr(bot.score, "conviction",
-                        lambda df, symbol=None: {"score": 95.0, "grade": "A+", "rr": 3.0})
+    # Regression: the anchored bare path must feed options.decide the REAL
+    # conviction score from results.json (via the parsed anchor caption's
+    # `score`) when no `p=` override is given. A 95/100 A+ setup must NOT get
+    # sized as if it were the score=50 default (conviction_to_p(50) = 0.35 vs
+    # conviction_to_p(95) clamped to 0.70 — unmistakably different confidence
+    # lines on the card).
+    results = {"as_of": "2026-08-19", "fired": [
+        {"symbol": "TEST", "direction": "bull", "close": 88.28, "rsi": 62.0,
+         "date": "2026-08-19", "score": 95, "conviction_grade": "A+", "atr": 1.2,
+         "prov_target": 95.0, "prov_stop": 86.48, "chart": "charts/TEST.png"}]}
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+    sent = []
 
     ok = bot.handle_trade(
         {"symbol": "TEST", "p": None, "risk": None, "dte": None, "full": False,
          "caption": None},
         chat_id="1", token="T",
-        fetcher=lambda syms: {"TEST": _ohlc_up()},
+        fetcher=lambda syms: {"TEST": _ohlc_up()},   # last close 88.28 == anchored entry
         chain_fetcher=lambda s: None,
         send_message=lambda tok, cid, text: sent.append(text),
-        renderer=lambda df, sym, path, lookback=140: open(path, "wb").close(),
-        send_photo=lambda tok, cid, path, caption="": photos.append(caption),
+        send_photo=lambda tok, cid, path, caption="": None,
         asof=date(2026, 8, 19),
     )
     assert ok is True
     from scanner import options as opt_mod
     assert f"~{round(opt_mod.conviction_to_p(95.0) * 100)}%" in sent[0]
     assert f"~{round(opt_mod.conviction_to_p(50) * 100)}%" not in sent[0]
+
+
+# ---- anchored bare trade: no re-derivation, refuse+redirect off-list -------
+
+_APD_RESULTS = {"as_of": "2026-08-28", "fired": [
+    {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
+     "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+     "prov_target": 323.69, "prov_stop": 298.73, "chart": "charts/APD.png"}]}
+
+
+def test_bare_trade_anchors_buy_never_contradicts(monkeypatch):
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    sent = {}
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None},
+                     "chat", "tok", fetcher=_fake_df_fetcher(spot=308.0),
+                     chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None,
+                     asof=date(2026, 8, 30))
+    m = sent["m"]
+    assert "BUY" in m and "SHORT" not in m and "SELL" not in m
+    assert "323" in m and "298" in m                    # anchored prov levels
+    assert "follows the 2026-08-28 scan signal" in m    # vintage
+
+
+def test_bare_trade_offlist_refuses_and_redirects(monkeypatch):
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    sent = {}
+    bot.handle_trade({"symbol": "TSLA", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     asof=date(2026, 8, 30))
+    assert "no active signal" in sent["m"].lower() and "chart TSLA" in sent["m"]
+
+
+def test_bare_trade_missing_results_refuses(monkeypatch):
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: None)
+    sent = {}
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     asof=date(2026, 8, 30))
+    assert "no active signal" in sent["m"].lower()
+
+
+def test_bare_trade_does_not_rederive_direction(monkeypatch):
+    # A live fetch on a DIFFERENT (bearish) bar must not change the anchored BUY.
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    monkeypatch.setattr(bot.signals, "latest_signal",
+                        lambda *a, **k: (_ for _ in ()).throw(AssertionError("re-derived!")))
+    sent = {}
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=308.0), chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    assert "BUY" in sent["m"]   # latest_signal never called -> no AssertionError
+
+
+# ---- anchored bare trade: freshness guard -----------------------------------
+
+def test_bare_trade_refuses_when_price_moved_past_target(monkeypatch):
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    sent = {}
+    # anchored entry 308.09, target 323.69, atr 6.0; live spot 330 => crossed target
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=330.0), chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    m = sent["m"]
+    assert "2026-08-28" in m and "moved" in m.lower()
+    assert "BUY" not in m and "SKIP" not in m           # no card priced
+
+
+def test_bare_trade_prices_card_when_price_near_entry(monkeypatch):
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    sent = {}
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=309.0), chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    assert "BUY" in sent["m"]                            # within 1 ATR -> card priced
+
+
+# ---- acceptance: APD anchors, no stale-bar contradiction --------------------
+
+def test_acceptance_apd_bare_trade_matches_alert_not_stale_bar(monkeypatch):
+    # The reported bug: daily BUY APD (bar 08-28) but bare trade said no-signal (08-27).
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: _APD_RESULTS)
+    # even if a live eval would say "bear"/"none", anchoring must return BUY:
+    monkeypatch.setattr(bot.signals, "latest_signal",
+                        lambda *a, **k: (_ for _ in ()).throw(AssertionError("re-derived!")))
+    sent = {}
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=309.0), chain_fetcher=lambda s: None,
+                     send_message=lambda t, c, m: sent.setdefault("m", m),
+                     send_photo=lambda *a, **k: None, asof=date(2026, 8, 30))
+    assert "BUY" in sent["m"] and "323" in sent["m"]   # anchored to the alert
 
 
 def test_poll_once_routes_trade(tmp_path, monkeypatch):

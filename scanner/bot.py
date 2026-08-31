@@ -375,37 +375,47 @@ def _handle_trade_reply(opts, chat_id, token, caption_text, *, fetcher,
 
 
 def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
-                       send_message, renderer, send_photo, tmp_dir,
-                       asof) -> bool:
-    """Bare `trade SYM`: ONE latest_signal eval feeds both the chart caption
-    and the card — no second, possibly-divergent re-derivation."""
+                       send_message, renderer, send_photo, tmp_dir, asof) -> bool:
+    """Bare `trade SYM`: anchor to the daily scan's persisted signal. Direction and
+    levels come ONLY from results.json (via the synthesized caption), never a fresh
+    latest_signal eval — so the card can't contradict the alert."""
     symbol = opts["symbol"]
-    frames = fetcher([symbol])
-    df = frames.get(symbol)
-    if df is None or getattr(df, "empty", True):
-        send_message(token, chat_id, f"No data for {symbol} — check the ticker?")
+    results = _load_results()
+    payload = _anchor_payload(symbol, results)
+    if payload is None:
+        as_of = (results or {}).get("as_of", "the latest scan")
+        send_message(token, chat_id,
+                     f"{symbol} has no active signal in the latest scan (as of "
+                     f"{as_of}). To analyze it anyway, `chart {symbol}` then reply "
+                     f"`trade` to the chart.")
         return False
 
-    sig = signals.latest_signal(df, symbol=symbol)
-    conv = score.conviction(df, symbol=symbol)
-    caption = build_summary(symbol, df, sig=sig, conv=conv)
-    out_path = Path(tmp_dir or tempfile.gettempdir()) / f"req_{symbol}.png"
-    renderer(df, symbol, str(out_path), lookback=140)
-    send_photo(token, chat_id, str(out_path), caption=caption)
+    parsed = captionparse.parse_caption(_anchor_caption(payload))
+    direction, entry = parsed["direction"], parsed["entry"]
+    target, stop, bar_date = parsed["target"], parsed["stop"], parsed["bar_date"]
 
-    direction = sig["direction"]
-    if direction == "none":
-        send_message(token, chat_id, f"no active signal on {symbol}")
-        return True
+    # live df for realized-vol (IV fallback) + the Task-5 freshness guard only
+    frames = fetcher([symbol])
+    df = frames.get(symbol)
+    rv = options.realized_vol(df["close"]) if df is not None and not getattr(df, "empty", True) else 0.0
 
-    stop = (sig["close"] - sig["atr"] * 1.5 if direction != "bear"
-            else sig["close"] + sig["atr"] * 1.5)
-    target = sig["target_up"] if direction != "bear" else sig["target_dn"]
-    msg = _decide_and_format(opts, symbol, direction, sig["close"], target, stop,
-                             options.realized_vol(df["close"]),
+    # send the committed daily chart (same picture the alert sent), best-effort
+    chart_rel = payload.get("chart")
+    if chart_rel:
+        cpath = Path("out") / chart_rel
+        if cpath.exists():
+            try:
+                send_photo(token, chat_id, str(cpath), caption=_anchor_caption(payload))
+            except Exception as exc:
+                print(f"  [bot] anchor chart send failed for {symbol}: {exc}")
+
+    msg = _decide_and_format(opts, symbol, direction, entry, target, stop, rv,
                              chain_fetcher=chain_fetcher, asof=asof,
-                             conv_score=conv["score"])
-    send_message(token, chat_id, msg)
+                             conv_score=parsed.get("score"))
+    vintage = (f"follows the {bar_date} scan signal · target {target:.2f} / stop {stop:.2f}"
+               if bar_date else
+               f"follows the latest scan signal · target {target:.2f} / stop {stop:.2f}")
+    send_message(token, chat_id, vintage + "\n" + msg)
     return True
 
 
