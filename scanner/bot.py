@@ -399,6 +399,21 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
     df = frames.get(symbol)
     rv = options.realized_vol(df["close"]) if df is not None and not getattr(df, "empty", True) else 0.0
 
+    # freshness guard: refuse a card when the live price has moved past the
+    # anchored levels — the persisted target/stop are stale by then.
+    live_spot = float(df["close"].iloc[-1]) if df is not None and not getattr(df, "empty", True) else None
+    atr = float(payload.get("atr") or 0.0)
+    if live_spot is not None:
+        crossed = (direction != "bear" and live_spot >= target) or \
+                  (direction == "bear" and live_spot <= target)
+        moved = atr > 0 and abs(live_spot - entry) > atr
+        if crossed or moved:
+            send_message(token, chat_id,
+                         f"levels are from {bar_date}; {symbol} has moved to "
+                         f"{live_spot:.2f} — pull a fresh chart (`chart {symbol}`) "
+                         f"and reply `trade`.")
+            return False
+
     # send the committed daily chart (same picture the alert sent), best-effort
     chart_rel = payload.get("chart")
     if chart_rel:
