@@ -399,3 +399,18 @@ def test_poll_once_routes_trade(tmp_path, monkeypatch):
                   trade_handler=lambda opts: routed.append(("trade", opts["symbol"])) or True)
     assert ("trade", "NVDA") in routed
     assert not any(r[0] == "chart" for r in routed)   # trade did NOT fall through to chart
+
+
+def test_anchor_payload_found_and_missing(tmp_path):
+    results = {"as_of": "2026-08-28", "fired": [
+        {"symbol": "APD", "direction": "bull", "close": 308.09, "date": "2026-08-28",
+         "score": 84, "conviction_grade": "A", "atr": 6.0, "ema21": 300.0,
+         "target_up": 320.0, "target_dn": 286.0, "stop": 299.0,
+         "prov_target": 323.69, "prov_stop": 298.73, "chart": "charts/APD.png"}]}
+    assert bot._anchor_payload("APD", results)["prov_target"] == 323.69
+    assert bot._anchor_payload("TSLA", results) is None
+    assert bot._anchor_payload("APD", None) is None
+
+
+def test_load_results_missing_file_returns_none(tmp_path):
+    assert bot._load_results(str(tmp_path / "nope.json")) is None

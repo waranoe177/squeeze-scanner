@@ -21,6 +21,7 @@ Only ONE poller may run at a time (the single-consumer rule above).
 """
 
 import argparse
+import json as _json
 import os
 import re
 import sys
@@ -29,6 +30,28 @@ from datetime import date
 from pathlib import Path
 
 from scanner import captionparse, chart, data, decisions, notify, optfmt, options, score, signals
+
+_RESULTS_PATH = "out/results.json"
+
+
+def _load_results(path=None):
+    """Latest daily-scan snapshot, or None if absent/unreadable. Never raises."""
+    try:
+        with open(path or _RESULTS_PATH, encoding="utf-8") as fh:
+            return _json.load(fh)
+    except Exception:
+        return None
+
+
+def _anchor_payload(symbol, results):
+    """The fired[] payload for symbol from a results snapshot, else None."""
+    if not results:
+        return None
+    for p in results.get("fired", []):
+        if str(p.get("symbol", "")).upper() == symbol.upper():
+            return p
+    return None
+
 
 # A ticker: letter-led, then letters/digits and the few punctuation marks real
 # symbols use (BRK-B, BRK.B, GC=F, ^VIX). Up to 12 chars total.
