@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-09-02T23:28:12+00:00",
+  "generated_at": "2026-09-03T02:56:08+00:00",
   "as_of": "2026-09-02",
   "universe": 126,
-  "fired_count": 2,
+  "fired_count": 4,
   "fired": [
     {
       "symbol": "NVDA",
@@ -13,7 +13,7 @@
       "rsi": 56.67224745963073,
       "ppo": 0.8830429335456145,
       "squeeze_on": true,
-      "moxie_w": 2.529825241961305,
+      "moxie_w": 2.529825243376221,
       "atr": 7.576301645118109,
       "ema21": 216.85511882449535,
       "lit_bull": 7,
@@ -45,44 +45,124 @@
       "chart": "charts/NVDA.png"
     },
     {
+      "symbol": "APD",
+      "date": "2026-09-02",
+      "direction": "bull",
+      "grade": "A++",
+      "close": 309.45001220703125,
+      "rsi": 58.02289414181154,
+      "ppo": 0.6530192220486432,
+      "squeeze_on": true,
+      "moxie_w": 2.8356659191129356,
+      "atr": 6.534502953313997,
+      "ema21": 303.92086710106037,
+      "lit_bull": 7,
+      "lit_bear": 1,
+      "target_up": 320.2571,
+      "target_dn": 287.5846,
+      "stop": 299.6483,
+      "score": 84.3,
+      "conviction_grade": "A",
+      "score_parts": {
+        "symbol": "APD",
+        "date": "2026-09-02",
+        "direction": "bull",
+        "score": 84.3,
+        "grade": "A",
+        "confluence": 60.0,
+        "strength": 24.3,
+        "rr": 1.1,
+        "atr_pct": 2.11,
+        "parts": {
+          "momentum": 10.5,
+          "moxie": 8.3,
+          "freshness": 4.0,
+          "risk_reward": 1.5
+        }
+      },
+      "prov_target": 325.79,
+      "prov_stop": 299.65,
+      "chart": "charts/APD.png"
+    },
+    {
       "symbol": "COST",
       "date": "2026-09-02",
       "direction": "bear",
       "grade": "A++",
       "close": 928.47998046875,
-      "rsi": 42.2545735151601,
-      "ppo": -0.311469832699773,
+      "rsi": 42.48447354290798,
+      "ppo": -0.28900078195358236,
       "squeeze_on": true,
-      "moxie_w": -10.976902338246699,
-      "atr": 17.65453300928602,
-      "ema21": 947.2107629664307,
+      "moxie_w": -12.160882359750136,
+      "atr": 17.979535218975695,
+      "ema21": 947.5967038594916,
       "lit_bull": 1,
       "lit_bear": 7,
-      "target_up": 991.3471,
-      "target_dn": 903.0744,
-      "stop": 901.9982,
-      "score": 20.4,
+      "target_up": 992.5455,
+      "target_dn": 902.6479,
+      "stop": 901.5107,
+      "score": 20.1,
       "conviction_grade": "C",
       "score_parts": {
         "symbol": "COST",
         "date": "2026-09-02",
         "direction": "bear",
-        "score": 20.4,
+        "score": 20.1,
         "grade": "C",
         "confluence": 10.0,
-        "strength": 10.4,
+        "strength": 10.1,
         "rr": 0.96,
-        "atr_pct": 1.9,
+        "atr_pct": 1.94,
         "parts": {
-          "momentum": 5.2,
-          "moxie": 3.9,
+          "momentum": 5.5,
+          "moxie": 3.3,
           "freshness": 0.0,
           "risk_reward": 1.3
         }
       },
-      "prov_target": 884.34,
-      "prov_stop": 954.96,
+      "prov_target": 883.53,
+      "prov_stop": 955.45,
       "chart": "charts/COST.png"
+    },
+    {
+      "symbol": "MCD",
+      "date": "2026-09-02",
+      "direction": "bear",
+      "grade": "A++",
+      "close": 260.95001220703125,
+      "rsi": 41.36174968510185,
+      "ppo": -0.7333581827478518,
+      "squeeze_on": true,
+      "moxie_w": -1.484719052003264,
+      "atr": 4.9570921626352815,
+      "ema21": 265.8616883106452,
+      "lit_bull": 1,
+      "lit_bear": 7,
+      "target_up": 278.2544,
+      "target_dn": 253.469,
+      "stop": 253.5144,
+      "score": 18.9,
+      "conviction_grade": "C",
+      "score_parts": {
+        "symbol": "MCD",
+        "date": "2026-09-02",
+        "direction": "bear",
+        "score": 18.9,
+        "grade": "C",
+        "confluence": 10.0,
+        "strength": 8.9,
+        "rr": 1.01,
+        "atr_pct": 1.9,
+        "parts": {
+          "momentum": 3.9,
+          "moxie": 3.6,
+          "freshness": 0.0,
+          "risk_reward": 1.3
+        }
+      },
+      "prov_target": 248.56,
+      "prov_stop": 268.39,
+      "chart": "charts/MCD.png"
     }
   ],
   "watching": [
@@ -104,7 +184,6 @@
     "UPS",
     "TMUS",
     "CL",
-    "APD",
     "SPY",
     "XLF",
     "XLP",
@@ -121,6 +200,7 @@
     "UNH",
     "SBUX",
     "PG",
+    "PM",
     "DIA",
     "RSP",
     "XLK",
@@ -129,11 +209,9 @@
     "TSLA",
     "SNOW",
     "PLTR",
-    "UBER",
     "SHOP",
     "AXP",
     "FDX",
-    "PM",
     "MDLZ",
     "LIN",
     "BAC",
@@ -231,11 +309,6 @@
       "lean": "bear"
     },
     {
-      "symbol": "APD",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
       "symbol": "SPY",
       "lit": 5,
       "lean": "bull"
@@ -316,6 +389,11 @@
       "lean": "bull"
     },
     {
+      "symbol": "PM",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
       "symbol": "DIA",
       "lit": 4,
       "lean": "bull"
@@ -356,11 +434,6 @@
       "lean": "bull"
     },
     {
-      "symbol": "UBER",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
       "symbol": "SHOP",
       "lit": 4,
       "lean": "bull"
@@ -376,14 +449,9 @@
       "lean": "bull"
     },
     {
-      "symbol": "PM",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
       "symbol": "MDLZ",
       "lit": 4,
-      "lean": "bear"
+      "lean": "bull"
     },
     {
       "symbol": "LIN",
