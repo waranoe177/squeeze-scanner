@@ -17,6 +17,45 @@ from scanner import indicators as ind  # noqa: E402
 from scanner import signals  # noqa: E402
 
 GREEN, RED, BLUE, ORANGE = "#10a050", "#d0202a", "#1a2fd0", "#e8901a"
+PIVOT_PEAK, PIVOT_VALLEY = "#90ee90", "#ff8080"  # TOS light_green / light_red S&R
+
+
+def _draw_major_pivots(ax, full, n_display: int, length: int = 13):
+    """Overlay Major Pivots on an ordinal-x price panel, matching the TOS study's
+    step behavior (PaintingStrategy.HORIZONTAL): each fractal pivot draws a thin
+    S/R segment from its bar to the NEXT same-type pivot (green = peak/resistance,
+    red = valley/support); only the most recent peak/valley extends to the right
+    edge. A small point marks each pivot.
+
+    Detection runs on the FULL history so pivots near the left of the display —
+    which need `length-1` bars of prior context — still appear; only the last
+    `n_display` bars are drawn, in display coordinates (0 .. n_display-1). A
+    segment that begins before the window is clipped to the left edge. Returns
+    the drawn segments as ``{"kind", "start", "end", "level"}``.
+    """
+    peaks, valleys = ind.find_fractal_pivots(full["high"], full["low"], length)
+    highs, lows = full["high"].to_numpy(), full["low"].to_numpy()
+    total = len(full)
+    start = total - n_display          # full index of the first displayed bar
+    right = n_display - 1
+    segments: list[dict] = []
+    for kind, positions, levels, color in (
+        ("peak", peaks, highs, PIVOT_PEAK),
+        ("valley", valleys, lows, PIVOT_VALLEY),
+    ):
+        for k, i in enumerate(positions):
+            end = positions[k + 1] if k + 1 < len(positions) else total - 1
+            ds, de = i - start, end - start          # -> display coordinates
+            if de < 0:                               # segment entirely pre-window
+                continue
+            draw_start, draw_end = max(ds, 0), min(de, right)
+            ax.hlines(levels[i], draw_start, draw_end, color=color, lw=0.9,
+                      alpha=0.9, zorder=2)
+            if 0 <= ds <= right:                     # dot only if the pivot is in view
+                ax.scatter(ds, levels[i], marker="o", color=color, s=10, zorder=6)
+            segments.append({"kind": kind, "start": int(draw_start),
+                             "end": int(draw_end), "level": float(levels[i])})
+    return segments
 
 
 def _macd_colors(diff):
@@ -201,6 +240,9 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140) -> str:
     highs = e["high"].to_numpy()
     ax[0].scatter(pos[bull], lows[bull] * 0.985, marker="^", color="#00e5ff", s=75, zorder=6, label="BUY")
     ax[0].scatter(pos[bear], highs[bear] * 1.015, marker="v", color="#ff2bd6", s=75, zorder=6, label="SELL")
+    # Major Pivots: fractal S/R levels (green=resistance, red=support). Detect on
+    # the full history so left-edge pivots appear; draw only the displayed slice.
+    _draw_major_pivots(ax[0], full, n)
     lo = min(e["low"].min(), atr_bot.min(), e["sma200"].min())
     hi = max(e["high"].max(), atr_top.max())
     pad = (hi - lo) * 0.04

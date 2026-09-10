@@ -186,6 +186,86 @@ def test_moxie_of_constant_series_is_zero():
     assert mox.iloc[-1] == pytest.approx(0.0, abs=1e-9)
 
 
+# ---------------------------------------------------------------------------
+# Major Pivots (major_pivots_count_occur.docx): centered fractal pivots +
+# event-based retest counting. len=13 -> 12 bars each side.
+# ---------------------------------------------------------------------------
+
+def test_find_fractal_pivots_detects_a_centered_peak():
+    # A symmetric up/down triangle: the apex is the only confirmable peak.
+    high = pd.Series([1, 2, 3, 4, 5, 4, 3, 2, 1], dtype=float)
+    low = high
+    peaks, valleys = ind.find_fractal_pivots(high, low, length=5)
+    assert peaks == [4]
+
+
+def test_find_fractal_pivots_detects_a_centered_valley():
+    low = pd.Series([5, 4, 3, 2, 1, 2, 3, 4, 5], dtype=float)
+    high = low
+    peaks, valleys = ind.find_fractal_pivots(high, low, length=5)
+    assert valleys == [4]
+
+
+def test_recent_bars_are_not_confirmed_pivots():
+    # Strictly rising: the highest bar is the last one, which has no future
+    # window and cannot be confirmed. No interior bar qualifies either.
+    high = pd.Series(np.arange(1.0, 11.0))
+    low = high
+    peaks, valleys = ind.find_fractal_pivots(high, low, length=5)
+    assert peaks == []
+    assert valleys == []
+
+
+def test_count_retests_counts_reentry_events_not_bars():
+    # level=100, tol=1. Price sits in the zone for 3 bars (one event), leaves,
+    # then returns for 2 bars (second event) -> 2 retests, not 5.
+    high = pd.Series([100.5, 100.5, 100.5, 105, 105, 100.5, 100.5], dtype=float)
+    low = pd.Series([99.5, 99.5, 99.5, 104, 104, 99.5, 99.5], dtype=float)
+    assert ind.count_retests(100.0, high, low, start=-1, tol=1.0) == 2
+
+
+def test_count_retests_ignores_bars_at_or_before_start():
+    high = pd.Series([100.5, 105, 100.5], dtype=float)
+    low = pd.Series([99.5, 104, 99.5], dtype=float)
+    # start=0 -> the in-zone bar 0 (the pivot itself) is not counted; bar 2 is.
+    assert ind.count_retests(100.0, high, low, start=0, tol=1.0) == 1
+
+
+def test_major_pivots_excludes_untested_levels():
+    # One peak (apex 5), then price falls away and never returns.
+    high = pd.Series([1, 2, 3, 4, 5, 4, 3, 2, 1, 0, -1, -2, -3], dtype=float)
+    low = high
+    piv = ind.major_pivots(high, low, length=5, min_retests=1, tol_pct=0.0)
+    assert all(p["retests"] >= 1 for p in piv)
+    assert not any(p["kind"] == "peak" and p["level"] == 5.0 for p in piv)
+
+
+def test_major_pivots_includes_retested_level():
+    # Apex 5 at idx4; price returns to 5 once later -> one retest -> included.
+    high = pd.Series([1, 2, 3, 4, 5, 4, 3, 4, 5, 4, 3, 2, 1], dtype=float)
+    low = high
+    piv = ind.major_pivots(high, low, length=5, min_retests=1, tol_pct=0.0)
+    peaks = [p for p in piv if p["kind"] == "peak"]
+    assert any(p["level"] == 5.0 and p["retests"] >= 1 for p in peaks)
+
+
+def test_major_pivots_returns_positional_index_and_kind():
+    high = pd.Series([1, 2, 3, 4, 5, 4, 3, 4, 5, 4, 3, 2, 1], dtype=float)
+    low = high
+    piv = ind.major_pivots(high, low, length=5, min_retests=1, tol_pct=0.0)
+    assert piv, "expected at least one major pivot"
+    p = piv[0]
+    assert set(p) >= {"kind", "pos", "level", "retests"}
+    assert p["kind"] in ("peak", "valley")
+    assert isinstance(p["pos"], int)
+
+
+def test_major_pivots_empty_on_short_history():
+    high = pd.Series([1.0, 2.0, 3.0])
+    low = high
+    assert ind.major_pivots(high, low, length=13) == []
+
+
 def test_resample_to_weekly_aggregates_ohlc():
     # 10 business days = 2 calendar weeks. Weekly bar = first open, max high,
     # min low, last close.

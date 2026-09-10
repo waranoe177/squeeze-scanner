@@ -139,3 +139,88 @@ def resample_to_weekly(df: pd.DataFrame) -> pd.DataFrame:
         {"open": "first", "high": "max", "low": "min", "close": "last"}
     )
     return weekly.dropna(how="all")
+
+
+# ---------------------------------------------------------------------------
+# Major Pivots (major_pivots_count_occur: usethinkscript.com/threads/15354)
+#
+# A "major" pivot is a centered fractal swing high/low that price later
+# re-approaches ("retests"). len=13 -> `len - 1` = 12 bars on each side, matching
+# the ThinkScript (Lowest(low[1], len-1) on the left; Lowest(low, len) evaluated
+# `len-1` bars forward on the right). The last `len-1` bars can't be confirmed
+# yet because they have no future window — TOS repaints the same way.
+# ---------------------------------------------------------------------------
+
+def find_fractal_pivots(high, low, length: int = 13):
+    """Centered fractal pivots. Returns (peak_positions, valley_positions) as
+    lists of integer positions. A peak is strictly above the prior `length-1`
+    highs and is the max over the +/-(length-1) window; valley is symmetric."""
+    h = pd.Series(high).to_numpy(dtype=float)
+    l = pd.Series(low).to_numpy(dtype=float)
+    half = length - 1
+    n = len(h)
+    peaks: list[int] = []
+    valleys: list[int] = []
+    for i in range(half, n - half):
+        left_h = h[i - half:i]
+        win_h = h[i - half:i + half + 1]
+        if h[i] > left_h.max() and h[i] == win_h.max():
+            peaks.append(i)
+        left_l = l[i - half:i]
+        win_l = l[i - half:i + half + 1]
+        if l[i] < left_l.min() and l[i] == win_l.min():
+            valleys.append(i)
+    return peaks, valleys
+
+
+def count_retests(level: float, high, low, start: int, tol: float) -> int:
+    """Number of times price re-enters the zone `[level-tol, level+tol]` after
+    leaving it, counting bars strictly after `start`. A stretch of consecutive
+    in-zone bars is ONE event, so a level price hovers near for weeks counts a
+    handful of retests, not dozens."""
+    h = pd.Series(high).to_numpy(dtype=float)
+    l = pd.Series(low).to_numpy(dtype=float)
+    touches = 0
+    in_zone = False
+    for j in range(start + 1, len(h)):
+        hit = (h[j] >= level - tol) and (l[j] <= level + tol)
+        if hit and not in_zone:
+            touches += 1
+        in_zone = hit
+    return touches
+
+
+def major_pivots(
+    high,
+    low,
+    atr=None,
+    length: int = 13,
+    min_retests: int = 1,
+    tol_atr: float = 0.4,
+    tol_pct: float = 0.0035,
+) -> list[dict]:
+    """Centered fractal pivots that were later retested at least `min_retests`
+    times. Returns dicts sorted by position:
+    ``{"kind": "peak"|"valley", "pos": int, "level": float, "retests": int}``.
+
+    The retest tolerance is `max(level*tol_pct, tol_atr*ATR[at the pivot])` when
+    an `atr` series is supplied, else the percentage band alone — so the zone
+    scales with the stock's volatility."""
+    peaks, valleys = find_fractal_pivots(high, low, length)
+    h = pd.Series(high).to_numpy(dtype=float)
+    l = pd.Series(low).to_numpy(dtype=float)
+    atr_arr = pd.Series(atr).to_numpy(dtype=float) if atr is not None else None
+
+    out: list[dict] = []
+    for kind, positions, levels in (("peak", peaks, h), ("valley", valleys, l)):
+        for i in positions:
+            level = levels[i]
+            tol = abs(level) * tol_pct
+            if atr_arr is not None:
+                tol = max(tol, tol_atr * atr_arr[i])
+            retests = count_retests(level, high, low, start=i, tol=tol)
+            if retests >= min_retests:
+                out.append({"kind": kind, "pos": int(i),
+                            "level": float(level), "retests": int(retests)})
+    out.sort(key=lambda p: p["pos"])
+    return out
