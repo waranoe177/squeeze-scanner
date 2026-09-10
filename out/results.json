@@ -1,167 +1,155 @@
 {
-  "generated_at": "2026-09-09T23:24:39+00:00",
-  "as_of": "2026-09-09",
+  "generated_at": "2026-09-10T23:18:19+00:00",
+  "as_of": "2026-09-10",
   "universe": 126,
   "fired_count": 2,
   "fired": [
     {
-      "symbol": "OXY",
-      "date": "2026-09-09",
-      "direction": "bull",
-      "grade": "A++",
-      "close": 61.29999923706055,
-      "rsi": 61.97096717364741,
-      "ppo": 1.3007600898896678,
-      "squeeze_on": true,
-      "moxie_w": 1.0068408091147019,
-      "atr": 1.4568317591514082,
-      "ema21": 59.48879111405168,
-      "lit_bull": 7,
-      "lit_bear": 1,
-      "target_up": 63.1309,
-      "target_dn": 55.8467,
-      "stop": 59.1148,
-      "score": 86.0,
-      "conviction_grade": "A+",
-      "score_parts": {
-        "symbol": "OXY",
-        "date": "2026-09-09",
-        "direction": "bull",
-        "score": 86.0,
-        "grade": "A+",
-        "confluence": 60.0,
-        "strength": 26.0,
-        "rr": 0.84,
-        "atr_pct": 2.38,
-        "parts": {
-          "momentum": 11.7,
-          "moxie": 9.2,
-          "freshness": 4.0,
-          "risk_reward": 1.1
-        }
-      },
-      "prov_target": 64.94,
-      "prov_stop": 59.11,
-      "chart": "charts/OXY.png"
-    },
-    {
       "symbol": "PEP",
-      "date": "2026-09-09",
+      "date": "2026-09-10",
       "direction": "bear",
       "grade": "A++",
-      "close": 136.69000244140625,
-      "rsi": 43.43090605280815,
-      "ppo": -0.18818572311457993,
+      "close": 136.64999389648438,
+      "rsi": 43.319677174425436,
+      "ppo": -0.2828390245102401,
       "squeeze_on": true,
-      "moxie_w": -0.5980936348729933,
-      "atr": 2.3083430850183557,
-      "ema21": 138.7120947097783,
+      "moxie_w": -0.6057536115766666,
+      "atr": 2.2370326931060966,
+      "ema21": 138.52463100037963,
       "lit_bull": 1,
       "lit_bear": 7,
-      "target_up": 144.483,
-      "target_dn": 132.9412,
-      "stop": 133.2275,
-      "score": 21.4,
+      "target_up": 144.1172,
+      "target_dn": 132.932,
+      "stop": 133.2944,
+      "score": 21.0,
       "conviction_grade": "C",
       "score_parts": {
         "symbol": "PEP",
-        "date": "2026-09-09",
+        "date": "2026-09-10",
         "direction": "bear",
-        "score": 21.4,
+        "score": 21.0,
         "grade": "C",
         "confluence": 10.0,
-        "strength": 11.4,
-        "rr": 1.08,
-        "atr_pct": 1.69,
+        "strength": 11.0,
+        "rr": 1.11,
+        "atr_pct": 1.64,
         "parts": {
-          "momentum": 6.1,
-          "moxie": 3.8,
+          "momentum": 5.7,
+          "moxie": 3.9,
           "freshness": 0.0,
-          "risk_reward": 1.4
+          "risk_reward": 1.5
         }
       },
-      "prov_target": 130.92,
-      "prov_stop": 140.15,
+      "prov_target": 131.06,
+      "prov_stop": 140.01,
       "chart": "charts/PEP.png"
+    },
+    {
+      "symbol": "XLU",
+      "date": "2026-09-10",
+      "direction": "bear",
+      "grade": "A++",
+      "close": 42.52000045776367,
+      "rsi": 39.33860470179524,
+      "ppo": -0.6366626985271179,
+      "squeeze_on": true,
+      "moxie_w": -1.076524643053455,
+      "atr": 0.6481601765940025,
+      "ema21": 43.2672852418201,
+      "lit_bull": 1,
+      "lit_bear": 7,
+      "target_up": 44.8877,
+      "target_dn": 41.6469,
+      "stop": 41.5478,
+      "score": 16.1,
+      "conviction_grade": "C",
+      "score_parts": {
+        "symbol": "XLU",
+        "date": "2026-09-10",
+        "direction": "bear",
+        "score": 16.1,
+        "grade": "C",
+        "confluence": 10.0,
+        "strength": 6.1,
+        "rr": 0.9,
+        "atr_pct": 1.52,
+        "parts": {
+          "momentum": 4.8,
+          "moxie": 0.1,
+          "freshness": 0.0,
+          "risk_reward": 1.2
+        }
+      },
+      "prov_target": 40.9,
+      "prov_stop": 43.49,
+      "chart": "charts/XLU.png"
     }
   ],
   "watching": [
-    "DIA",
-    "XLK",
-    "XLP",
     "XLB",
-    "OIH",
+    "TLT",
+    "AAPL",
     "AMZN",
     "GOOGL",
-    "ORCL",
-    "MU",
+    "GS",
+    "MS",
     "UNH",
     "XOM",
+    "OXY",
     "UPS",
-    "FDX",
-    "NKE",
-    "SBUX",
+    "PG",
     "CL",
     "LIN",
     "APD",
-    "QQQ",
-    "XME",
-    "TLT",
-    "HYG",
-    "SLV",
+    "SPY",
+    "XLK",
+    "XLF",
+    "SMH",
+    "OIH",
     "MSFT",
-    "NVDA",
     "AMD",
+    "ORCL",
+    "MU",
     "QCOM",
     "SNOW",
-    "PLTR",
     "UBER",
     "BAC",
-    "GS",
-    "MS",
+    "SCHW",
     "BRK-B",
     "JNJ",
+    "ABBV",
     "TMO",
-    "PG",
-    "PM",
-    "SPY",
-    "XLF",
-    "XLU",
-    "SMH",
-    "XBI",
-    "TSLA",
-    "ABNB",
-    "JPM",
-    "SCHW",
+    "VZ",
+    "QQQ",
     "XLC",
+    "XBI",
+    "NVDA",
+    "TSLA",
+    "PLTR",
+    "JPM",
     "DIS",
     "CMCSA",
+    "T",
     "TMUS",
+    "PM",
+    "XME",
+    "SLV",
+    "NFLX",
     "MDLZ"
   ],
   "watching_detail": [
-    {
-      "symbol": "DIA",
-      "lit": 6,
-      "lean": "bear"
-    },
-    {
-      "symbol": "XLK",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
-      "symbol": "XLP",
-      "lit": 6,
-      "lean": "bear"
-    },
     {
       "symbol": "XLB",
       "lit": 6,
       "lean": "bear"
     },
     {
-      "symbol": "OIH",
+      "symbol": "TLT",
+      "lit": 6,
+      "lean": "bear"
+    },
+    {
+      "symbol": "AAPL",
       "lit": 6,
       "lean": "bull"
     },
@@ -176,14 +164,14 @@
       "lean": "bear"
     },
     {
-      "symbol": "ORCL",
+      "symbol": "GS",
       "lit": 6,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
-      "symbol": "MU",
+      "symbol": "MS",
       "lit": 6,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
       "symbol": "UNH",
@@ -196,22 +184,17 @@
       "lean": "bull"
     },
     {
+      "symbol": "OXY",
+      "lit": 6,
+      "lean": "bull"
+    },
+    {
       "symbol": "UPS",
       "lit": 6,
       "lean": "bear"
     },
     {
-      "symbol": "FDX",
-      "lit": 6,
-      "lean": "bear"
-    },
-    {
-      "symbol": "NKE",
-      "lit": 6,
-      "lean": "bear"
-    },
-    {
-      "symbol": "SBUX",
+      "symbol": "PG",
       "lit": 6,
       "lean": "bear"
     },
@@ -231,27 +214,27 @@
       "lean": "bear"
     },
     {
-      "symbol": "QQQ",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "XME",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "TLT",
+      "symbol": "SPY",
       "lit": 5,
       "lean": "bear"
     },
     {
-      "symbol": "HYG",
+      "symbol": "XLK",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "XLF",
       "lit": 5,
       "lean": "bear"
     },
     {
-      "symbol": "SLV",
+      "symbol": "SMH",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
+      "symbol": "OIH",
       "lit": 5,
       "lean": "bull"
     },
@@ -261,12 +244,17 @@
       "lean": "bull"
     },
     {
-      "symbol": "NVDA",
+      "symbol": "AMD",
       "lit": 5,
       "lean": "bull"
     },
     {
-      "symbol": "AMD",
+      "symbol": "ORCL",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "MU",
       "lit": 5,
       "lean": "bull"
     },
@@ -281,11 +269,6 @@
       "lean": "bull"
     },
     {
-      "symbol": "PLTR",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
       "symbol": "UBER",
       "lit": 5,
       "lean": "bear"
@@ -296,14 +279,9 @@
       "lean": "bull"
     },
     {
-      "symbol": "GS",
+      "symbol": "SCHW",
       "lit": 5,
       "lean": "bear"
-    },
-    {
-      "symbol": "MS",
-      "lit": 5,
-      "lean": "bull"
     },
     {
       "symbol": "BRK-B",
@@ -316,37 +294,27 @@
       "lean": "bull"
     },
     {
+      "symbol": "ABBV",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
       "symbol": "TMO",
       "lit": 5,
       "lean": "bull"
     },
     {
-      "symbol": "PG",
+      "symbol": "VZ",
       "lit": 5,
-      "lean": "bear"
+      "lean": "bull"
     },
     {
-      "symbol": "PM",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
-      "symbol": "SPY",
+      "symbol": "QQQ",
       "lit": 4,
       "lean": "bull"
     },
     {
-      "symbol": "XLF",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "XLU",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
-      "symbol": "SMH",
+      "symbol": "XLC",
       "lit": 4,
       "lean": "bull"
     },
@@ -356,44 +324,64 @@
       "lean": "bull"
     },
     {
+      "symbol": "NVDA",
+      "lit": 4,
+      "lean": "bull"
+    },
+    {
       "symbol": "TSLA",
       "lit": 4,
       "lean": "bull"
     },
     {
-      "symbol": "ABNB",
+      "symbol": "PLTR",
       "lit": 4,
       "lean": "bull"
     },
     {
       "symbol": "JPM",
       "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "SCHW",
-      "lit": 4,
       "lean": "bear"
     },
     {
-      "symbol": "XLC",
-      "lit": 3,
-      "lean": "bull"
-    },
-    {
       "symbol": "DIS",
-      "lit": 3,
+      "lit": 4,
       "lean": "bull"
     },
     {
       "symbol": "CMCSA",
-      "lit": 3,
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "T",
+      "lit": 4,
       "lean": "bull"
     },
     {
       "symbol": "TMUS",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "PM",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "XME",
       "lit": 3,
       "lean": "bull"
+    },
+    {
+      "symbol": "SLV",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "NFLX",
+      "lit": 3,
+      "lean": "bear"
     },
     {
       "symbol": "MDLZ",
