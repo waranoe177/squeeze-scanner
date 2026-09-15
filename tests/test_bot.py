@@ -145,6 +145,47 @@ def test_poll_once_dispatches_decision_and_chart(tmp_path, monkeypatch):
     assert res["charts"] == 1 and res["decisions"] == 1
 
 
+def test_poll_once_holds_offset_and_alerts_on_append_failure(tmp_path, monkeypatch):
+    # FIX 1: a decision whose ghsync append fails (transient GitHub outage /
+    # rate-limit / PAT expiry) must NOT be lost — the saved offset must not
+    # advance past that update (so it replays next poll), and the owner must be
+    # alerted once that persistence is failing.
+    spath = tmp_path / "state.json"
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")
+    monkeypatch.setattr(bot.ghsync, "append_decision",
+                        lambda repo, dec, token, **k: False)   # persistence fails
+    updates = [_update("go", uid=7, reply_to=123)]
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: (updates, 8))
+    alerts = []
+    monkeypatch.setattr(bot.notify, "send_message",
+                        lambda tok, cid, text: alerts.append(text))
+
+    bot.poll_once(token="T", chat_id="1", state_path=spath,
+                  command_handler=lambda sym: True)
+
+    assert decisions.load_state(spath)["offset"] <= 7     # not advanced past failed update
+    assert alerts and any("persistence" in a.lower() for a in alerts)
+
+
+def test_poll_once_advances_offset_when_append_succeeds(tmp_path, monkeypatch):
+    # Counterpart to the above: a successful append still advances the offset
+    # normally and does NOT fire a persistence alert.
+    spath = tmp_path / "state.json"
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")
+    monkeypatch.setattr(bot.ghsync, "append_decision",
+                        lambda repo, dec, token, **k: True)
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("go", uid=7, reply_to=123)], 8))
+    alerts = []
+    monkeypatch.setattr(bot.notify, "send_message",
+                        lambda tok, cid, text: alerts.append(text))
+    bot.poll_once(token="T", chat_id="1", state_path=spath,
+                  command_handler=lambda sym: True)
+    assert decisions.load_state(spath) == {"offset": 8}
+    assert alerts == []
+
+
 def test_poll_once_ignores_foreign_chat(tmp_path, monkeypatch):
     lpath, spath = tmp_path / "signals.jsonl", tmp_path / "state.json"
     ledger.save(lpath, [_rec(msg_id=123)])
@@ -785,8 +826,28 @@ def test_poll_once_appends_decision_via_ghsync(monkeypatch):
     assert res["decisions"] == 1
 
 
+def test_serve_requires_github_token_and_chat_id(monkeypatch):
+    # FIX 3: serve() must refuse to enter the poll loop when GITHUB_TOKEN (every
+    # decision would be silently dropped) or TELEGRAM_CHAT_ID (owner-only filter
+    # gone) is unset — it prints an error and returns without polling.
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    called = []
+    monkeypatch.setattr(bot, "poll_once", lambda **k: called.append(1))
+    bot.serve(token="t", chat_id="1", poll_timeout=0)
+    assert called == []                       # never entered the poll loop
+
+    monkeypatch.setenv("GITHUB_TOKEN", "g")
+    monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+    bot.serve(token="t", chat_id="1", poll_timeout=0)
+    assert called == []                       # still refused — chat id missing
+
+
 def test_serve_pings_healthcheck_after_successful_poll(monkeypatch):
     pings = []
+    monkeypatch.setenv("GITHUB_TOKEN", "g")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
     monkeypatch.setenv("HEALTHCHECK_URL", "https://hc.example/uuid")
     monkeypatch.setattr(bot, "_ping_healthcheck", lambda url: pings.append(url))
     seq = iter([None, KeyboardInterrupt()])
@@ -804,6 +865,8 @@ def test_serve_pings_healthcheck_after_successful_poll(monkeypatch):
 
 def test_serve_does_not_ping_when_poll_raises(monkeypatch):
     pings = []
+    monkeypatch.setenv("GITHUB_TOKEN", "g")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
     monkeypatch.setenv("HEALTHCHECK_URL", "https://hc.example/uuid")
     monkeypatch.setattr(bot, "_ping_healthcheck", lambda url: pings.append(url))
     seq = iter([RuntimeError("boom"), KeyboardInterrupt()])

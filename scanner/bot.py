@@ -199,10 +199,22 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
     # 1) decisions -> append to the append-only decisions.jsonl via the Contents
     #    API. The bot NEVER writes signals.jsonl (the daily scan folds these in).
     gh_token = os.environ.get("GITHUB_TOKEN")
-    parsed = [p for p in (decisions.parse_decision(u) for u in owned) if p]
-    for p in parsed:
-        if gh_token and not ghsync.append_decision(_REPO, p, gh_token):
-            print(f"  [bot] decision append failed: {p}")
+    parsed = []
+    failed_update_ids = []
+    for u in owned:
+        p = decisions.parse_decision(u)
+        if not p:
+            continue
+        parsed.append(p)
+        # A decision must never be lost. If append fails (transient GitHub
+        # outage / rate-limit / PAT expiry) OR there's no token at all, record
+        # this update's id so the saved offset does not advance past it — it
+        # re-fetches next poll. Re-appending an already-persisted decision on
+        # replay is harmless (apply_decisions is write-once).
+        persisted = bool(gh_token) and ghsync.append_decision(_REPO, p, gh_token)
+        if not persisted:
+            print(f"  [bot] decision append failed (holding offset): {p}")
+            failed_update_ids.append(u["update_id"])
 
     # 2) trade requests + chart requests (anything not already a decision)
     charts = 0
@@ -234,7 +246,21 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
             except Exception:
                 pass
 
-    decisions.save_state(state_path, {"offset": next_offset})
+    # Hold the offset at the earliest un-persisted decision so it (and every
+    # later update) replays next poll, instead of advancing past a dropped
+    # go/pass forever. Alert the owner once that persistence is failing.
+    if failed_update_ids:
+        save_offset = min(failed_update_ids)
+        try:
+            notify.send_message(
+                token, chat_id,
+                "⚠️ decision persistence failing — a go/pass could not be saved. "
+                "Check GITHUB_TOKEN/PAT. Holding offset to retry next poll.")
+        except Exception:
+            pass
+    else:
+        save_offset = next_offset
+    decisions.save_state(state_path, {"offset": save_offset})
     print(f"[bot] {len(updates)} update(s), {len(parsed)} decision(s), {charts} chart(s)")
     return {"updates": len(updates), "decisions": len(parsed), "charts": charts}
 
@@ -246,6 +272,19 @@ def serve(token=None, chat_id=None, ledger_path=None,
     token = token or os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         print("[bot] no TELEGRAM_BOT_TOKEN — cannot serve")
+        return
+    # Startup validation (serve only — the bot.yml fallback calls poll_once
+    # directly with Actions-supplied env). Without GITHUB_TOKEN every decision
+    # is silently dropped; without TELEGRAM_CHAT_ID the owner-only filter is
+    # gone and ANY chat can drive the bot. Refuse to start rather than run
+    # unsafe.
+    if not os.environ.get("GITHUB_TOKEN"):
+        print("[bot] ERROR: GITHUB_TOKEN unset — decisions would be dropped. "
+              "Refusing to serve.")
+        return
+    if not os.environ.get("TELEGRAM_CHAT_ID"):
+        print("[bot] ERROR: TELEGRAM_CHAT_ID unset — owner-only filter disabled. "
+              "Refusing to serve.")
         return
     print("[bot] serve mode — long-polling for chart requests. Ctrl-C to stop.")
     hc = os.environ.get("HEALTHCHECK_URL")

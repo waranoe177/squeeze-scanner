@@ -67,6 +67,29 @@ def test_apply_symbol_fallback_picks_latest_undecided():
     assert "decision" not in older and newer["decision"] == "go"
 
 
+def test_apply_symbol_fallback_ignores_future_signal_dates():
+    # FIX 2: _fold_decisions re-applies the whole decisions file every daily
+    # scan, so an old freeform `go NVDA` (reply_to=None) would otherwise
+    # re-match the NEXT undecided NVDA signal that appears AFTER the decision
+    # was made — writing a false go/pass onto a future signal. The symbol
+    # fallback must only touch records whose signal_date is on/before the
+    # decision's decided_at date.
+    dec = _parsed(reply_to=None, symbol="NVDA",
+                  decided_at="2026-09-10T14:00:00+00:00")
+
+    future = _rec(symbol="NVDA", signal_date="2026-09-20", msg_id=200)
+    decisions.apply_decisions([future], [dict(dec)])
+    assert "decision" not in future            # later signal must NOT be stamped
+
+    ondate = _rec(symbol="NVDA", signal_date="2026-09-10", msg_id=201)
+    decisions.apply_decisions([ondate], [dict(dec)])
+    assert ondate["decision"] == "go"          # same-day signal still matches
+
+    earlier = _rec(symbol="NVDA", signal_date="2026-09-05", msg_id=202)
+    decisions.apply_decisions([earlier], [dict(dec)])
+    assert earlier["decision"] == "go"         # earlier signal still matches
+
+
 def test_apply_write_once_first_decision_stands():
     rec = _rec()
     decisions.apply_decisions([rec], [_parsed(decision="go")])

@@ -62,8 +62,14 @@ def apply_decisions(records: list[dict], parsed: list[dict]) -> list[dict]:
         if p["reply_to_msg_id"] is not None:
             rec = by_msg.get(p["reply_to_msg_id"])
         if rec is None and p["symbol"]:
+            # A freeform `go SYM` (no reply_to) must only apply to a signal that
+            # existed at decision time. _fold_decisions re-applies the whole
+            # file every scan; without this date bound an old `go NVDA` would
+            # re-match the NEXT undecided NVDA signal and stamp a false go/pass
+            # onto a future signal.
             candidates = [r for r in records
-                          if r["symbol"] == p["symbol"] and not r.get("decision")]
+                          if r["symbol"] == p["symbol"] and not r.get("decision")
+                          and r["signal_date"] <= p["decided_at"][:10]]
             rec = max(candidates, key=lambda r: r["signal_date"], default=None)
         if rec is None:
             print(f"  [decisions] no match for {p} — skipped")
