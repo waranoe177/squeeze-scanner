@@ -1,0 +1,24 @@
+app = "sqzdots-bot"
+primary_region = "iad"
+
+[build]
+
+[env]
+  SQZDOTS_REPO = "waranoe177/squeeze-scanner"
+  SQZDOTS_STATE_PATH = "/data/telegram_state.json"
+
+# No [http_service] — this is an outbound long-poll worker, no inbound traffic.
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  cpus = 1
+
+[[mounts]]
+  source = "sqzdots_data"
+  destination = "/data"
+
+[deploy]
+  strategy = "immediate"   # single machine: stop-then-start in place, never two pollers
+
+# Set min=max=1 (no autoscaling) via: fly scale count 1
