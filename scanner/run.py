@@ -16,6 +16,19 @@ from pathlib import Path
 from scanner import backtest, chart, data, ledger, notify, scan, trackrecord
 
 
+def _fold_decisions(records, path="ledger/decisions.jsonl"):
+    """Apply the Fly bot's go/pass decisions (append-only decisions.jsonl) onto
+    the ledger records. Idempotent: apply_decisions is write-once."""
+    from pathlib import Path
+    p = Path(path)
+    if not p.exists():
+        return records
+    parsed = [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines()
+              if line.strip()]
+    from scanner import decisions
+    return decisions.apply_decisions(records, parsed)
+
+
 def main(argv=None) -> dict:
     try:  # Windows consoles default to cp1252 and choke on emoji in the message
         sys.stdout.reconfigure(encoding="utf-8")
@@ -55,6 +68,7 @@ def main(argv=None) -> dict:
     records = ledger.load(args.ledger)
     ledger.append_fired(records, results["fired"])
     ledger.update(records, frames)
+    _fold_decisions(records)          # <-- fold the Fly bot's go/pass decisions
 
     if not args.no_charts:
         for p in results["fired"]:

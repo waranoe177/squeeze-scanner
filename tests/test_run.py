@@ -71,3 +71,20 @@ def test_send_failure_exits_nonzero_after_persist(tmp_path, monkeypatch):
     assert ei.value.code == 1
     assert ledger_path.exists()               # persisted despite the failure
     assert (site_dir / "index.html").exists()  # site rendered despite the failure
+
+
+def test_fold_decisions_applies_to_records(tmp_path):
+    rec = {"id": "COST-2026-09-10", "symbol": "COST", "signal_date": "2026-09-10",
+           "telegram_msg_id": 42, "status": "open", "entry_date": None}
+    dpath = tmp_path / "decisions.jsonl"
+    dpath.write_text(json.dumps({"decision": "go", "decided_at": "2026-09-11T00:00:00+00:00",
+                                 "reply_to_msg_id": 42, "symbol": None}) + "\n")
+    run._fold_decisions([rec], str(dpath))
+    assert rec["decision"] == "go"
+
+
+def test_fold_decisions_noop_when_file_absent(tmp_path):
+    rec = {"id": "X", "symbol": "X", "signal_date": "2026-09-10", "telegram_msg_id": 1,
+           "status": "open"}
+    run._fold_decisions([rec], str(tmp_path / "missing.jsonl"))
+    assert "decision" not in rec
