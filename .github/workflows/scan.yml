@@ -43,13 +43,18 @@ jobs:
         run: python -m scanner.run --watchlist universe.csv --out out --site site
 
       - name: Commit results + ledger
-        if: always()   # a failed send must not lose the day's ledger appends
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add out/ ledger/
-          git diff --staged --quiet || git commit -m "scan results $(date -u +%Y-%m-%d)"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "scan results $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            echo "push rejected, retry $i"; sleep 3
+          done
+          echo "push failed after retries" >&2; exit 1
 
       - name: Deploy track-record site
         if: vars.SITE_REPO != ''
