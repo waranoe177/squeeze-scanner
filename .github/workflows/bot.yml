@@ -7,12 +7,9 @@ name: Telegram Chart Bot
 # never run at once and their ledger pushes serialize.
 
 on:
-  schedule:
-    # Every 15 min, around the clock, every day. 24/7 (not just market hours) so
-    # evening / after-close review is covered — the whole point of the tool.
-    # GitHub throttles frequent schedules, so runs are often late or skipped;
-    # replies land erratically (~15–60 min). Public repo = unlimited free minutes.
-    - cron: "*/15 * * * *"
+  # Manual break-glass ONLY. The always-on Fly.io bot is the sole poller; run
+  # this to drain the queue if Fly is down. Do NOT re-add a cron schedule
+  # (two getUpdates consumers = Telegram 409).
   workflow_dispatch: {}
 
 permissions:
@@ -40,6 +37,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SQZDOTS_REPO: waranoe177/squeeze-scanner
         run: python -m scanner.bot
 
       - name: Commit offset + decisions
