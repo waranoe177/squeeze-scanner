@@ -29,18 +29,24 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from scanner import captionparse, chart, data, decisions, notify, optfmt, options, score, signals
+from scanner import captionparse, chart, data, decisions, ghsync, notify, optfmt, options, score, signals
 
 _RESULTS_PATH = "out/results.json"
+_REPO = os.environ.get("SQZDOTS_REPO", "waranoe177/squeeze-scanner")
+
+
+def _ping_healthcheck(url):
+    """Best-effort deadman ping. Never raises — a ping failure must not kill serve."""
+    try:
+        import requests
+        requests.get(url, timeout=10)
+    except Exception:
+        pass
 
 
 def _load_results(path=None):
-    """Latest daily-scan snapshot, or None if absent/unreadable. Never raises."""
-    try:
-        with open(path or _RESULTS_PATH, encoding="utf-8") as fh:
-            return _json.load(fh)
-    except Exception:
-        return None
+    """Latest daily-scan snapshot via raw.githubusercontent (cached). Never raises."""
+    return ghsync.fetch_results(_REPO)
 
 
 def _anchor_payload(symbol, results):
@@ -169,21 +175,18 @@ def _from_owner(update: dict, allowed_chat) -> bool:
 def poll_once(token=None, chat_id=None, ledger_path=None,
               state_path=decisions.DEFAULT_STATE_PATH, timeout: int = 0,
               command_handler=None, trade_handler=None) -> dict:
-    """Drain updates once and dispatch: go/pass -> ledger, tickers -> charts.
+    """Drain updates once and dispatch: go/pass -> decisions.jsonl, tickers -> charts.
 
-    The ledger is saved BEFORE the offset (a crash between the two replays the
-    batch, which write-once decisions and idempotent-enough chart resends
-    absorb). Returns {updates, decisions, charts}.
+    `ledger_path` is unused (kept for signature stability) — the bot NEVER
+    writes ledger/signals.jsonl; the daily scan is its sole writer. Returns
+    {updates, decisions, charts}.
     """
-    from scanner import ledger
-
     token = token or os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = chat_id or os.environ.get("TELEGRAM_CHAT_ID")
     if not token:
         print("[bot] no TELEGRAM_BOT_TOKEN — skipping")
         return {"updates": 0, "decisions": 0, "charts": 0}
 
-    ledger_path = ledger_path or ledger.DEFAULT_PATH
     command_handler = command_handler or (
         lambda sym: handle_command(sym, chat_id, token))
     trade_handler = trade_handler or (
@@ -193,11 +196,13 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
     updates, next_offset = decisions.fetch_updates(token, state["offset"], timeout=timeout)
     owned = [u for u in updates if _from_owner(u, chat_id)]
 
-    # 1) decisions
-    records = ledger.load(ledger_path)
+    # 1) decisions -> append to the append-only decisions.jsonl via the Contents
+    #    API. The bot NEVER writes signals.jsonl (the daily scan folds these in).
+    gh_token = os.environ.get("GITHUB_TOKEN")
     parsed = [p for p in (decisions.parse_decision(u) for u in owned) if p]
-    decisions.apply_decisions(records, parsed)
-    ledger.save(ledger_path, records)
+    for p in parsed:
+        if gh_token and not ghsync.append_decision(_REPO, p, gh_token):
+            print(f"  [bot] decision append failed: {p}")
 
     # 2) trade requests + chart requests (anything not already a decision)
     charts = 0
@@ -243,14 +248,17 @@ def serve(token=None, chat_id=None, ledger_path=None,
         print("[bot] no TELEGRAM_BOT_TOKEN — cannot serve")
         return
     print("[bot] serve mode — long-polling for chart requests. Ctrl-C to stop.")
+    hc = os.environ.get("HEALTHCHECK_URL")
     while True:
         try:
             poll_once(token=token, chat_id=chat_id, ledger_path=ledger_path,
                       state_path=state_path, timeout=poll_timeout)
+            if hc:
+                _ping_healthcheck(hc)          # only reached on a clean poll
         except KeyboardInterrupt:
             print("\n[bot] stopped.")
             return
-        except Exception as exc:  # transient network error — keep serving
+        except Exception as exc:               # transient error — keep serving, do NOT ping
             print(f"[bot] poll error (continuing): {exc}")
 
 
@@ -426,11 +434,11 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
                      f"and reply `trade`.")
         return False
 
-    # send the committed daily chart (same picture the alert sent), best-effort
+    # send the daily chart (same picture the alert sent) via raw HTTPS, best-effort
     chart_rel = payload.get("chart")
     if chart_rel:
-        cpath = Path("out") / chart_rel
-        if cpath.exists():
+        cpath = Path(tmp_dir or tempfile.gettempdir()) / f"anchor_{symbol}.png"
+        if ghsync.fetch_chart(_REPO, symbol, str(cpath)):
             try:
                 # Raw _fired_line, not the tag-stripped _anchor_caption — under
                 # parse_mode=HTML this is exactly what the daily alert sends

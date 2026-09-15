@@ -124,18 +124,23 @@ def _rec(symbol="TSLA", signal_date="2026-01-05", msg_id=123):
 
 
 def test_poll_once_dispatches_decision_and_chart(tmp_path, monkeypatch):
-    lpath, spath = tmp_path / "signals.jsonl", tmp_path / "state.json"
-    ledger.save(lpath, [_rec(msg_id=123)])
+    # go/pass no longer touches the local signals ledger — it's appended to
+    # decisions.jsonl via ghsync.append_decision (gated on GITHUB_TOKEN).
+    spath = tmp_path / "state.json"
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")
+    appended = []
+    monkeypatch.setattr(bot.ghsync, "append_decision",
+                        lambda repo, dec, token, **k: appended.append(dec) or True)
     updates = [_update("go", uid=7, reply_to=123), _update("nvda", uid=8)]
     monkeypatch.setattr(decisions, "fetch_updates",
                         lambda token, offset, timeout=0: (updates, 9))
 
     handled = []
-    res = bot.poll_once(token="T", chat_id="1", ledger_path=lpath, state_path=spath,
+    res = bot.poll_once(token="T", chat_id="1", state_path=spath,
                         command_handler=lambda sym: handled.append(sym) or True)
 
     assert handled == ["NVDA"]                              # chart request routed
-    assert ledger.load(lpath)[0]["decision"] == "go"        # go/pass still works
+    assert appended and appended[0]["decision"] == "go"     # go/pass -> ghsync, not ledger
     assert decisions.load_state(spath) == {"offset": 9}     # offset advanced
     assert res["charts"] == 1 and res["decisions"] == 1
 
@@ -297,14 +302,16 @@ def test_handle_trade_bare_empty_frame_also_refuses(monkeypatch):
 
 
 def test_handle_trade_bare_chart_send_guarded_on_missing_file(monkeypatch):
-    # m4: a payload whose chart doesn't exist on disk must not call
-    # send_photo — the card still sends.
+    # m4: when the raw-fetch of the anchor chart fails (ghsync.fetch_chart
+    # returns None — chart absent/network failure), send_photo must not be
+    # called — the card still sends.
     results = {"as_of": "2026-08-28", "fired": [
         {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
          "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
          "prov_target": 323.69, "prov_stop": 298.73,
          "chart": "charts/DOES_NOT_EXIST_XYZ.png"}]}
     monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+    monkeypatch.setattr(bot.ghsync, "fetch_chart", lambda *a, **k: None)
     sent, photos = [], []
     ok = bot.handle_trade(
         {"symbol": "APD", "p": None, "risk": 500.0, "dte": None, "full": False,
@@ -317,42 +324,45 @@ def test_handle_trade_bare_chart_send_guarded_on_missing_file(monkeypatch):
         asof=date(2026, 8, 30),
     )
     assert ok is True
-    assert photos == []          # never sent — file doesn't exist
+    assert photos == []          # never sent — raw fetch failed
     assert "BUY" in sent[0]      # card still sent
 
 
 def test_handle_trade_bare_chart_sent_when_file_exists(monkeypatch):
-    # m4 (b): when the chart file exists, send_photo IS called. Creates its
-    # own throwaway file under out/charts/ rather than relying on a
-    # pre-existing committed chart (the cpath prefix is the hardcoded "out/",
-    # not injectable, so this is the only way to control existence cleanly).
-    chart_dir = Path("out/charts")
-    chart_dir.mkdir(parents=True, exist_ok=True)
-    chart_path = chart_dir / "TEST_M4_EXISTS.png"
-    chart_path.write_bytes(b"\x89PNG\r\n")
-    try:
-        results = {"as_of": "2026-08-28", "fired": [
-            {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
-             "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
-             "prov_target": 323.69, "prov_stop": 298.73,
-             "chart": "charts/TEST_M4_EXISTS.png"}]}
-        monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
-        sent, photos = [], []
-        ok = bot.handle_trade(
-            {"symbol": "APD", "p": None, "risk": 500.0, "dte": None, "full": False,
-             "caption": None},
-            chat_id="1", token="T",
-            fetcher=_fake_df_fetcher(spot=308.0),
-            chain_fetcher=lambda s: None,
-            send_message=lambda tok, cid, text: sent.append(text),
-            send_photo=lambda *a, **k: photos.append(a),
-            asof=date(2026, 8, 30),
-        )
-        assert ok is True
-        assert len(photos) == 1
-        assert "TEST_M4_EXISTS" in photos[0][2]   # (token, chat_id, path, ...)
-    finally:
-        chart_path.unlink(missing_ok=True)
+    # m4 (b): when the raw-fetch of the anchor chart succeeds, send_photo IS
+    # called with the fetched path. The fetch itself (ghsync.fetch_chart) is
+    # Task 1's concern and covered in tests/test_ghsync.py; here it's mocked
+    # to simulate a successful download to the requested dest_path.
+    fetched = []
+
+    def fake_fetch_chart(repo, symbol, dest_path, ref="main", **k):
+        fetched.append(dest_path)
+        Path(dest_path).write_bytes(b"\x89PNG\r\n")
+        return dest_path
+
+    results = {"as_of": "2026-08-28", "fired": [
+        {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
+         "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+         "prov_target": 323.69, "prov_stop": 298.73,
+         "chart": "charts/TEST_M4_EXISTS.png"}]}
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+    monkeypatch.setattr(bot.ghsync, "fetch_chart", fake_fetch_chart)
+    sent, photos = [], []
+    ok = bot.handle_trade(
+        {"symbol": "APD", "p": None, "risk": 500.0, "dte": None, "full": False,
+         "caption": None},
+        chat_id="1", token="T",
+        fetcher=_fake_df_fetcher(spot=308.0),
+        chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: sent.append(text),
+        send_photo=lambda *a, **k: photos.append(a),
+        asof=date(2026, 8, 30),
+    )
+    assert ok is True
+    assert len(photos) == 1
+    assert photos[0][2] == fetched[0]   # (token, chat_id, path, ...) == the fetched dest
+    assert "anchor_APD" in photos[0][2]
+    Path(fetched[0]).unlink(missing_ok=True)
 
 
 def test_handle_trade_bear_stop_is_above_entry_and_kill_above(monkeypatch):
@@ -583,29 +593,28 @@ def test_bare_trade_chart_photo_caption_is_raw_fired_line(monkeypatch):
     # F2: the committed-chart photo caption must be the RAW _fired_line HTML
     # (what the daily alert sends), not the tag-stripped _anchor_caption —
     # under parse_mode=HTML the raw version keeps bold and is what parse_caption
-    # itself is derived from via render_html.
-    chart_dir = Path("out/charts")
-    chart_dir.mkdir(parents=True, exist_ok=True)
-    chart_path = chart_dir / "TEST_F2_CAPTION.png"
-    chart_path.write_bytes(b"\x89PNG\r\n")
-    try:
-        results = {"as_of": "2026-08-28", "fired": [
-            {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
-             "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
-             "prov_target": 323.69, "prov_stop": 298.73,
-             "chart": "charts/TEST_F2_CAPTION.png"}]}
-        monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
-        photos = []
-        bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
-                          "full": False, "caption": None}, "chat", "tok",
-                         fetcher=_fake_df_fetcher(spot=308.0), chain_fetcher=lambda s: None,
-                         send_message=lambda *a, **k: None,
-                         send_photo=lambda tok, cid, path, caption="": photos.append(caption),
-                         asof=date(2026, 8, 30))
-        assert len(photos) == 1
-        assert "<b>" in photos[0]           # raw HTML tag survives — not stripped
-    finally:
-        chart_path.unlink(missing_ok=True)
+    # itself is derived from via render_html. The chart fetch itself (Task 1)
+    # is mocked to a bare success — this test only cares about the caption.
+    def fake_fetch_chart(repo, symbol, dest_path, ref="main", **k):
+        Path(dest_path).write_bytes(b"\x89PNG\r\n")
+        return dest_path
+
+    results = {"as_of": "2026-08-28", "fired": [
+        {"symbol": "APD", "direction": "bull", "close": 308.09, "rsi": 58.0,
+         "date": "2026-08-28", "score": 84, "conviction_grade": "A", "atr": 6.0,
+         "prov_target": 323.69, "prov_stop": 298.73,
+         "chart": "charts/TEST_F2_CAPTION.png"}]}
+    monkeypatch.setattr(bot, "_load_results", lambda *a, **k: results)
+    monkeypatch.setattr(bot.ghsync, "fetch_chart", fake_fetch_chart)
+    photos = []
+    bot.handle_trade({"symbol": "APD", "p": None, "risk": 500.0, "dte": None,
+                      "full": False, "caption": None}, "chat", "tok",
+                     fetcher=_fake_df_fetcher(spot=308.0), chain_fetcher=lambda s: None,
+                     send_message=lambda *a, **k: None,
+                     send_photo=lambda tok, cid, path, caption="": photos.append(caption),
+                     asof=date(2026, 8, 30))
+    assert len(photos) == 1
+    assert "<b>" in photos[0]           # raw HTML tag survives — not stripped
 
 
 def test_bare_trade_refuses_when_price_moved_past_target(monkeypatch):
@@ -729,8 +738,11 @@ def test_anchor_payload_found_and_missing(tmp_path):
     assert bot._anchor_payload("APD", None) is None
 
 
-def test_load_results_missing_file_returns_none(tmp_path):
-    assert bot._load_results(str(tmp_path / "nope.json")) is None
+def test_load_results_missing_file_returns_none(monkeypatch):
+    # _load_results now sources from ghsync.fetch_results (raw.githubusercontent),
+    # not a local path — a `path` argument is ignored. None on any fetch failure.
+    monkeypatch.setattr(bot.ghsync, "fetch_results", lambda repo, **k: None)
+    assert bot._load_results("ignored/path.json") is None
 
 
 def test_anchor_caption_roundtrips_to_prov_levels():
@@ -744,3 +756,62 @@ def test_anchor_caption_roundtrips_to_prov_levels():
     assert parsed["target"] == 323.69 and parsed["stop"] == 298.73  # prov_*, not raw
     assert parsed["bar_date"] == "2026-08-28"
     assert parsed["score"] == 84.0
+
+
+# ---- ghsync data plane + healthcheck deadman ping --------------------------
+
+def test_load_results_reads_via_ghsync(monkeypatch):
+    monkeypatch.setattr(bot.ghsync, "fetch_results", lambda repo, **k: {"fired": [{"symbol": "COST"}]})
+    assert bot._load_results() == {"fired": [{"symbol": "COST"}]}
+
+
+def test_poll_once_appends_decision_via_ghsync(monkeypatch):
+    # one go/pass reply update -> ghsync.append_decision called, ledger untouched
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")  # append is gated on a configured token
+    calls = []
+    monkeypatch.setattr(bot.ghsync, "append_decision",
+                        lambda repo, dec, token, **k: calls.append(dec) or True)
+    monkeypatch.setattr(bot.decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: (
+                            [{"update_id": 5, "message": {"date": 1, "text": "go",
+                              "chat": {"id": "1"}, "reply_to_message": {"message_id": 42}}}], 6))
+    monkeypatch.setattr(bot.decisions, "save_state", lambda p, s: None)
+    monkeypatch.setattr(bot.decisions, "load_state", lambda p: {"offset": 0})
+    res = bot.poll_once(token="t", chat_id="1", state_path="x",
+                        command_handler=lambda s: False, trade_handler=lambda o: False)
+    assert calls == [{"decision": "go", "decided_at": bot.decisions.parse_decision(
+        {"message": {"date": 1, "text": "go", "reply_to_message": {"message_id": 42}}})["decided_at"],
+        "reply_to_msg_id": 42, "symbol": None}]
+    assert res["decisions"] == 1
+
+
+def test_serve_pings_healthcheck_after_successful_poll(monkeypatch):
+    pings = []
+    monkeypatch.setenv("HEALTHCHECK_URL", "https://hc.example/uuid")
+    monkeypatch.setattr(bot, "_ping_healthcheck", lambda url: pings.append(url))
+    seq = iter([None, KeyboardInterrupt()])
+
+    def fake_poll(**k):
+        v = next(seq)
+        if isinstance(v, BaseException):
+            raise v
+        return {"updates": 0, "decisions": 0, "charts": 0}
+
+    monkeypatch.setattr(bot, "poll_once", fake_poll)
+    bot.serve(token="t", chat_id="1", poll_timeout=0)
+    assert pings == ["https://hc.example/uuid"]  # pinged once, only after the success
+
+
+def test_serve_does_not_ping_when_poll_raises(monkeypatch):
+    pings = []
+    monkeypatch.setenv("HEALTHCHECK_URL", "https://hc.example/uuid")
+    monkeypatch.setattr(bot, "_ping_healthcheck", lambda url: pings.append(url))
+    seq = iter([RuntimeError("boom"), KeyboardInterrupt()])
+
+    def fake_poll(**k):
+        v = next(seq)
+        raise v
+
+    monkeypatch.setattr(bot, "poll_once", fake_poll)
+    bot.serve(token="t", chat_id="1", poll_timeout=0)
+    assert pings == []  # a crash-looping poll must NOT report healthy
