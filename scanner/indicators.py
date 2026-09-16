@@ -152,22 +152,31 @@ def resample_to_weekly(df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def find_fractal_pivots(high, low, length: int = 13):
-    """Centered fractal pivots. Returns (peak_positions, valley_positions) as
-    lists of integer positions. A peak is strictly above the prior `length-1`
-    highs and is the max over the +/-(length-1) window; valley is symmetric."""
+    """Fractal pivots matching the TOS "Major pivots" study (Major pivots.docx).
+
+    A valley is strictly below the prior `length-1` lows AND equal to the minimum
+    of the `length`-bar window ending `offset` bars ahead, where
+    `offset = min(length-1, bars_to_the_right)` (the doc's
+    `Min(len-1, lastbn-bn)`). For interior bars that is a centered
+    +/-(length-1) fractal. Near the RIGHT EDGE the forward window shrinks to the
+    bars that actually exist, so recent pivots are marked tentatively and can
+    repaint as new bars arrive — exactly how the study plots them. Peaks mirror
+    valleys. Returns (peak_positions, valley_positions) as integer positions."""
     h = pd.Series(high).to_numpy(dtype=float)
     l = pd.Series(low).to_numpy(dtype=float)
     half = length - 1
     n = len(h)
     peaks: list[int] = []
     valleys: list[int] = []
-    for i in range(half, n - half):
+    for i in range(half, n):
+        offset = min(half, n - 1 - i)   # doc: Min(len-1, lastbn-bn)
+        j = i + offset                  # trailing window ends this many bars ahead
         left_h = h[i - half:i]
-        win_h = h[i - half:i + half + 1]
+        win_h = h[j - half:j + 1]       # the `length`-bar window ending at j
         if h[i] > left_h.max() and h[i] == win_h.max():
             peaks.append(i)
         left_l = l[i - half:i]
-        win_l = l[i - half:i + half + 1]
+        win_l = l[j - half:j + 1]
         if l[i] < left_l.min() and l[i] == win_l.min():
             valleys.append(i)
     return peaks, valleys

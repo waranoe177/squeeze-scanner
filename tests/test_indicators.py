@@ -206,14 +206,25 @@ def test_find_fractal_pivots_detects_a_centered_valley():
     assert valleys == [4]
 
 
-def test_recent_bars_are_not_confirmed_pivots():
-    # Strictly rising: the highest bar is the last one, which has no future
-    # window and cannot be confirmed. No interior bar qualifies either.
+def test_edge_pivot_uses_shrinking_forward_window():
+    # Doc behavior: offset = Min(len-1, bars_to_right). Strictly rising -> the
+    # LAST bar is the max of its trailing window (offset collapses to 0), so it
+    # IS marked a peak (tentative, repaints as new bars arrive) — matching TOS.
     high = pd.Series(np.arange(1.0, 11.0))
     low = high
     peaks, valleys = ind.find_fractal_pivots(high, low, length=5)
-    assert peaks == []
+    assert peaks == [9]
     assert valleys == []
+
+
+def test_near_edge_valley_detected_with_partial_forward_window():
+    # A valley only 2 bars from the right edge: the old strict +/-(len-1) rule
+    # suppressed it; the doc's shrinking offset detects it against the bars that
+    # exist. length=5 -> half=4; valley at index 7 with only 2 bars to the right.
+    low = pd.Series([9, 8, 7, 6, 5, 4, 3, 1, 2, 3], dtype=float)
+    high = low
+    peaks, valleys = ind.find_fractal_pivots(high, low, length=5)
+    assert 7 in valleys
 
 
 def test_count_retests_counts_reentry_events_not_bars():
