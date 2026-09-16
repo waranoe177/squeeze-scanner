@@ -138,6 +138,31 @@ def analyze(daily: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def htf_moxie(frame: pd.DataFrame, rule: str = "W"):
+    """Stepped higher-timeframe Moxie for the display panel.
+
+    Resample `frame` to `rule`, compute Moxie on the resampled close, and
+    backfill onto `frame`'s index — the backfill is what makes it a STEP line
+    (each finer bar carries its containing higher-TF bar's value). `rule="W"`
+    reproduces the weekly Moxie that `analyze` puts on the daily chart; `rule=
+    "ME"` (month-end) gives monthly Moxie for stepping onto a weekly chart, and
+    so on (each chart shows the next-higher-TF Moxie). Returns (value, rising)
+    Series aligned to `frame.index`."""
+    ohlc = frame[["open", "high", "low", "close"]]
+    if rule == "W":
+        htf = ind.resample_to_weekly(ohlc)
+    else:
+        htf = ohlc.resample(rule).agg(
+            {"open": "first", "high": "max", "low": "min", "close": "last"}
+        ).dropna()
+    mox = ind.moxie(htf["close"])
+    rising = mox >= mox.shift(1)
+    val = mox.reindex(frame.index, method="bfill")
+    ris = rising.reindex(frame.index, method="bfill")
+    ris = ris.where(ris.notna(), False).astype(bool)
+    return val, ris
+
+
 B3_ROWS = ["scanner", "mo_aaa", "mix", "sqz", "sqzstack", "stack1", "structure"]
 
 

@@ -86,6 +86,17 @@ def test_render_layers_with_pivots_writes_a_png(tmp_path):
     assert path == str(out)
 
 
+def test_render_layers_monthly_moxie_writes_a_png(tmp_path):
+    # moxie_tf="ME" (monthly stepped) for a weekly chart — the MTF-consistent
+    # Moxie panel. Must still produce a valid multi-panel PNG.
+    out = tmp_path / "ZIG_monthly.png"
+    path = chart.render_layers(_zigzag(n=300), "ZIG", str(out), lookback=120,
+                               moxie_tf="ME")
+    assert out.exists()
+    assert out.stat().st_size > 5000
+    assert path == str(out)
+
+
 def test_render_b3_dots_writes_a_png(tmp_path):
     out = tmp_path / "DEMO_dots.png"
     path = chart.render_b3_dots(_ohlc(), "DEMO", str(out), lookback=60)

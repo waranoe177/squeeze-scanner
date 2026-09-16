@@ -217,3 +217,33 @@ def test_latest_signal_exports_atr_ema21_and_lit_counts(iyt_frame):
     assert 0 <= p["lit_bear"] <= 7
     # a bar can't fully satisfy both sides at once
     assert not (p["lit_bull"] == 7 and p["lit_bear"] == 7)
+
+
+# ---------------------------------------------------------------------------
+# htf_moxie — stepped higher-timeframe Moxie for the chart panel
+# ---------------------------------------------------------------------------
+
+def _daily_frame(n=320, seed=7):
+    rng = np.random.default_rng(seed)
+    idx = pd.bdate_range("2023-01-02", periods=n)
+    close = pd.Series(100 + np.cumsum(rng.normal(0, 1.0, n)), index=idx)
+    return pd.DataFrame({"open": close.shift(1).fillna(close.iloc[0]),
+                         "high": close + 1.0, "low": close - 1.0, "close": close},
+                        index=idx)
+
+
+def test_htf_moxie_weekly_matches_analyze():
+    # rule="W" must reproduce exactly what analyze() puts on the daily chart.
+    df = _daily_frame()
+    val, ris = sig.htf_moxie(df, "W")
+    enr = sig.analyze(df)
+    pd.testing.assert_series_equal(val, enr["moxie_w"], check_names=False)
+    pd.testing.assert_series_equal(ris, enr["moxie_rising"], check_names=False)
+
+
+def test_htf_moxie_monthly_is_stepped():
+    # Monthly Moxie held flat within each month -> far fewer distinct values than
+    # bars: a STEP line, not a smooth per-bar line.
+    df = _daily_frame()
+    val, _ = sig.htf_moxie(df, "ME")
+    assert val.nunique() < len(val) / 10

@@ -193,12 +193,25 @@ def render_b3_dots(df, symbol: str, out_path: str, lookback: int = 60) -> str:
     return out_path
 
 
-def render_layers(df, symbol: str, out_path: str, lookback: int = 140) -> str:
+_MOXIE_LABELS = {"W": "weekly", "ME": "monthly", "QE": "quarterly"}
+
+
+def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
+                  moxie_tf: str = "W") -> str:
     """Multi-panel diagnostic: each buy condition on its own row so it can be
     cross-checked layer-by-layer against the TOS studies.
+
+    `moxie_tf` sets the Moxie panel's timeframe: "W" (default) is the weekly
+    Moxie for a daily chart; on a higher-timeframe chart pass the NEXT-higher TF
+    (e.g. "ME" monthly on a weekly chart) so the stepped Moxie stays consistent.
     """
     full = signals.analyze(df)
     full["rev_rsi"] = ind.rev_eng_rsi(full["close"], 14)
+    moxie_label = _MOXIE_LABELS.get(moxie_tf, moxie_tf)
+    if moxie_tf != "W":
+        mval, mris = signals.htf_moxie(df, moxie_tf)
+        full["moxie_w"] = mval.reindex(full.index)
+        full["moxie_rising"] = mris.reindex(full.index)
     e = full.tail(lookback).copy()
     n = len(e)
     pos = np.arange(n)  # ordinal x -> no weekend/holiday gaps
@@ -296,7 +309,7 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140) -> str:
         ax[3].axvline(i, color=RED, ls=":", lw=1.4, alpha=0.9, zorder=1)
     mm = max(abs(np.nanmin(mox)), abs(np.nanmax(mox)), 1e-3)
     ax[3].set_xlim(-1, n); ax[3].set_ylim(-mm * 1.2, mm * 1.2)
-    ax[3].set_ylabel("Moxie (weekly)")
+    ax[3].set_ylabel(f"Moxie ({moxie_label})")
 
     # date tick labels on the ordinal axis
     step = max(1, n // 9)
