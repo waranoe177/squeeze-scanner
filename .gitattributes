@@ -1,1 +1,5 @@
 ledger/decisions.jsonl merge=union
+
+# Shell scripts must be LF — a CRLF shebang breaks exec in the Linux container.
+*.sh text eol=lf
+deploy/entrypoint.sh text eol=lf
