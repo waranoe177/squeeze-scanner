@@ -247,3 +247,15 @@ def test_htf_moxie_monthly_is_stepped():
     df = _daily_frame()
     val, _ = sig.htf_moxie(df, "ME")
     assert val.nunique() < len(val) / 10
+
+
+def test_b3_rows_moxie_tf_ladder():
+    # moxie_tf changes only the Moxie-driven dot rows; the squeeze/scanner rows
+    # use the chart's own bars and must be identical regardless of moxie_tf.
+    df = _daily_frame(n=520, seed=3)
+    wk = sig.b3_rows(df, moxie_tf="W")
+    me = sig.b3_rows(df, moxie_tf="ME")
+    pd.testing.assert_series_equal(wk["sqz"], me["sqz"], check_names=False)
+    pd.testing.assert_series_equal(wk["scanner"], me["scanner"], check_names=False)
+    # weekly vs monthly higher-TF Moxie must move the Moxie-driven rows somewhere
+    assert not wk["mo_aaa"].equals(me["mo_aaa"]) or not wk["mix"].equals(me["mix"])

@@ -138,6 +138,17 @@ def analyze(daily: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _resample_ohlc(frame: pd.DataFrame, rule: str) -> pd.DataFrame:
+    """Resample an OHLC frame to `rule` ("W" = the study's weekly bars; any other
+    pandas rule such as "ME" month-end / "QE" quarter-end aggregates OHLC)."""
+    ohlc = frame[["open", "high", "low", "close"]]
+    if rule == "W":
+        return ind.resample_to_weekly(ohlc)
+    return ohlc.resample(rule).agg(
+        {"open": "first", "high": "max", "low": "min", "close": "last"}
+    ).dropna()
+
+
 def htf_moxie(frame: pd.DataFrame, rule: str = "W"):
     """Stepped higher-timeframe Moxie for the display panel.
 
@@ -146,15 +157,9 @@ def htf_moxie(frame: pd.DataFrame, rule: str = "W"):
     (each finer bar carries its containing higher-TF bar's value). `rule="W"`
     reproduces the weekly Moxie that `analyze` puts on the daily chart; `rule=
     "ME"` (month-end) gives monthly Moxie for stepping onto a weekly chart, and
-    so on (each chart shows the next-higher-TF Moxie). Returns (value, rising)
+    so on (per the study's GetAggregationPeriod ladder). Returns (value, rising)
     Series aligned to `frame.index`."""
-    ohlc = frame[["open", "high", "low", "close"]]
-    if rule == "W":
-        htf = ind.resample_to_weekly(ohlc)
-    else:
-        htf = ohlc.resample(rule).agg(
-            {"open": "first", "high": "max", "low": "min", "close": "last"}
-        ).dropna()
+    htf = _resample_ohlc(frame, rule)
     mox = ind.moxie(htf["close"])
     rising = mox >= mox.shift(1)
     val = mox.reindex(frame.index, method="bfill")
@@ -166,13 +171,18 @@ def htf_moxie(frame: pd.DataFrame, rule: str = "W"):
 B3_ROWS = ["scanner", "mo_aaa", "mix", "sqz", "sqzstack", "stack1", "structure"]
 
 
-def b3_rows(daily: pd.DataFrame) -> pd.DataFrame:
+def b3_rows(daily: pd.DataFrame, moxie_tf: str = "W") -> pd.DataFrame:
     """Reproduce the 7 rows of the B3 Super dots study as a per-bar state frame.
 
     Each column holds 'bull' / 'bear' / 'none' (or 'neutral' for the two stack
     rows). This is the study AS WRITTEN — it uses the original B3 Scanner_Signal
     (MACD rising, no Moxie-green gate), so it is independent of the customized
     buy signal in `analyze`.
+
+    `moxie_tf` is the higher-timeframe for the Moxie-driven rows, per the study's
+    GetAggregationPeriod ladder: "W" (weekly, for a daily chart, the default) or
+    "ME" (monthly, for a 2D/3D/weekly chart). The squeeze/RSI/PPO/MACD/EMA rows
+    always use the chart's own bars.
     """
     close, high, low = daily["close"], daily["high"], daily["low"]
     ema8, ema21, ema34 = ind.ema(close, 8), ind.ema(close, 21), ind.ema(close, 34)
@@ -191,8 +201,9 @@ def b3_rows(daily: pd.DataFrame) -> pd.DataFrame:
     bearstack1 = (ema8 < ema21) & (ema21 < ema34) & (ema34 < sma50)
     macdbull, macdbear = macd_rising(diff), macd_falling(diff)
 
-    # Higher-timeframe (weekly) Moxie: slow (12/26) and fast (3/8), ffilled to daily.
-    wk = ind.resample_to_weekly(daily[["open", "high", "low", "close"]])
+    # Higher-timeframe Moxie (per GetAggregationPeriod ladder): slow (12/26) and
+    # fast (3/8), ffilled to the chart bars. "W" for a daily chart, "ME" for 2D/3D.
+    wk = _resample_ohlc(daily[["open", "high", "low", "close"]], moxie_tf)
     mox = ind.moxie(wk["close"])
     mox_fast = ind.moxie(wk["close"], fast=3, slow=8, signal=9)
 

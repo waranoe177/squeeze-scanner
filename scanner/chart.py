@@ -215,7 +215,7 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     e = full.tail(lookback).copy()
     n = len(e)
     pos = np.arange(n)  # ordinal x -> no weekend/holiday gaps
-    rows = signals.b3_rows(df).tail(lookback)
+    rows = signals.b3_rows(df, moxie_tf=moxie_tf).tail(lookback)
     fig, ax = plt.subplots(
         4, 1, sharex=True, figsize=(11, 12.5), dpi=110,
         gridspec_kw={"height_ratios": [4.2, 1.3, 2.0, 1.6]},  # price panel dominant
