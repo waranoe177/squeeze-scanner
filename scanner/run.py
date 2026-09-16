@@ -71,6 +71,13 @@ def main(argv=None) -> dict:
     _fold_decisions(records)          # <-- fold the Fly bot's go/pass decisions
 
     if not args.no_charts:
+        # Native weekly bars for the fired symbols' MTF composite (one bulk call).
+        weekly_frames = {}
+        if results["fired"]:
+            try:
+                weekly_frames = data.fetch_weekly([p["symbol"] for p in results["fired"]])
+            except Exception as exc:  # weekly is best-effort; composite falls back
+                print(f"  [warn] weekly fetch failed: {exc}")
         for p in results["fired"]:
             sym = p["symbol"]
             try:
@@ -78,6 +85,13 @@ def main(argv=None) -> dict:
                 p["chart"] = f"charts/{sym}.png"
             except Exception as exc:  # chart is a nicety, never fail the scan
                 print(f"  [warn] chart failed for {sym}: {exc}")
+            try:
+                chart.render_mtf_composite(
+                    frames[sym], sym, str(out_dir / "charts" / f"{sym}_mtf.png"),
+                    weekly=weekly_frames.get(sym), lookback=80)
+                p["mtf_chart"] = f"charts/{sym}_mtf.png"
+            except Exception as exc:  # MTF composite is a nicety too
+                print(f"  [warn] MTF chart failed for {sym}: {exc}")
 
     (out_dir / "results.json").write_text(json.dumps(results, indent=2))
     message = notify.format_message(results, footer=os.environ.get("TELEGRAM_FOOTER"))

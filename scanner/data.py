@@ -163,3 +163,26 @@ def fetch_daily(
             continue
         result[sym] = frame
     return result
+
+
+def fetch_weekly(
+    symbols: list[str],
+    period: str = "10y",
+    adjust: bool = True,
+) -> dict[str, pd.DataFrame]:
+    """Download native weekly bars (interval='1wk') for each symbol -> {symbol:
+    canonical frame}. Used for the MTF composite's weekly panel, which matches
+    TOS better than resampling daily. The current (forming) week is KEPT — it is
+    the live week-to-date bar the chart should show."""
+    import yfinance as yf
+
+    raw = yf.download(
+        tickers=symbols, period=period, interval="1wk", auto_adjust=adjust,
+        group_by="ticker", progress=False, threads=True,
+    )
+    result: dict[str, pd.DataFrame] = {}
+    for sym in symbols:
+        frame = normalize(raw, sym)
+        if not frame.empty:
+            result[sym] = frame
+    return result

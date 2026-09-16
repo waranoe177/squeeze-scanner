@@ -400,7 +400,8 @@ def test_handle_trade_bare_chart_sent_when_file_exists(monkeypatch):
         asof=date(2026, 8, 30),
     )
     assert ok is True
-    assert len(photos) == 1
+    assert len(photos) == 2                       # daily chart + MTF composite
+    assert any("_mtf" in f for f in fetched)      # the MTF composite was fetched
     assert photos[0][2] == fetched[0]   # (token, chat_id, path, ...) == the fetched dest
     assert "anchor_APD" in photos[0][2]
     Path(fetched[0]).unlink(missing_ok=True)
@@ -654,8 +655,9 @@ def test_bare_trade_chart_photo_caption_is_raw_fired_line(monkeypatch):
                      send_message=lambda *a, **k: None,
                      send_photo=lambda tok, cid, path, caption="": photos.append(caption),
                      asof=date(2026, 8, 30))
-    assert len(photos) == 1
-    assert "<b>" in photos[0]           # raw HTML tag survives — not stripped
+    assert len(photos) == 2             # daily chart + MTF composite
+    assert "<b>" in photos[0]           # daily: raw HTML tag survives — not stripped
+    assert "multi-timeframe" in photos[1]   # MTF composite caption
 
 
 def test_bare_trade_refuses_when_price_moved_past_target(monkeypatch):

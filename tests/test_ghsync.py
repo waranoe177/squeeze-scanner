@@ -83,6 +83,15 @@ def test_fetch_chart_none_on_missing(tmp_path):
     assert ghsync.fetch_chart("owner/repo", "COST", str(tmp_path / "x.png"), http=http) is None
 
 
+def test_fetch_chart_suffix_selects_variant(tmp_path):
+    http = FakeHTTP()
+    http.add("GET", "raw.githubusercontent.com", FakeResp(200, content=b"\x89PNGmtf"))
+    dest = tmp_path / "COST_mtf.png"
+    out = ghsync.fetch_chart("owner/repo", "COST", str(dest), http=http, suffix="_mtf")
+    assert out == str(dest)
+    assert any("out/charts/COST_mtf.png" in c[1] for c in http.calls)
+
+
 def test_append_decision_creates_file_when_absent():
     http = FakeHTTP()
     http.add("GET", "api.github.com", FakeResp(404))                 # file absent

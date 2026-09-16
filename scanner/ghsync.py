@@ -40,11 +40,12 @@ def fetch_results(repo, ref="main", *, http=None, ttl=300.0):
     return data
 
 
-def fetch_chart(repo, symbol, dest_path, ref="main", *, http=None):
-    """Download out/charts/SYM.png to dest_path. None if absent/failed."""
+def fetch_chart(repo, symbol, dest_path, ref="main", *, http=None, suffix=""):
+    """Download out/charts/SYM<suffix>.png to dest_path. None if absent/failed.
+    `suffix` selects a chart variant, e.g. "_mtf" for the MTF composite."""
     client = _client(http)
     try:
-        r = client.get(_RAW.format(repo=repo, ref=ref, path=f"out/charts/{symbol}.png"),
+        r = client.get(_RAW.format(repo=repo, ref=ref, path=f"out/charts/{symbol}{suffix}.png"),
                         timeout=15)
         if not r.ok or not r.content:
             return None
