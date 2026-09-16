@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from scanner import backtest as bt
+from scanner import options
 
 
 def _bars(rows):
@@ -175,3 +176,93 @@ def test_extended_stats_losing_streak_and_drawdown():
 def test_extended_stats_empty():
     s = bt.extended_stats([])
     assert s == {"max_losing_streak": 0, "max_drawdown_r": 0.0}
+
+
+# ---------------------------------------------------------------------------
+# option_leg — Playbook-B option P&L (BS, RV-as-IV, ATM, ~21 DTE)
+# ---------------------------------------------------------------------------
+
+def test_option_leg_call_gains_when_underlying_rises():
+    leg = bt.option_leg(100.0, 108.0, "bull", iv=0.30, bars_held=3)
+    assert leg["kind"] == "call"
+    assert leg["strike"] == pytest.approx(100.0)   # exact ATM
+    assert leg["dte"] == 21
+    exp_entry = options.black_scholes(100.0, 100.0, 21 / 365, 0.043, 0.30, "call")["price"]
+    assert leg["entry_premium"] == pytest.approx(exp_entry)  # wired to BS
+    assert leg["exit_premium"] > leg["entry_premium"]        # underlying up -> call up
+    assert leg["option_return"] > 0
+    assert leg["option_outcome"] == "win"
+
+
+def test_option_leg_put_gains_when_underlying_falls():
+    leg = bt.option_leg(100.0, 92.0, "bear", iv=0.30, bars_held=3)
+    assert leg["kind"] == "put"
+    assert leg["exit_premium"] > leg["entry_premium"]
+    assert leg["option_outcome"] == "win"
+
+
+def test_option_leg_flat_underlying_is_a_loss_from_theta():
+    # underlying unchanged, but 3 days of decay -> option worth less -> loss.
+    # This is the whole reason the short fixed hold matters.
+    leg = bt.option_leg(100.0, 100.0, "bull", iv=0.30, bars_held=3)
+    assert leg["exit_premium"] < leg["entry_premium"]
+    assert leg["option_return"] < 0
+    assert leg["option_outcome"] == "loss"
+
+
+# ---------------------------------------------------------------------------
+# simulate_hold — fixed N-day exit (the E3 rule)
+# ---------------------------------------------------------------------------
+
+def test_simulate_hold_exits_at_close_of_day_n():
+    bars = _bars([(105, 99, 101), (106, 100, 103), (107, 101, 104), (108, 102, 106)])
+    bh, exit_px = bt.simulate_hold(bars, hold_days=3)
+    assert bh == 3
+    assert exit_px == pytest.approx(104.0)  # close of the 3rd bar, ignore target
+
+
+def test_simulate_hold_short_window_uses_last_close():
+    bars = _bars([(105, 99, 101), (106, 100, 103)])  # only 2 bars, ask for 3
+    bh, exit_px = bt.simulate_hold(bars, hold_days=3)
+    assert bh == 2
+    assert exit_px == pytest.approx(103.0)
+
+
+# ---------------------------------------------------------------------------
+# summarize_option — option-vehicle win rate / expectancy / median
+# ---------------------------------------------------------------------------
+
+def test_summarize_option_winrate_expectancy_median():
+    trades = [
+        {"entry_premium": 2.0, "option_return": 0.5, "option_cash": 100.0},
+        {"entry_premium": 2.0, "option_return": -0.3, "option_cash": -60.0},
+        {"entry_premium": 2.0, "option_return": 0.1, "option_cash": 20.0},
+    ]
+    s = bt.summarize_option(trades)
+    assert s["n"] == 3
+    assert s["win_rate"] == pytest.approx(2 / 3)
+    assert s["expectancy_pct"] == pytest.approx((0.5 - 0.3 + 0.1) / 3)
+    assert s["median_pct"] == pytest.approx(0.1)
+    assert s["total_cash"] == pytest.approx(60.0)
+
+
+def test_summarize_option_skips_zero_premium_and_empty():
+    assert bt.summarize_option([])["n"] == 0
+    only_bad = [{"entry_premium": 0.0, "option_return": 0.0, "option_cash": 0.0}]
+    assert bt.summarize_option(only_bad)["n"] == 0
+
+
+# ---------------------------------------------------------------------------
+# backtest — hold mode carries the option leg
+# ---------------------------------------------------------------------------
+
+def test_backtest_hold_mode_adds_option_fields():
+    df = _ohlc()
+    trades = bt.backtest(df, "T", exit="hold", hold_days=3, warmup=210)
+    assert isinstance(trades, list)
+    for t in trades:
+        for k in ("entry_premium", "exit_premium", "option_return",
+                  "option_outcome", "strike", "dte", "iv", "contracts"):
+            assert k in t
+        assert t["option_outcome"] in ("win", "loss", "flat")
+        assert t["bars_held"] <= 3
