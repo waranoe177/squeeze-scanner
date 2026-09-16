@@ -488,14 +488,13 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
             except Exception as exc:
                 print(f"  [bot] anchor chart send failed for {symbol}: {exc}")
 
-    # send the MTF composite (1D/2D/3D/Weekly) as a 2nd image, best-effort
-    mpath = Path(tmp_dir or tempfile.gettempdir()) / f"anchor_{symbol}_mtf.png"
-    if ghsync.fetch_chart(_REPO, symbol, str(mpath), suffix="_mtf"):
+    # send the weekly chart as a 2nd image (daily + weekly frames), best-effort
+    wpath = Path(tmp_dir or tempfile.gettempdir()) / f"anchor_{symbol}_weekly.png"
+    if ghsync.fetch_chart(_REPO, symbol, str(wpath), suffix="_weekly"):
         try:
-            send_photo(token, chat_id, str(mpath),
-                       caption=f"{symbol} — multi-timeframe: 1D / 2D / 3D / Weekly")
+            send_photo(token, chat_id, str(wpath), caption=f"{symbol} — weekly (1W)")
         except Exception as exc:
-            print(f"  [bot] MTF chart send failed for {symbol}: {exc}")
+            print(f"  [bot] weekly chart send failed for {symbol}: {exc}")
 
     msg = _decide_and_format(opts, symbol, direction, entry, target, stop, rv,
                              chain_fetcher=chain_fetcher, asof=asof,

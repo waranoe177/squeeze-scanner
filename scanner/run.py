@@ -85,13 +85,18 @@ def main(argv=None) -> dict:
                 p["chart"] = f"charts/{sym}.png"
             except Exception as exc:  # chart is a nicety, never fail the scan
                 print(f"  [warn] chart failed for {sym}: {exc}")
+            # Weekly companion chart (native 1wk + monthly stepped Moxie), sent
+            # as the 2nd image on `trade SYM`. (2D/3D deferred until calibrated.)
             try:
-                chart.render_mtf_composite(
-                    frames[sym], sym, str(out_dir / "charts" / f"{sym}_mtf.png"),
-                    weekly=weekly_frames.get(sym), lookback=80)
-                p["mtf_chart"] = f"charts/{sym}_mtf.png"
-            except Exception as exc:  # MTF composite is a nicety too
-                print(f"  [warn] MTF chart failed for {sym}: {exc}")
+                wkf = weekly_frames.get(sym)
+                if wkf is not None:
+                    chart.render_layers(
+                        wkf, f"{sym} Weekly (1W)",
+                        str(out_dir / "charts" / f"{sym}_weekly.png"),
+                        lookback=80, moxie_tf="ME")
+                    p["weekly_chart"] = f"charts/{sym}_weekly.png"
+            except Exception as exc:  # weekly chart is a nicety too
+                print(f"  [warn] weekly chart failed for {sym}: {exc}")
 
     (out_dir / "results.json").write_text(json.dumps(results, indent=2))
     message = notify.format_message(results, footer=os.environ.get("TELEGRAM_FOOTER"))
