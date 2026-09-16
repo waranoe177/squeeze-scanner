@@ -294,6 +294,11 @@ def main(argv=None) -> dict:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(doc, indent=2))
     print(json.dumps(summary, indent=2))
+
+    from scanner import btreport
+    report_path = out.with_name("backtest_report.md")
+    report_path.write_text(btreport.format_report(doc), encoding="utf-8")
+    print(f"report written to {report_path}")
     return doc
 
 
