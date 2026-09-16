@@ -8,8 +8,10 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.dates as mdates  # noqa: E402
+import matplotlib.image as mpimg  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.patches import Rectangle  # noqa: E402
 
@@ -324,4 +326,71 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     fig.tight_layout(rect=[0, 0, 1, 0.988])
     fig.savefig(out_path, facecolor="#000")
     plt.close(fig)
+    return out_path
+
+
+# --- Multi-timeframe (MTF) composite -------------------------------------
+# TOS anchors multi-day aggregation to a fixed reference; this date is a
+# confirmed 2D/3D group-start (validated vs the user's TOS on 2026-09-16), so
+# grouping stays phase-aligned with TOS and stable as new bars arrive.
+MTF_ANCHOR = pd.Timestamp("2026-09-16")
+
+
+def moxie_tf_for(n_days: int) -> str:
+    """Moxie-panel timeframe per the study's GetAggregationPeriod ladder:
+    a daily (1-day) chart uses weekly Moxie; 2D/3D/weekly all use monthly."""
+    return "W" if n_days <= 1 else "ME"
+
+
+def agg_multiday(daily: pd.DataFrame, n: int, anchor: pd.Timestamp = MTF_ANCHOR) -> pd.DataFrame:
+    """Aggregate daily bars into n-day bars, anchored so `anchor` starts a group
+    (matches TOS's fixed aggregation phase; stable as new bars arrive). Each
+    output bar is dated by its last constituent day."""
+    idx = daily.index
+    a = int(idx.searchsorted(anchor, side="right")) - 1
+    if a < 0:
+        a = 0
+    grp = (np.arange(len(idx)) - a) // n
+    o = daily["open"].groupby(grp).first().values
+    h = daily["high"].groupby(grp).max().values
+    l = daily["low"].groupby(grp).min().values
+    c = daily["close"].groupby(grp).last().values
+    last_date = pd.Series(idx).groupby(grp).last().values
+    return pd.DataFrame({"open": o, "high": h, "low": l, "close": c},
+                        index=pd.DatetimeIndex(last_date)).sort_index()
+
+
+def render_mtf_composite(daily: pd.DataFrame, symbol: str, out_path: str, *,
+                         weekly: pd.DataFrame | None = None,
+                         lookback: int = 80) -> str:
+    """2x2 multi-timeframe composite (1D / 2D / 3D / Weekly) in the render_layers
+    format, for visual MTF alignment. 2D/3D are TOS-anchored aggregations of
+    `daily`; `weekly` is the native weekly frame (falls back to a daily resample
+    when not supplied). Each panel uses the ladder Moxie TF (1D=weekly; others
+    monthly)."""
+    import os
+    import tempfile
+
+    wk = weekly if weekly is not None else signals._resample_ohlc(daily, "W")
+    panels = [("Daily (1D)", daily, 1),
+              ("2-Day (2D)", agg_multiday(daily, 2), 2),
+              ("3-Day (3D)", agg_multiday(daily, 3), 3),
+              ("Weekly (1W)", wk, 5)]
+    with tempfile.TemporaryDirectory() as td:
+        imgs = []
+        for label, frame, n in panels:
+            p = os.path.join(td, label.split()[0] + ".png")
+            render_layers(frame, f"{symbol} {label}", p, lookback=lookback,
+                          moxie_tf=moxie_tf_for(n))
+            imgs.append((label, p))
+        fig, axes = plt.subplots(2, 2, figsize=(24, 27))
+        fig.patch.set_facecolor("#0d1117")
+        for ax, (label, p) in zip(axes.ravel(), imgs):
+            ax.imshow(mpimg.imread(p))
+            ax.axis("off")
+        fig.suptitle(f"{symbol} — Multi-Timeframe: 1D / 2D / 3D / Weekly",
+                     fontsize=22, fontweight="bold", color="#e6edf3")
+        fig.tight_layout(rect=[0, 0, 1, 0.98])
+        fig.savefig(out_path, dpi=70, facecolor="#0d1117")
+        plt.close(fig)
     return out_path

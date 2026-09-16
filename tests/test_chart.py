@@ -97,6 +97,36 @@ def test_render_layers_monthly_moxie_writes_a_png(tmp_path):
     assert path == str(out)
 
 
+def test_moxie_tf_for_ladder():
+    # per the study's GetAggregationPeriod ladder: 1D->weekly, 2D/3D/1W->monthly
+    assert chart.moxie_tf_for(1) == "W"
+    assert chart.moxie_tf_for(2) == "ME"
+    assert chart.moxie_tf_for(3) == "ME"
+    assert chart.moxie_tf_for(5) == "ME"
+
+
+def test_agg_multiday_anchors_group_start():
+    # Anchor bar starts a fresh group: the last bar is standalone and the pair
+    # before it ends on the prior trading day (matches TOS's 9/16-standalone).
+    idx = pd.bdate_range("2026-01-01", periods=21)
+    close = pd.Series(range(len(idx)), index=idx, dtype=float)
+    daily = pd.DataFrame({"open": close, "high": close + 1, "low": close - 1,
+                          "close": close}, index=idx)
+    two = chart.agg_multiday(daily, 2, anchor=idx[-1])
+    assert two.index[-1] == idx[-1]                  # last bar standalone group
+    assert two.index[-2] == idx[-2]                  # prior 2D bar ends day before
+    assert two["open"].iloc[-2] == close.iloc[-3]    # pair = (idx[-3], idx[-2])
+    assert two["close"].iloc[-2] == close.iloc[-2]
+
+
+def test_render_mtf_composite_writes_a_png(tmp_path):
+    out = tmp_path / "ZIG_mtf.png"
+    path = chart.render_mtf_composite(_zigzag(n=400), "ZIG", str(out), lookback=60)
+    assert out.exists()
+    assert out.stat().st_size > 10000     # a real 2x2 montage
+    assert path == str(out)
+
+
 def test_render_b3_dots_writes_a_png(tmp_path):
     out = tmp_path / "DEMO_dots.png"
     path = chart.render_b3_dots(_ohlc(), "DEMO", str(out), lookback=60)
