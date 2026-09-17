@@ -34,6 +34,13 @@ from scanner import access, captionparse, chart, data, decisions, ghsync, notify
 _RESULTS_PATH = "out/results.json"
 _REPO = os.environ.get("SQZDOTS_REPO", "waranoe177/squeeze-scanner")
 
+_DISCLAIMER = (
+    "📊 Sqzdots — this is an educational watchlist & timing-aid tool. It flags a "
+    "technical setup; it is not financial advice and has no proven edge. Do your "
+    "own research and manage your own risk. Charts on request: send a ticker "
+    "(e.g. NVDA)."
+)
+
 
 def _ping_healthcheck(url):
     """Best-effort deadman ping. Never raises — a ping failure must not kill serve."""
@@ -180,7 +187,8 @@ def _update_chat_id(update: dict) -> str | None:
 
 def poll_once(token=None, chat_id=None, ledger_path=None,
               state_path=decisions.DEFAULT_STATE_PATH, timeout: int = 0,
-              command_handler=None, trade_handler=None) -> dict:
+              command_handler=None, trade_handler=None,
+              rate=None, seen_disclaimer=None) -> dict:
     """Drain updates once and dispatch: go/pass -> decisions.jsonl, tickers -> charts.
 
     `ledger_path` is unused (kept for signature stability) — the bot NEVER
@@ -241,6 +249,21 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
         if decisions.parse_decision(u):
             continue
         owner = access.is_owner(cid, owner_id)
+        if not owner:
+            if rate is not None and not rate.allow(cid):
+                try:
+                    notify.send_message(
+                        token, cid,
+                        "⚠️ you're sending requests too fast — try again in a bit.")
+                except Exception:
+                    pass
+                continue
+            if seen_disclaimer is not None and cid not in seen_disclaimer:
+                try:
+                    notify.send_message(token, cid, _DISCLAIMER)
+                except Exception:
+                    pass
+                seen_disclaimer.add(cid)
         t = parse_trade(u)
         if t:
             try:

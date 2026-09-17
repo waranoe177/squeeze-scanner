@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from scanner import bot, decisions, ledger
+from scanner import access, bot, decisions, ledger
 
 
 def _update(text, uid=1, chat_id=1, reply_to=None, date=1767625200):
@@ -249,6 +249,44 @@ def test_poll_once_without_token_is_noop(tmp_path, monkeypatch):
     res = bot.poll_once(token=None, ledger_path=tmp_path / "l.jsonl",
                         state_path=tmp_path / "s.json")
     assert res["charts"] == 0 and res["decisions"] == 0
+
+
+def test_poll_once_rate_limits_nonowner(tmp_path, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    updates = [_update("nvda", uid=8, chat_id=2), _update("tsla", uid=9, chat_id=2)]
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: (updates, 10))
+    msgs = []
+    monkeypatch.setattr(bot.notify, "send_message", lambda tok, cid, text: msgs.append(text))
+    served = []
+    rl = access.RateLimiter(limit=1, window_seconds=3600)
+    bot.poll_once(token="T", chat_id="1", state_path=spath, rate=rl,
+                  command_handler=lambda sym, cid: served.append(sym) or True)
+    assert served == ["NVDA"]                                  # only the first got through
+    assert any("too fast" in m.lower() for m in msgs)          # second throttled
+
+
+def test_poll_once_sends_disclaimer_once(tmp_path, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    seen = set()
+    msgs = []
+    monkeypatch.setattr(bot.notify, "send_message", lambda tok, cid, text: msgs.append(text))
+    # first poll: one request from a brand-new non-owner chat
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("nvda", uid=8, chat_id=2)], 9))
+    bot.poll_once(token="T", chat_id="1", state_path=spath, seen_disclaimer=seen,
+                  command_handler=lambda sym, cid: True)
+    assert sum("educational" in m.lower() for m in msgs) == 1  # disclaimer once
+    assert "2" in seen
+    # second poll: same chat again -> no second disclaimer
+    msgs.clear()
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("tsla", uid=9, chat_id=2)], 10))
+    bot.poll_once(token="T", chat_id="1", state_path=spath, seen_disclaimer=seen,
+                  command_handler=lambda sym, cid: True)
+    assert not any("educational" in m.lower() for m in msgs)
 
 
 # ---- parse_trade ------------------------------------------------------------
