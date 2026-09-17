@@ -996,3 +996,20 @@ def test_serve_does_not_ping_when_poll_raises(monkeypatch):
     monkeypatch.setattr(bot, "poll_once", fake_poll)
     bot.serve(token="t", chat_id="1", poll_timeout=0)
     assert pings == []  # a crash-looping poll must NOT report healthy
+
+
+def test_serve_passes_rate_and_disclaimer_state(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "T")
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2,3")
+    captured = {}
+
+    def fake_poll(**kw):
+        captured.update(kw)
+        raise KeyboardInterrupt                      # break serve's loop after one call
+
+    monkeypatch.setattr(bot, "poll_once", fake_poll)
+    bot.serve()                                      # returns on KeyboardInterrupt
+    assert captured.get("rate") is not None
+    assert captured.get("seen_disclaimer") is not None

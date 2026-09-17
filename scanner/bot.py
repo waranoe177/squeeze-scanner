@@ -343,10 +343,15 @@ def serve(token=None, chat_id=None, ledger_path=None,
         return
     print("[bot] serve mode — long-polling for chart requests. Ctrl-C to stop.")
     hc = os.environ.get("HEALTHCHECK_URL")
+    allowlist = access.parse_allowlist(os.environ.get("TELEGRAM_ALLOWLIST"))
+    print(f"[bot] serving owner + {len(allowlist)} allowlisted user(s)")
+    rate = access.RateLimiter(limit=20, window_seconds=3600)
+    seen_disclaimer: set[str] = set()
     while True:
         try:
             poll_once(token=token, chat_id=chat_id, ledger_path=ledger_path,
-                      state_path=state_path, timeout=poll_timeout)
+                      state_path=state_path, timeout=poll_timeout,
+                      rate=rate, seen_disclaimer=seen_disclaimer)
             if hc:
                 _ping_healthcheck(hc)          # only reached on a clean poll
         except KeyboardInterrupt:
