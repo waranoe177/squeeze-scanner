@@ -558,6 +558,51 @@ def test_handle_trade_reply_uses_caption_direction_never_inverts():
     assert "follows your V chart · bar 2026-08-25" in sent["msg"]
 
 
+def test_handle_trade_reply_nonowner_offuniverse_declined():
+    # A non-owner replying `trade` to an off-universe chart is refused, same as
+    # the bare path — no pricing, no instructions.
+    msgs = []
+    called = {"chain": False}
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    ok = bot.handle_trade(
+        opts, chat_id="2", token="T", is_owner=False, universe={"NVDA", "TSLA"},
+        fetcher=_fake_df_fetcher(),
+        chain_fetcher=lambda s: called.__setitem__("chain", True) or {"expiries": []},
+        send_message=lambda tok, cid, text: msgs.append(text),
+        asof=date(2026, 8, 25))
+    assert ok is False
+    assert called["chain"] is False                      # bailed before pricing
+    assert any("tracked universe" in m.lower() for m in msgs)
+
+
+def test_handle_trade_reply_nonowner_inuniverse_not_blocked():
+    # A non-owner replying `trade` for an IN-universe name is NOT blocked by the
+    # universe gate (it proceeds into normal reply handling; no universe nudge).
+    msgs = []
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    bot.handle_trade(
+        opts, chat_id="2", token="T", is_owner=False, universe={"V"},
+        fetcher=_fake_df_fetcher(), chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: msgs.append(text),
+        asof=date(2026, 8, 25))
+    assert not any("tracked universe" in m.lower() for m in msgs)
+
+
+def test_handle_trade_reply_owner_offuniverse_not_blocked():
+    # Owner (default is_owner=True) reply-trade is never universe-checked.
+    msgs = []
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    bot.handle_trade(
+        opts, chat_id="1", token="T",                    # is_owner defaults True
+        fetcher=_fake_df_fetcher(), chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: msgs.append(text),
+        asof=date(2026, 8, 25))
+    assert not any("tracked universe" in m.lower() for m in msgs)
+
+
 def test_handle_trade_reply_sizes_from_captions_own_score_not_default():
     # Regression: a `trade` REPLY must size using the score printed IN the
     # caption (score 91/100), not the conviction_to_p(50) default — otherwise

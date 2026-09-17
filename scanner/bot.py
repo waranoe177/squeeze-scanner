@@ -455,7 +455,8 @@ def _decide_and_format(opts, symbol, direction, entry, target, stop, rv, *,
 
 
 def _handle_trade_reply(opts, chat_id, token, caption_text, *, fetcher,
-                        chain_fetcher, send_message, asof) -> bool:
+                        chain_fetcher, send_message, asof, is_owner=True,
+                        universe=None) -> bool:
     """Caption-anchored path: direction/entry/target/stop come ONLY from the
     replied-to chart's caption — never re-inferred from a fresh signal eval.
     That's the whole point: a BUY caption can never yield a SHORT card."""
@@ -465,6 +466,17 @@ def _handle_trade_reply(opts, chat_id, token, caption_text, *, fetcher,
         return False
 
     symbol = parsed["symbol"]
+
+    # Non-owner reply-trades are universe-checked too (parity with bare trade)
+    # so a non-owner cannot chart an off-universe name then reply `trade` to it.
+    if not is_owner:
+        uni = universe if universe is not None else _tracked_universe()
+        if symbol.upper() not in uni:
+            send_message(token, chat_id,
+                         f"{symbol} isn't in the tracked universe. "
+                         f"Try `chart {symbol}` for a chart.")
+            return False
+
     direction, entry = parsed["direction"], parsed["entry"]
     target, stop, bar_date = parsed["target"], parsed["stop"], parsed["bar_date"]
 
@@ -602,7 +614,8 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
     if caption_text:
         return _handle_trade_reply(opts, chat_id, token, caption_text,
                                    fetcher=fetcher, chain_fetcher=chain_fetcher,
-                                   send_message=send_message, asof=asof)
+                                   send_message=send_message, asof=asof,
+                                   is_owner=is_owner, universe=universe)
     return _handle_trade_bare(opts, chat_id, token, fetcher=fetcher,
                               chain_fetcher=chain_fetcher, send_message=send_message,
                               renderer=renderer, send_photo=send_photo,
