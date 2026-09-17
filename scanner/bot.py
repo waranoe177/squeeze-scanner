@@ -29,7 +29,7 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from scanner import captionparse, chart, data, decisions, ghsync, notify, optfmt, options, score, signals
+from scanner import access, captionparse, chart, data, decisions, ghsync, notify, optfmt, options, score, signals
 
 _RESULTS_PATH = "out/results.json"
 _REPO = os.environ.get("SQZDOTS_REPO", "waranoe177/squeeze-scanner")
@@ -172,6 +172,12 @@ def _from_owner(update: dict, allowed_chat) -> bool:
     return True
 
 
+def _update_chat_id(update: dict) -> str | None:
+    """The requester's chat id as a string, or None for a malformed update."""
+    cid = ((update.get("message") or {}).get("chat") or {}).get("id")
+    return None if cid is None else str(cid)
+
+
 def poll_once(token=None, chat_id=None, ledger_path=None,
               state_path=decisions.DEFAULT_STATE_PATH, timeout: int = 0,
               command_handler=None, trade_handler=None) -> dict:
@@ -182,54 +188,68 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
     {updates, decisions, charts}.
     """
     token = token or os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = chat_id or os.environ.get("TELEGRAM_CHAT_ID")
+    owner_id = str(chat_id) if chat_id is not None else (os.environ.get("TELEGRAM_CHAT_ID") or None)
     if not token:
         print("[bot] no TELEGRAM_BOT_TOKEN — skipping")
         return {"updates": 0, "decisions": 0, "charts": 0}
 
+    allowlist = access.parse_allowlist(os.environ.get("TELEGRAM_ALLOWLIST"))
     command_handler = command_handler or (
-        lambda sym: handle_command(sym, chat_id, token))
+        lambda sym, cid: handle_command(sym, cid, token))
     trade_handler = trade_handler or (
-        lambda opts: handle_trade(opts, chat_id, token))
+        lambda opts, cid, is_owner: handle_trade(opts, cid, token, is_owner=is_owner))
 
     state = decisions.load_state(state_path)
     updates, next_offset = decisions.fetch_updates(token, state["offset"], timeout=timeout)
-    owned = [u for u in updates if _from_owner(u, chat_id)]
 
-    # 1) decisions -> append to the append-only decisions.jsonl via the Contents
-    #    API. The bot NEVER writes signals.jsonl (the daily scan folds these in).
+    # authorize each update and remember WHOSE chat to reply to
+    authorized = []
+    for u in updates:
+        cid = _update_chat_id(u)
+        if cid is None:
+            continue
+        if not access.is_allowed(cid, owner_id, allowlist):
+            print(f"  [bot] update from unlisted chat {cid} ignored")
+            continue
+        authorized.append((u, cid))
+
+    # 1) decisions -> append to decisions.jsonl (OWNER ONLY). The bot NEVER
+    #    writes signals.jsonl (the daily scan folds decisions in).
     gh_token = os.environ.get("GITHUB_TOKEN")
     parsed = []
     failed_update_ids = []
-    for u in owned:
+    for u, cid in authorized:
         p = decisions.parse_decision(u)
         if not p:
             continue
+        if not access.is_owner(cid, owner_id):
+            try:
+                notify.send_message(token, cid, "Only the owner can log go/pass decisions.")
+            except Exception:
+                pass
+            continue
         parsed.append(p)
-        # A decision must never be lost. If append fails (transient GitHub
-        # outage / rate-limit / PAT expiry) OR there's no token at all, record
-        # this update's id so the saved offset does not advance past it — it
-        # re-fetches next poll. Re-appending an already-persisted decision on
-        # replay is harmless (apply_decisions is write-once).
+        # A decision must never be lost — hold the offset if the append fails.
         persisted = bool(gh_token) and ghsync.append_decision(_REPO, p, gh_token)
         if not persisted:
             print(f"  [bot] decision append failed (holding offset): {p}")
             failed_update_ids.append(u["update_id"])
 
-    # 2) trade requests + chart requests (anything not already a decision)
+    # 2) trade + chart requests, each replied to the requester's own chat
     charts = 0
-    for u in owned:
+    for u, cid in authorized:
         if decisions.parse_decision(u):
             continue
+        owner = access.is_owner(cid, owner_id)
         t = parse_trade(u)
         if t:
             try:
-                if trade_handler(t):
+                if trade_handler(t, cid, owner):
                     charts += 1
-            except Exception as exc:  # a bad request must not stall the poller
-                print(f"  [bot] trade failed for {t['symbol']}: {exc}")
+            except Exception as exc:
+                print(f"  [bot] trade failed for {t.get('symbol')}: {exc}")
                 try:
-                    notify.send_message(token, chat_id, f"Couldn't analyze {t['symbol']}: {exc}")
+                    notify.send_message(token, cid, f"Couldn't analyze {t.get('symbol')}: {exc}")
                 except Exception:
                     pass
             continue
@@ -237,23 +257,21 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
         if not sym:
             continue
         try:
-            if command_handler(sym):
+            if command_handler(sym, cid):
                 charts += 1
-        except Exception as exc:  # a bad request must not stall the poller
+        except Exception as exc:
             print(f"  [bot] chart failed for {sym}: {exc}")
             try:
-                notify.send_message(token, chat_id, f"Couldn't chart {sym}: {exc}")
+                notify.send_message(token, cid, f"Couldn't chart {sym}: {exc}")
             except Exception:
                 pass
 
-    # Hold the offset at the earliest un-persisted decision so it (and every
-    # later update) replays next poll, instead of advancing past a dropped
-    # go/pass forever. Alert the owner once that persistence is failing.
+    # Hold the offset at the earliest un-persisted decision so it replays.
     if failed_update_ids:
         save_offset = min(failed_update_ids)
         try:
             notify.send_message(
-                token, chat_id,
+                token, owner_id,
                 "⚠️ decision persistence failing — a go/pass could not be saved. "
                 "Check GITHUB_TOKEN/PAT. Holding offset to retry next poll.")
         except Exception:

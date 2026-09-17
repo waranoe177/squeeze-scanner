@@ -137,7 +137,7 @@ def test_poll_once_dispatches_decision_and_chart(tmp_path, monkeypatch):
 
     handled = []
     res = bot.poll_once(token="T", chat_id="1", state_path=spath,
-                        command_handler=lambda sym: handled.append(sym) or True)
+                        command_handler=lambda sym, cid: handled.append(sym) or True)
 
     assert handled == ["NVDA"]                              # chart request routed
     assert appended and appended[0]["decision"] == "go"     # go/pass -> ghsync, not ledger
@@ -162,7 +162,7 @@ def test_poll_once_holds_offset_and_alerts_on_append_failure(tmp_path, monkeypat
                         lambda tok, cid, text: alerts.append(text))
 
     bot.poll_once(token="T", chat_id="1", state_path=spath,
-                  command_handler=lambda sym: True)
+                  command_handler=lambda sym, cid: True)
 
     assert decisions.load_state(spath)["offset"] <= 7     # not advanced past failed update
     assert alerts and any("persistence" in a.lower() for a in alerts)
@@ -181,7 +181,7 @@ def test_poll_once_advances_offset_when_append_succeeds(tmp_path, monkeypatch):
     monkeypatch.setattr(bot.notify, "send_message",
                         lambda tok, cid, text: alerts.append(text))
     bot.poll_once(token="T", chat_id="1", state_path=spath,
-                  command_handler=lambda sym: True)
+                  command_handler=lambda sym, cid: True)
     assert decisions.load_state(spath) == {"offset": 8}
     assert alerts == []
 
@@ -195,10 +195,53 @@ def test_poll_once_ignores_foreign_chat(tmp_path, monkeypatch):
 
     handled = []
     bot.poll_once(token="T", chat_id="1", ledger_path=lpath, state_path=spath,
-                  command_handler=lambda sym: handled.append(sym) or True)
+                  command_handler=lambda sym, cid: handled.append(sym) or True)
 
     assert handled == []                                    # foreign request dropped
     assert decisions.load_state(spath) == {"offset": 9}     # but still consumed
+
+
+def test_poll_once_routes_reply_to_requester(tmp_path, monkeypatch):
+    # An allowlisted non-owner (chat 2) gets served in THEIR chat, not owner's.
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("nvda", uid=8, chat_id=2)], 9))
+    seen = []
+    bot.poll_once(token="T", chat_id="1", state_path=spath,
+                  command_handler=lambda sym, cid: seen.append((sym, cid)) or True)
+    assert seen == [("NVDA", "2")]                     # served, routed to chat 2
+
+
+def test_poll_once_unlisted_chat_ignored(tmp_path, monkeypatch):
+    # Chat 3 is not the owner and not in the allowlist -> dropped, offset consumed.
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("nvda", uid=8, chat_id=3)], 9))
+    handled = []
+    bot.poll_once(token="T", chat_id="1", state_path=spath,
+                  command_handler=lambda sym, cid: handled.append(sym) or True)
+    assert handled == []
+    assert decisions.load_state(spath) == {"offset": 9}
+
+
+def test_poll_once_nonowner_decision_declined(tmp_path, monkeypatch):
+    # An allowlisted non-owner's go/pass is NOT appended and gets a decline reply.
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")
+    spath = tmp_path / "state.json"
+    appended = []
+    monkeypatch.setattr(bot.ghsync, "append_decision",
+                        lambda repo, dec, token, **k: appended.append(dec) or True)
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("go", uid=7, chat_id=2, reply_to=123)], 8))
+    msgs = []
+    monkeypatch.setattr(bot.notify, "send_message",
+                        lambda tok, cid, text: msgs.append((cid, text)))
+    bot.poll_once(token="T", chat_id="1", state_path=spath)
+    assert appended == []                              # nothing logged
+    assert any(str(cid) == "2" and "owner" in text.lower() for cid, text in msgs)
 
 
 def test_poll_once_without_token_is_noop(tmp_path, monkeypatch):
@@ -764,8 +807,8 @@ def test_poll_once_routes_trade(tmp_path, monkeypatch):
                         lambda token, offset, timeout=0: ([_update("trade nvda 60", uid=3)], 4))
     routed = []
     bot.poll_once(token="T", chat_id="1", ledger_path=lpath, state_path=spath,
-                  command_handler=lambda sym: routed.append(("chart", sym)) or True,
-                  trade_handler=lambda opts: routed.append(("trade", opts["symbol"])) or True)
+                  command_handler=lambda sym, cid: routed.append(("chart", sym)) or True,
+                  trade_handler=lambda opts, cid, is_owner: routed.append(("trade", opts["symbol"])) or True)
     assert ("trade", "NVDA") in routed
     assert not any(r[0] == "chart" for r in routed)   # trade did NOT fall through to chart
 
@@ -821,7 +864,7 @@ def test_poll_once_appends_decision_via_ghsync(monkeypatch):
     monkeypatch.setattr(bot.decisions, "save_state", lambda p, s: None)
     monkeypatch.setattr(bot.decisions, "load_state", lambda p: {"offset": 0})
     res = bot.poll_once(token="t", chat_id="1", state_path="x",
-                        command_handler=lambda s: False, trade_handler=lambda o: False)
+                        command_handler=lambda s, cid: False, trade_handler=lambda o, cid, is_owner: False)
     assert calls == [{"decision": "go", "decided_at": bot.decisions.parse_decision(
         {"message": {"date": 1, "text": "go", "reply_to_message": {"message_id": 42}}})["decided_at"],
         "reply_to_msg_id": 42, "symbol": None}]
