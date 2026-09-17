@@ -599,8 +599,8 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
     send_photo = send_photo or notify.send_photo
     asof = asof or date.today()
 
-    # Non-owner bare `trade SYM` is restricted to the tracked universe. Reply
-    # trades (symbol comes from the replied-to caption) are not checked.
+    # Non-owner bare `trade SYM` is restricted to the tracked universe here;
+    # non-owner reply-trades are universe-checked separately inside `_handle_trade_reply`.
     symbol = opts.get("symbol")
     if not is_owner and symbol:
         uni = universe if universe is not None else _tracked_universe()
