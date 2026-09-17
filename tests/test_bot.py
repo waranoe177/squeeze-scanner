@@ -838,6 +838,41 @@ def test_acceptance_apd_bare_trade_matches_alert_not_stale_bar(monkeypatch):
     assert "BUY" in sent["m"] and "323" in sent["m"]   # anchored to the alert
 
 
+def test_handle_trade_nonowner_offuniverse_declined():
+    msgs = []
+    called = {"chain": False}
+    ok = bot.handle_trade(
+        {"symbol": "ZZZ", "p": None, "risk": None, "dte": None, "full": False, "caption": None},
+        chat_id="2", token="T", is_owner=False, universe={"NVDA", "TSLA"},
+        fetcher=lambda syms: {},
+        chain_fetcher=lambda s: called.__setitem__("chain", True) or {"expiries": []},
+        send_message=lambda tok, cid, text: msgs.append(text))
+    assert ok is False
+    assert called["chain"] is False                     # bailed before any pricing
+    assert any("tracked universe" in m.lower() for m in msgs)
+
+
+def test_handle_trade_owner_offuniverse_not_blocked(monkeypatch):
+    # Owner (default is_owner=True) is never universe-checked: it proceeds into
+    # the bare path and hits the normal "no active signal" refusal, NOT the nudge.
+    monkeypatch.setattr(bot, "_load_results", lambda path=None: {"as_of": "x", "fired": []})
+    msgs = []
+    ok = bot.handle_trade(
+        {"symbol": "ZZZ", "p": None, "risk": None, "dte": None, "full": False, "caption": None},
+        chat_id="1", token="T",                          # is_owner defaults True
+        fetcher=lambda syms: {},
+        chain_fetcher=lambda s: {"expiries": []},
+        send_message=lambda tok, cid, text: msgs.append(text))
+    assert ok is False
+    assert not any("tracked universe" in m.lower() for m in msgs)
+    assert any("no active signal" in m.lower() for m in msgs)
+
+
+def test_tracked_universe_reads_watchlist(monkeypatch):
+    monkeypatch.setattr(bot.data, "load_watchlist", lambda path: ["nvda", "TSLA"])
+    assert bot._tracked_universe("whatever.csv") == {"NVDA", "TSLA"}
+
+
 def test_poll_once_routes_trade(tmp_path, monkeypatch):
     lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
     ledger.save(lpath, [])

@@ -56,6 +56,20 @@ def _load_results(path=None):
     return ghsync.fetch_results(_REPO)
 
 
+def _tracked_universe(watchlist_path: str = "watchlist.csv") -> set[str]:
+    """Symbols a non-owner may `trade`: the scanned watchlist, uppercased. Falls
+    back to the fired symbols in the latest results snapshot if the watchlist
+    file isn't in this checkout."""
+    try:
+        syms = data.load_watchlist(watchlist_path)
+        if syms:
+            return {s.upper() for s in syms}
+    except Exception:
+        pass
+    results = _load_results()
+    return {str(p.get("symbol", "")).upper() for p in (results or {}).get("fired", [])}
+
+
 def _anchor_payload(symbol, results):
     """The fired[] payload for symbol from a results snapshot, else None."""
     if not results:
@@ -549,7 +563,7 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
 
 def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
                  send_message=None, asof=None, renderer=None, send_photo=None,
-                 tmp_dir=None) -> bool:
+                 tmp_dir=None, is_owner=True, universe=None) -> bool:
     """Compute + send the equity-vs-options decision for one ticker, either
     from a `trade` reply to a chart (caption-anchored) or a bare `trade SYM`
     (anchored to the persisted daily-scan snapshot in results.json — no live
@@ -567,6 +581,17 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
     renderer = renderer or chart.render_layers
     send_photo = send_photo or notify.send_photo
     asof = asof or date.today()
+
+    # Non-owner bare `trade SYM` is restricted to the tracked universe. Reply
+    # trades (symbol comes from the replied-to caption) are not checked.
+    symbol = opts.get("symbol")
+    if not is_owner and symbol:
+        uni = universe if universe is not None else _tracked_universe()
+        if symbol.upper() not in uni:
+            send_message(token, chat_id,
+                         f"{symbol} isn't in the tracked universe. "
+                         f"Try `chart {symbol}` for a chart.")
+            return False
 
     caption_text = opts.get("caption")
     if caption_text:
