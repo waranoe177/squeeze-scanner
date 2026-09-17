@@ -29,10 +29,17 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from scanner import captionparse, chart, data, decisions, ghsync, notify, optfmt, options, score, signals
+from scanner import access, captionparse, chart, data, decisions, ghsync, notify, optfmt, options, score, signals
 
 _RESULTS_PATH = "out/results.json"
 _REPO = os.environ.get("SQZDOTS_REPO", "waranoe177/squeeze-scanner")
+
+_DISCLAIMER = (
+    "📊 Sqzdots — this is an educational watchlist & timing-aid tool. It flags a "
+    "technical setup; it is not financial advice and has no proven edge. Do your "
+    "own research and manage your own risk. Charts on request: send a ticker "
+    "(e.g. NVDA)."
+)
 
 
 def _ping_healthcheck(url):
@@ -47,6 +54,20 @@ def _ping_healthcheck(url):
 def _load_results(path=None):
     """Latest daily-scan snapshot via raw.githubusercontent (cached). Never raises."""
     return ghsync.fetch_results(_REPO)
+
+
+def _tracked_universe(watchlist_path: str = "watchlist.csv") -> set[str]:
+    """Symbols a non-owner may `trade`: the scanned watchlist, uppercased. Falls
+    back to the fired symbols in the latest results snapshot if the watchlist
+    file isn't in this checkout."""
+    try:
+        syms = data.load_watchlist(watchlist_path)
+        if syms:
+            return {s.upper() for s in syms}
+    except Exception:
+        pass
+    results = _load_results()
+    return {str(p.get("symbol", "")).upper() for p in (results or {}).get("fired", [])}
 
 
 def _anchor_payload(symbol, results):
@@ -172,9 +193,16 @@ def _from_owner(update: dict, allowed_chat) -> bool:
     return True
 
 
+def _update_chat_id(update: dict) -> str | None:
+    """The requester's chat id as a string, or None for a malformed update."""
+    cid = ((update.get("message") or {}).get("chat") or {}).get("id")
+    return None if cid is None else str(cid)
+
+
 def poll_once(token=None, chat_id=None, ledger_path=None,
               state_path=decisions.DEFAULT_STATE_PATH, timeout: int = 0,
-              command_handler=None, trade_handler=None) -> dict:
+              command_handler=None, trade_handler=None,
+              rate=None, seen_disclaimer=None) -> dict:
     """Drain updates once and dispatch: go/pass -> decisions.jsonl, tickers -> charts.
 
     `ledger_path` is unused (kept for signature stability) — the bot NEVER
@@ -182,54 +210,83 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
     {updates, decisions, charts}.
     """
     token = token or os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = chat_id or os.environ.get("TELEGRAM_CHAT_ID")
+    owner_id = str(chat_id) if chat_id is not None else (os.environ.get("TELEGRAM_CHAT_ID") or None)
     if not token:
         print("[bot] no TELEGRAM_BOT_TOKEN — skipping")
         return {"updates": 0, "decisions": 0, "charts": 0}
 
+    allowlist = access.parse_allowlist(os.environ.get("TELEGRAM_ALLOWLIST"))
     command_handler = command_handler or (
-        lambda sym: handle_command(sym, chat_id, token))
+        lambda sym, cid: handle_command(sym, cid, token))
     trade_handler = trade_handler or (
-        lambda opts: handle_trade(opts, chat_id, token))
+        lambda opts, cid, is_owner: handle_trade(opts, cid, token, is_owner=is_owner))
 
     state = decisions.load_state(state_path)
     updates, next_offset = decisions.fetch_updates(token, state["offset"], timeout=timeout)
-    owned = [u for u in updates if _from_owner(u, chat_id)]
 
-    # 1) decisions -> append to the append-only decisions.jsonl via the Contents
-    #    API. The bot NEVER writes signals.jsonl (the daily scan folds these in).
+    # authorize each update and remember WHOSE chat to reply to
+    authorized = []
+    for u in updates:
+        cid = _update_chat_id(u)
+        if cid is None:
+            continue
+        if not access.is_allowed(cid, owner_id, allowlist):
+            print(f"  [bot] update from unlisted chat {cid} ignored")
+            continue
+        authorized.append((u, cid))
+
+    # 1) decisions -> append to decisions.jsonl (OWNER ONLY). The bot NEVER
+    #    writes signals.jsonl (the daily scan folds decisions in).
     gh_token = os.environ.get("GITHUB_TOKEN")
     parsed = []
     failed_update_ids = []
-    for u in owned:
+    for u, cid in authorized:
         p = decisions.parse_decision(u)
         if not p:
             continue
+        if not access.is_owner(cid, owner_id):
+            try:
+                notify.send_message(token, cid, "Only the owner can log go/pass decisions.")
+            except Exception:
+                pass
+            continue
         parsed.append(p)
-        # A decision must never be lost. If append fails (transient GitHub
-        # outage / rate-limit / PAT expiry) OR there's no token at all, record
-        # this update's id so the saved offset does not advance past it — it
-        # re-fetches next poll. Re-appending an already-persisted decision on
-        # replay is harmless (apply_decisions is write-once).
+        # A decision must never be lost — hold the offset if the append fails.
         persisted = bool(gh_token) and ghsync.append_decision(_REPO, p, gh_token)
         if not persisted:
             print(f"  [bot] decision append failed (holding offset): {p}")
             failed_update_ids.append(u["update_id"])
 
-    # 2) trade requests + chart requests (anything not already a decision)
+    # 2) trade + chart requests, each replied to the requester's own chat
     charts = 0
-    for u in owned:
+    for u, cid in authorized:
         if decisions.parse_decision(u):
             continue
+        owner = access.is_owner(cid, owner_id)
+        if not owner:
+            if rate is not None and not rate.allow(cid):
+                try:
+                    notify.send_message(
+                        token, cid,
+                        "⚠️ you're sending requests too fast — try again in a bit.")
+                except Exception:
+                    pass
+                continue
+            if seen_disclaimer is not None and cid not in seen_disclaimer:
+                try:
+                    notify.send_message(token, cid, _DISCLAIMER)
+                except Exception:
+                    pass
+                seen_disclaimer.add(cid)
         t = parse_trade(u)
         if t:
             try:
-                if trade_handler(t):
+                if trade_handler(t, cid, owner):
                     charts += 1
-            except Exception as exc:  # a bad request must not stall the poller
-                print(f"  [bot] trade failed for {t['symbol']}: {exc}")
+            except Exception as exc:
+                print(f"  [bot] trade failed for {t.get('symbol')}: {exc}")
                 try:
-                    notify.send_message(token, chat_id, f"Couldn't analyze {t['symbol']}: {exc}")
+                    notify.send_message(token, cid, f"Couldn't analyze {t.get('symbol')}: {exc}")
                 except Exception:
                     pass
             continue
@@ -237,23 +294,21 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
         if not sym:
             continue
         try:
-            if command_handler(sym):
+            if command_handler(sym, cid):
                 charts += 1
-        except Exception as exc:  # a bad request must not stall the poller
+        except Exception as exc:
             print(f"  [bot] chart failed for {sym}: {exc}")
             try:
-                notify.send_message(token, chat_id, f"Couldn't chart {sym}: {exc}")
+                notify.send_message(token, cid, f"Couldn't chart {sym}: {exc}")
             except Exception:
                 pass
 
-    # Hold the offset at the earliest un-persisted decision so it (and every
-    # later update) replays next poll, instead of advancing past a dropped
-    # go/pass forever. Alert the owner once that persistence is failing.
+    # Hold the offset at the earliest un-persisted decision so it replays.
     if failed_update_ids:
         save_offset = min(failed_update_ids)
         try:
             notify.send_message(
-                token, chat_id,
+                token, owner_id,
                 "⚠️ decision persistence failing — a go/pass could not be saved. "
                 "Check GITHUB_TOKEN/PAT. Holding offset to retry next poll.")
         except Exception:
@@ -288,10 +343,15 @@ def serve(token=None, chat_id=None, ledger_path=None,
         return
     print("[bot] serve mode — long-polling for chart requests. Ctrl-C to stop.")
     hc = os.environ.get("HEALTHCHECK_URL")
+    allowlist = access.parse_allowlist(os.environ.get("TELEGRAM_ALLOWLIST"))
+    print(f"[bot] serving owner + {len(allowlist)} allowlisted user(s)")
+    rate = access.RateLimiter(limit=20, window_seconds=3600)
+    seen_disclaimer: set[str] = set()
     while True:
         try:
             poll_once(token=token, chat_id=chat_id, ledger_path=ledger_path,
-                      state_path=state_path, timeout=poll_timeout)
+                      state_path=state_path, timeout=poll_timeout,
+                      rate=rate, seen_disclaimer=seen_disclaimer)
             if hc:
                 _ping_healthcheck(hc)          # only reached on a clean poll
         except KeyboardInterrupt:
@@ -395,7 +455,8 @@ def _decide_and_format(opts, symbol, direction, entry, target, stop, rv, *,
 
 
 def _handle_trade_reply(opts, chat_id, token, caption_text, *, fetcher,
-                        chain_fetcher, send_message, asof) -> bool:
+                        chain_fetcher, send_message, asof, is_owner=True,
+                        universe=None) -> bool:
     """Caption-anchored path: direction/entry/target/stop come ONLY from the
     replied-to chart's caption — never re-inferred from a fresh signal eval.
     That's the whole point: a BUY caption can never yield a SHORT card."""
@@ -405,6 +466,17 @@ def _handle_trade_reply(opts, chat_id, token, caption_text, *, fetcher,
         return False
 
     symbol = parsed["symbol"]
+
+    # Non-owner reply-trades are universe-checked too (parity with bare trade)
+    # so a non-owner cannot chart an off-universe name then reply `trade` to it.
+    if not is_owner:
+        uni = universe if universe is not None else _tracked_universe()
+        if symbol.upper() not in uni:
+            send_message(token, chat_id,
+                         f"{symbol} isn't in the tracked universe. "
+                         f"Try `chart {symbol}` for a chart.")
+            return False
+
     direction, entry = parsed["direction"], parsed["entry"]
     target, stop, bar_date = parsed["target"], parsed["stop"], parsed["bar_date"]
 
@@ -508,7 +580,7 @@ def _handle_trade_bare(opts, chat_id, token, *, fetcher, chain_fetcher,
 
 def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
                  send_message=None, asof=None, renderer=None, send_photo=None,
-                 tmp_dir=None) -> bool:
+                 tmp_dir=None, is_owner=True, universe=None) -> bool:
     """Compute + send the equity-vs-options decision for one ticker, either
     from a `trade` reply to a chart (caption-anchored) or a bare `trade SYM`
     (anchored to the persisted daily-scan snapshot in results.json — no live
@@ -527,11 +599,23 @@ def handle_trade(opts, chat_id, token, *, fetcher=None, chain_fetcher=None,
     send_photo = send_photo or notify.send_photo
     asof = asof or date.today()
 
+    # Non-owner bare `trade SYM` is restricted to the tracked universe here;
+    # non-owner reply-trades are universe-checked separately inside `_handle_trade_reply`.
+    symbol = opts.get("symbol")
+    if not is_owner and symbol:
+        uni = universe if universe is not None else _tracked_universe()
+        if symbol.upper() not in uni:
+            send_message(token, chat_id,
+                         f"{symbol} isn't in the tracked universe. "
+                         f"Try `chart {symbol}` for a chart.")
+            return False
+
     caption_text = opts.get("caption")
     if caption_text:
         return _handle_trade_reply(opts, chat_id, token, caption_text,
                                    fetcher=fetcher, chain_fetcher=chain_fetcher,
-                                   send_message=send_message, asof=asof)
+                                   send_message=send_message, asof=asof,
+                                   is_owner=is_owner, universe=universe)
     return _handle_trade_bare(opts, chat_id, token, fetcher=fetcher,
                               chain_fetcher=chain_fetcher, send_message=send_message,
                               renderer=renderer, send_photo=send_photo,

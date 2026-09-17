@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from scanner import bot, decisions, ledger
+from scanner import access, bot, decisions, ledger
 
 
 def _update(text, uid=1, chat_id=1, reply_to=None, date=1767625200):
@@ -137,7 +137,7 @@ def test_poll_once_dispatches_decision_and_chart(tmp_path, monkeypatch):
 
     handled = []
     res = bot.poll_once(token="T", chat_id="1", state_path=spath,
-                        command_handler=lambda sym: handled.append(sym) or True)
+                        command_handler=lambda sym, cid: handled.append(sym) or True)
 
     assert handled == ["NVDA"]                              # chart request routed
     assert appended and appended[0]["decision"] == "go"     # go/pass -> ghsync, not ledger
@@ -162,7 +162,7 @@ def test_poll_once_holds_offset_and_alerts_on_append_failure(tmp_path, monkeypat
                         lambda tok, cid, text: alerts.append(text))
 
     bot.poll_once(token="T", chat_id="1", state_path=spath,
-                  command_handler=lambda sym: True)
+                  command_handler=lambda sym, cid: True)
 
     assert decisions.load_state(spath)["offset"] <= 7     # not advanced past failed update
     assert alerts and any("persistence" in a.lower() for a in alerts)
@@ -181,7 +181,7 @@ def test_poll_once_advances_offset_when_append_succeeds(tmp_path, monkeypatch):
     monkeypatch.setattr(bot.notify, "send_message",
                         lambda tok, cid, text: alerts.append(text))
     bot.poll_once(token="T", chat_id="1", state_path=spath,
-                  command_handler=lambda sym: True)
+                  command_handler=lambda sym, cid: True)
     assert decisions.load_state(spath) == {"offset": 8}
     assert alerts == []
 
@@ -195,10 +195,53 @@ def test_poll_once_ignores_foreign_chat(tmp_path, monkeypatch):
 
     handled = []
     bot.poll_once(token="T", chat_id="1", ledger_path=lpath, state_path=spath,
-                  command_handler=lambda sym: handled.append(sym) or True)
+                  command_handler=lambda sym, cid: handled.append(sym) or True)
 
     assert handled == []                                    # foreign request dropped
     assert decisions.load_state(spath) == {"offset": 9}     # but still consumed
+
+
+def test_poll_once_routes_reply_to_requester(tmp_path, monkeypatch):
+    # An allowlisted non-owner (chat 2) gets served in THEIR chat, not owner's.
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("nvda", uid=8, chat_id=2)], 9))
+    seen = []
+    bot.poll_once(token="T", chat_id="1", state_path=spath,
+                  command_handler=lambda sym, cid: seen.append((sym, cid)) or True)
+    assert seen == [("NVDA", "2")]                     # served, routed to chat 2
+
+
+def test_poll_once_unlisted_chat_ignored(tmp_path, monkeypatch):
+    # Chat 3 is not the owner and not in the allowlist -> dropped, offset consumed.
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("nvda", uid=8, chat_id=3)], 9))
+    handled = []
+    bot.poll_once(token="T", chat_id="1", state_path=spath,
+                  command_handler=lambda sym, cid: handled.append(sym) or True)
+    assert handled == []
+    assert decisions.load_state(spath) == {"offset": 9}
+
+
+def test_poll_once_nonowner_decision_declined(tmp_path, monkeypatch):
+    # An allowlisted non-owner's go/pass is NOT appended and gets a decline reply.
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")
+    spath = tmp_path / "state.json"
+    appended = []
+    monkeypatch.setattr(bot.ghsync, "append_decision",
+                        lambda repo, dec, token, **k: appended.append(dec) or True)
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("go", uid=7, chat_id=2, reply_to=123)], 8))
+    msgs = []
+    monkeypatch.setattr(bot.notify, "send_message",
+                        lambda tok, cid, text: msgs.append((cid, text)))
+    bot.poll_once(token="T", chat_id="1", state_path=spath)
+    assert appended == []                              # nothing logged
+    assert any(str(cid) == "2" and "owner" in text.lower() for cid, text in msgs)
 
 
 def test_poll_once_without_token_is_noop(tmp_path, monkeypatch):
@@ -206,6 +249,44 @@ def test_poll_once_without_token_is_noop(tmp_path, monkeypatch):
     res = bot.poll_once(token=None, ledger_path=tmp_path / "l.jsonl",
                         state_path=tmp_path / "s.json")
     assert res["charts"] == 0 and res["decisions"] == 0
+
+
+def test_poll_once_rate_limits_nonowner(tmp_path, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    updates = [_update("nvda", uid=8, chat_id=2), _update("tsla", uid=9, chat_id=2)]
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: (updates, 10))
+    msgs = []
+    monkeypatch.setattr(bot.notify, "send_message", lambda tok, cid, text: msgs.append(text))
+    served = []
+    rl = access.RateLimiter(limit=1, window_seconds=3600)
+    bot.poll_once(token="T", chat_id="1", state_path=spath, rate=rl,
+                  command_handler=lambda sym, cid: served.append(sym) or True)
+    assert served == ["NVDA"]                                  # only the first got through
+    assert any("too fast" in m.lower() for m in msgs)          # second throttled
+
+
+def test_poll_once_sends_disclaimer_once(tmp_path, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2")
+    spath = tmp_path / "state.json"
+    seen = set()
+    msgs = []
+    monkeypatch.setattr(bot.notify, "send_message", lambda tok, cid, text: msgs.append(text))
+    # first poll: one request from a brand-new non-owner chat
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("nvda", uid=8, chat_id=2)], 9))
+    bot.poll_once(token="T", chat_id="1", state_path=spath, seen_disclaimer=seen,
+                  command_handler=lambda sym, cid: True)
+    assert sum("educational" in m.lower() for m in msgs) == 1  # disclaimer once
+    assert "2" in seen
+    # second poll: same chat again -> no second disclaimer
+    msgs.clear()
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("tsla", uid=9, chat_id=2)], 10))
+    bot.poll_once(token="T", chat_id="1", state_path=spath, seen_disclaimer=seen,
+                  command_handler=lambda sym, cid: True)
+    assert not any("educational" in m.lower() for m in msgs)
 
 
 # ---- parse_trade ------------------------------------------------------------
@@ -475,6 +556,51 @@ def test_handle_trade_reply_uses_caption_direction_never_inverts():
                      asof=date(2026, 8, 19))
     assert "BUY" in sent["msg"] and "SHORT" not in sent["msg"]
     assert "follows your V chart · bar 2026-08-25" in sent["msg"]
+
+
+def test_handle_trade_reply_nonowner_offuniverse_declined():
+    # A non-owner replying `trade` to an off-universe chart is refused, same as
+    # the bare path — no pricing, no instructions.
+    msgs = []
+    called = {"chain": False}
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    ok = bot.handle_trade(
+        opts, chat_id="2", token="T", is_owner=False, universe={"NVDA", "TSLA"},
+        fetcher=_fake_df_fetcher(),
+        chain_fetcher=lambda s: called.__setitem__("chain", True) or {"expiries": []},
+        send_message=lambda tok, cid, text: msgs.append(text),
+        asof=date(2026, 8, 25))
+    assert ok is False
+    assert called["chain"] is False                      # bailed before pricing
+    assert any("tracked universe" in m.lower() for m in msgs)
+
+
+def test_handle_trade_reply_nonowner_inuniverse_not_blocked():
+    # A non-owner replying `trade` for an IN-universe name is NOT blocked by the
+    # universe gate (it proceeds into normal reply handling; no universe nudge).
+    msgs = []
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    bot.handle_trade(
+        opts, chat_id="2", token="T", is_owner=False, universe={"V"},
+        fetcher=_fake_df_fetcher(), chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: msgs.append(text),
+        asof=date(2026, 8, 25))
+    assert not any("tracked universe" in m.lower() for m in msgs)
+
+
+def test_handle_trade_reply_owner_offuniverse_not_blocked():
+    # Owner (default is_owner=True) reply-trade is never universe-checked.
+    msgs = []
+    opts = {"symbol": None, "p": None, "risk": 500.0, "dte": None, "full": False,
+            "caption": "🟢 BUY V · bar 2026-08-25\nclose 384.14\ntarget 401.85 / 366.45 · stop 373.52"}
+    bot.handle_trade(
+        opts, chat_id="1", token="T",                    # is_owner defaults True
+        fetcher=_fake_df_fetcher(), chain_fetcher=lambda s: None,
+        send_message=lambda tok, cid, text: msgs.append(text),
+        asof=date(2026, 8, 25))
+    assert not any("tracked universe" in m.lower() for m in msgs)
 
 
 def test_handle_trade_reply_sizes_from_captions_own_score_not_default():
@@ -757,6 +883,41 @@ def test_acceptance_apd_bare_trade_matches_alert_not_stale_bar(monkeypatch):
     assert "BUY" in sent["m"] and "323" in sent["m"]   # anchored to the alert
 
 
+def test_handle_trade_nonowner_offuniverse_declined():
+    msgs = []
+    called = {"chain": False}
+    ok = bot.handle_trade(
+        {"symbol": "ZZZ", "p": None, "risk": None, "dte": None, "full": False, "caption": None},
+        chat_id="2", token="T", is_owner=False, universe={"NVDA", "TSLA"},
+        fetcher=lambda syms: {},
+        chain_fetcher=lambda s: called.__setitem__("chain", True) or {"expiries": []},
+        send_message=lambda tok, cid, text: msgs.append(text))
+    assert ok is False
+    assert called["chain"] is False                     # bailed before any pricing
+    assert any("tracked universe" in m.lower() for m in msgs)
+
+
+def test_handle_trade_owner_offuniverse_not_blocked(monkeypatch):
+    # Owner (default is_owner=True) is never universe-checked: it proceeds into
+    # the bare path and hits the normal "no active signal" refusal, NOT the nudge.
+    monkeypatch.setattr(bot, "_load_results", lambda path=None: {"as_of": "x", "fired": []})
+    msgs = []
+    ok = bot.handle_trade(
+        {"symbol": "ZZZ", "p": None, "risk": None, "dte": None, "full": False, "caption": None},
+        chat_id="1", token="T",                          # is_owner defaults True
+        fetcher=lambda syms: {},
+        chain_fetcher=lambda s: {"expiries": []},
+        send_message=lambda tok, cid, text: msgs.append(text))
+    assert ok is False
+    assert not any("tracked universe" in m.lower() for m in msgs)
+    assert any("no active signal" in m.lower() for m in msgs)
+
+
+def test_tracked_universe_reads_watchlist(monkeypatch):
+    monkeypatch.setattr(bot.data, "load_watchlist", lambda path: ["nvda", "TSLA"])
+    assert bot._tracked_universe("whatever.csv") == {"NVDA", "TSLA"}
+
+
 def test_poll_once_routes_trade(tmp_path, monkeypatch):
     lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
     ledger.save(lpath, [])
@@ -764,8 +925,8 @@ def test_poll_once_routes_trade(tmp_path, monkeypatch):
                         lambda token, offset, timeout=0: ([_update("trade nvda 60", uid=3)], 4))
     routed = []
     bot.poll_once(token="T", chat_id="1", ledger_path=lpath, state_path=spath,
-                  command_handler=lambda sym: routed.append(("chart", sym)) or True,
-                  trade_handler=lambda opts: routed.append(("trade", opts["symbol"])) or True)
+                  command_handler=lambda sym, cid: routed.append(("chart", sym)) or True,
+                  trade_handler=lambda opts, cid, is_owner: routed.append(("trade", opts["symbol"])) or True)
     assert ("trade", "NVDA") in routed
     assert not any(r[0] == "chart" for r in routed)   # trade did NOT fall through to chart
 
@@ -821,7 +982,7 @@ def test_poll_once_appends_decision_via_ghsync(monkeypatch):
     monkeypatch.setattr(bot.decisions, "save_state", lambda p, s: None)
     monkeypatch.setattr(bot.decisions, "load_state", lambda p: {"offset": 0})
     res = bot.poll_once(token="t", chat_id="1", state_path="x",
-                        command_handler=lambda s: False, trade_handler=lambda o: False)
+                        command_handler=lambda s, cid: False, trade_handler=lambda o, cid, is_owner: False)
     assert calls == [{"decision": "go", "decided_at": bot.decisions.parse_decision(
         {"message": {"date": 1, "text": "go", "reply_to_message": {"message_id": 42}}})["decided_at"],
         "reply_to_msg_id": 42, "symbol": None}]
@@ -880,3 +1041,20 @@ def test_serve_does_not_ping_when_poll_raises(monkeypatch):
     monkeypatch.setattr(bot, "poll_once", fake_poll)
     bot.serve(token="t", chat_id="1", poll_timeout=0)
     assert pings == []  # a crash-looping poll must NOT report healthy
+
+
+def test_serve_passes_rate_and_disclaimer_state(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "T")
+    monkeypatch.setenv("GITHUB_TOKEN", "tok")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.setenv("TELEGRAM_ALLOWLIST", "2,3")
+    captured = {}
+
+    def fake_poll(**kw):
+        captured.update(kw)
+        raise KeyboardInterrupt                      # break serve's loop after one call
+
+    monkeypatch.setattr(bot, "poll_once", fake_poll)
+    bot.serve()                                      # returns on KeyboardInterrupt
+    assert captured.get("rate") is not None
+    assert captured.get("seen_disclaimer") is not None

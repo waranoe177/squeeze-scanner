@@ -156,6 +156,30 @@ If you need to disable the bot permanently or revert:
 
 ---
 
+## Sharing with friends & family (allowlist)
+
+The bot is owner-only until you set an allowlist. To share:
+
+1. Ask each person to message the bot once, then read the machine logs
+   (`fly logs`) — an unlisted chat is logged as
+   `update from unlisted chat <ID> ignored`. That `<ID>` is their Telegram
+   chat id. (They can also DM `@userinfobot` on Telegram to get their id.)
+2. Add the ids to the allowlist secret (comma-separated) and restart:
+
+   ```bash
+   fly secrets set TELEGRAM_ALLOWLIST=111,222,333
+   ```
+
+   Your own `TELEGRAM_CHAT_ID` is always allowed and does not need to be listed.
+3. Remove someone by setting the secret again without their id.
+
+Shared users can request `chart SYM` (any ticker) and `trade SYM` (tracked
+universe only). They cannot log go/pass decisions (owner-only). They get a
+one-time educational disclaimer and a 20-request/hour rate limit. The allowlist
+lives ONLY in this Fly secret — never commit chat ids (the repo is public).
+
+---
+
 ## Maintenance
 
 - **GitHub PAT rotation**: Set a calendar reminder ~1 month before expiry (step 4); generate a new token and update the Fly secret
