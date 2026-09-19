@@ -40,7 +40,7 @@ jobs:
           TELEGRAM_FOOTER: ${{ vars.TELEGRAM_FOOTER }}
           SITE_CHANNEL_USERNAME: ${{ vars.SITE_CHANNEL_USERNAME }}
           SITE_CHANNEL_URL: ${{ vars.SITE_CHANNEL_URL }}
-        run: python -m scanner.run --watchlist universe.csv --out out --site site
+        run: python -m scanner.run --watchlist universe.csv --futures futures.csv --out out --site site
 
       - name: Commit results + ledger
         if: always()

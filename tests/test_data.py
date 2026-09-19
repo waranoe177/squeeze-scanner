@@ -74,6 +74,31 @@ def test_load_watchlist_drops_blanks_and_dedupes_preserving_order(tmp_path):
     assert data.load_watchlist(f) == ["AAPL", "MSFT"]
 
 
+def test_load_universe_merges_and_dedupes_across_files(tmp_path):
+    wl = tmp_path / "wl.csv"
+    wl.write_text("Ticker\nAAPL\nMSFT\n")
+    fut = tmp_path / "fut.csv"
+    fut.write_text("Ticker\nES=F\nAAPL\n")  # AAPL duplicated across files
+    assert data.load_universe([wl, fut]) == ["AAPL", "MSFT", "ES=F"]
+
+
+def test_load_universe_skips_missing_files(tmp_path):
+    wl = tmp_path / "wl.csv"
+    wl.write_text("Ticker\nSPY\n")
+    missing = tmp_path / "nope.csv"
+    assert data.load_universe([wl, missing]) == ["SPY"]
+
+
+def test_shipped_futures_watchlist_has_index_and_macro():
+    """The futures watchlist ships the index + macro basket (=F symbols)."""
+    from pathlib import Path
+
+    fut = Path(__file__).resolve().parent.parent / "futures.csv"
+    syms = set(data.load_watchlist(fut))
+    assert {"ES=F", "NQ=F", "YM=F", "RTY=F",
+            "GC=F", "SI=F", "CL=F", "BTC=F"} <= syms
+
+
 # ---------------------------------------------------------------------------
 # Normalizing a single-ticker yfinance frame (fields as columns)
 # ---------------------------------------------------------------------------

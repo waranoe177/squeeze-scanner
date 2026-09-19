@@ -56,12 +56,13 @@ def _load_results(path=None):
     return ghsync.fetch_results(_REPO)
 
 
-def _tracked_universe(watchlist_path: str = "watchlist.csv") -> set[str]:
-    """Symbols a non-owner may `trade`: the scanned watchlist, uppercased. Falls
-    back to the fired symbols in the latest results snapshot if the watchlist
-    file isn't in this checkout."""
+def _tracked_universe(watchlist_path: str = "watchlist.csv",
+                      futures_path: str = "futures.csv") -> set[str]:
+    """Symbols a non-owner may `trade`: the scanned watchlist plus the futures
+    watchlist, uppercased. Falls back to the fired symbols in the latest results
+    snapshot if the watchlist files aren't in this checkout."""
     try:
-        syms = data.load_watchlist(watchlist_path)
+        syms = data.load_universe([watchlist_path, futures_path])
         if syms:
             return {s.upper() for s in syms}
     except Exception:

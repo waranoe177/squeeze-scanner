@@ -35,6 +35,22 @@ def load_watchlist(path) -> list[str]:
     return list(seen.keys())
 
 
+def load_universe(paths) -> list[str]:
+    """Load and merge several watchlist files into one deduped, order-preserving
+    list (first file's order wins, later files append only their new symbols).
+    A missing/unreadable file is skipped, so an optional futures.csv is safe to
+    omit from a checkout without breaking the scan."""
+    seen: dict[str, None] = {}
+    for path in paths:
+        try:
+            syms = load_watchlist(path)
+        except OSError:  # missing file, permission, etc. -> skip this source
+            continue
+        for sym in syms:
+            seen.setdefault(sym, None)
+    return list(seen.keys())
+
+
 def normalize(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
     """Turn a yfinance frame (single-ticker fields, or MultiIndex over tickers)
     into the canonical OHLC frame for one symbol."""

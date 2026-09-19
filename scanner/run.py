@@ -37,6 +37,9 @@ def main(argv=None) -> dict:
 
     ap = argparse.ArgumentParser(description="Daily squeeze scan")
     ap.add_argument("--watchlist", default="watchlist.csv")
+    ap.add_argument("--futures", default="futures.csv",
+                    help="extra watchlist merged into the scan (e.g. =F futures); "
+                         "skipped silently if the file is absent")
     ap.add_argument("--out", default="out")
     ap.add_argument("--period", default="2y")
     ap.add_argument("--dry-run", action="store_true", help="don't send to Telegram")
@@ -49,7 +52,7 @@ def main(argv=None) -> dict:
     out_dir = Path(args.out)
     (out_dir / "charts").mkdir(parents=True, exist_ok=True)
 
-    symbols = data.load_watchlist(args.watchlist)
+    symbols = data.load_universe([args.watchlist, args.futures])
     print(f"scanning {len(symbols)} symbols...")
     frames = data.fetch_daily(symbols, period=args.period)
     payloads = scan.scan_frames(frames)
