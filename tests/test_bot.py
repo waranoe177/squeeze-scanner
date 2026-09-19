@@ -918,6 +918,17 @@ def test_tracked_universe_reads_watchlist(monkeypatch):
     assert bot._tracked_universe("whatever.csv") == {"NVDA", "TSLA"}
 
 
+def test_tracked_universe_excludes_futures(monkeypatch):
+    """Futures stay owner-only: the non-owner trade gate is the equity watchlist,
+    never futures.csv. Guards against re-adding futures to _tracked_universe."""
+    monkeypatch.setattr(
+        bot.data, "load_watchlist",
+        lambda path: ["AAPL", "MSFT"] if "watchlist" in str(path) else ["ES=F"])
+    uni = bot._tracked_universe("watchlist.csv")
+    assert uni == {"AAPL", "MSFT"}
+    assert "ES=F" not in uni
+
+
 def test_poll_once_routes_trade(tmp_path, monkeypatch):
     lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
     ledger.save(lpath, [])
