@@ -120,6 +120,7 @@ def conviction(df: pd.DataFrame, symbol: str | None = None, hist: int = 252) -> 
         "direction": bd["direction"],
         "score": total,
         "grade": grade_for(total),
+        "signal_grade": bd.get("signal_grade", ""),   # "A++"/"A"/"" (signal tier)
         "confluence": round(confluence, 1),
         "strength": round(strength, 1),
         "rr": round(rr, 2),

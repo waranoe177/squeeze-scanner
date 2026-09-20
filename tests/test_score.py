@@ -64,8 +64,10 @@ def test_bull_score_is_at_least_confluence_and_capped():
     r = score.conviction(_ohlc(step=0.15, noise=0.3), symbol="UP")
     assert r["score"] <= 100
     if r["direction"] == "bull":
-        assert r["confluence"] == score.CONFLUENCE_MAX
         assert r["score"] >= r["confluence"]  # strength only adds
+        # only the full "A++" signal maxes confluence; the early "A" is below max
+        if r["signal_grade"] == "A++":
+            assert r["confluence"] == score.CONFLUENCE_MAX
 
 
 def test_higher_rsi_lifts_the_score_all_else_equal():

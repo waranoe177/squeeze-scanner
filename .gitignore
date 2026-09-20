@@ -5,3 +5,6 @@ __pycache__/
 # Keep out/results.json + out/charts (the dashboard reads them); ignore stray local files
 out/*.tmp
 site/
+
+# local chart review folders (large PNG batches, not for the repo)
+reports/charts/

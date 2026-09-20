@@ -255,6 +255,16 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     highs = e["high"].to_numpy()
     ax[0].scatter(pos[bull], lows[bull] * 0.985, marker="^", color="#00e5ff", s=75, zorder=6, label="BUY")
     ax[0].scatter(pos[bear], highs[bear] * 1.015, marker="v", color="#ff2bd6", s=75, zorder=6, label="SELL")
+    # 'A' early buy (6/7, MACD rising below zero): distinct WHITE triangle
+    if "scanner_bull_a" in e.columns:
+        bull_a = e["scanner_bull_a"].to_numpy()
+        ax[0].scatter(pos[bull_a], lows[bull_a] * 0.985, marker="^", color="#ffffff",
+                      edgecolors="#8892b0", linewidths=0.7, s=70, zorder=6, label="A-BUY")
+    # 'A' early sell (6/7, MACD falling above zero): white DOWN triangle
+    if "scanner_bear_a" in e.columns:
+        bear_a = e["scanner_bear_a"].to_numpy()
+        ax[0].scatter(pos[bear_a], highs[bear_a] * 1.015, marker="v", color="#ffffff",
+                      edgecolors="#8892b0", linewidths=0.7, s=70, zorder=6, label="A-SELL")
     # Major Pivots: fractal S/R levels (green=resistance, red=support). Detect on
     # the full history so left-edge pivots appear; draw only the displayed slice.
     _draw_major_pivots(ax[0], full, n)
@@ -320,7 +330,10 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     ax[-1].set_xticklabels([e.index[i].strftime("%b %d") for i in ticks], color="#ccc")
 
     bd = signals.condition_breakdown(df)
-    verdict = {"bull": "BUY", "bear": "SELL", "none": "no signal"}[bd["direction"]]
+    if str(full["grade"].iloc[-1]) == "A":
+        verdict = "A-BUY (early)" if bd["direction"] == "bull" else "A-SELL (early)"
+    else:
+        verdict = {"bull": "BUY", "bear": "SELL", "none": "no signal"}[bd["direction"]]
     fig.suptitle(f"{symbol} — indicator layers · bar {bd['date']} · {verdict}",
                  fontsize=13, fontweight="bold", color="#fff", y=0.997)
     fig.tight_layout(rect=[0, 0, 1, 0.988])

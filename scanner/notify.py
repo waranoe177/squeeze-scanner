@@ -20,15 +20,28 @@ _LADDER_BULL = ["Squeeze", "RSI&gt;50", "PPO≥0", "EMA8&gt;21", "Stack", "MACD�
 _LADDER_BEAR = ["Squeeze", "RSI&lt;50", "PPO&lt;0", "EMA8&lt;21", "Stack↓", "MACD↓", "Moxie↓"]
 
 
-def _ladder(direction: str) -> str:
+def _ladder(direction: str, grade: str | None = None) -> str:
     labels = _LADDER_BEAR if direction == "bear" else _LADDER_BULL
-    marks = [f"✅ {lbl}" for lbl in labels]
+    # The early 'A' tier meets all conditions EXCEPT MACD (index 5): for a buy it
+    # is rising-but-not-green (🔼), for a sell falling-but-not-red (🔽). Show that
+    # one distinctly so the caption is honest.
+    a_macd = "🔽" if direction == "bear" else "🔼"
+    marks = [
+        (f"{a_macd} {lbl}" if (grade == "A" and i == 5) else f"✅ {lbl}")
+        for i, lbl in enumerate(labels)
+    ]
     return f"\n   {'  '.join(marks[:4])}\n   {'  '.join(marks[4:])}"
 
 
 def _fired_line(p: dict, cta: bool = False, name: str | None = None,
                 show_ladder: bool = False) -> str:
-    arrow = "🟢 BUY" if p["direction"] == "bull" else "🔴 SELL"
+    grade = str(p.get("grade", ""))
+    if grade == "A":
+        arrow = "⚪ A-BUY" if p["direction"] == "bull" else "⚪ A-SELL"   # early, 6/7
+    elif p["direction"] == "bull":
+        arrow = "🟢 BUY"
+    else:
+        arrow = "🔴 SELL"
     head = f"{arrow} <b>{_esc(p['symbol'])}</b>"
     if name:
         head += f" — {_esc(name)}"
@@ -47,12 +60,18 @@ def _fired_line(p: dict, cta: bool = False, name: str | None = None,
     else:
         levels = (f"   target {p['target_up']:.2f} / {p['target_dn']:.2f}"
                   f" · stop {p['stop']:.2f}")
-    ladder = _ladder(p["direction"]) if show_ladder else ""
+    if grade == "A":
+        _mv = "falling, not yet red" if p["direction"] == "bear" else "rising, not yet green"
+        a_note = f"\n   ⚪ <b>early A</b> — MACD {_mv}"
+    else:
+        a_note = ""
+    ladder = _ladder(p["direction"], grade) if show_ladder else ""
     cta_line = "\n   ↩️ Reply to this chart: go or pass" if cta else ""
     return (
         f"{head}\n"
         f"   close {p['close']:.2f} · RSI {p['rsi']:.0f}\n"
         f"{levels}"
+        f"{a_note}"
         f"{tail}"
         f"{ladder}"
         f"{cta_line}"

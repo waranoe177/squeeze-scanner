@@ -171,10 +171,15 @@ def test_condition_breakdown_reports_each_layer_consistently():
     assert out["rsi_pass"] == (out["rsi"] > 50)
     assert out["ppo_pass"] == (out["ppo"] >= 0)
     assert out["structure_pass"] == (out["ema8"] > out["ema21"])
-    # a bull direction requires every gate true
+    # a bull direction requires the 6 non-MACD gates; MACD is green for the full
+    # "A++" signal and rising-below-zero (not green) for the early "A" tier
     if out["direction"] == "bull":
         assert all([out["squeeze_on"], out["rsi_pass"], out["ppo_pass"],
-                    out["stack_pass"], out["macd_pass"], out["moxie_pass"]])
+                    out["stack_pass"], out["moxie_pass"]])
+        if out["signal_grade"] == "A++":
+            assert out["macd_pass"]
+        elif out["signal_grade"] == "A":
+            assert not out["macd_pass"]
 
 
 def test_b3_rows_has_all_seven_rows_with_valid_states():

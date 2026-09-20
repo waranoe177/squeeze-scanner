@@ -43,6 +43,20 @@ def macd_red(diff: pd.Series) -> pd.Series:
     return (diff <= 0) & (diff < diff.shift(1))
 
 
+def macd_rising_below(diff: pd.Series) -> pd.Series:
+    """Early-buy MACD: still BELOW zero but RISING vs the prior bar -- the state
+    one bar before macd_green can flip true (e.g. KO 2026-07-27: -0.36 -> -0.23,
+    then +0.18 the next day). Used by the anticipatory 'A' buy signal."""
+    return (diff < 0) & (diff > diff.shift(1))
+
+
+def macd_falling_above(diff: pd.Series) -> pd.Series:
+    """Early-sell MACD: still ABOVE zero but FALLING vs the prior bar -- the
+    mirror of macd_rising_below, one bar before macd_red can flip true. Used by
+    the anticipatory 'A' sell signal."""
+    return (diff > 0) & (diff < diff.shift(1))
+
+
 def confluence(df: pd.DataFrame) -> pd.DataFrame:
     """Apply the user's trading process and add scanner_bull / scanner_bear.
 
@@ -83,6 +97,31 @@ def confluence(df: pd.DataFrame) -> pd.DataFrame:
         & (out["ema8"] < out["ema21"])
         & bear_stacked
         & out["macd_red"]
+        & out["moxie_dn"]
+    )
+    # 'A' early buy: the same 6 non-MACD bull conditions, but MACD is still below
+    # zero and merely RISING (not yet green). Fires one bar before scanner_bull
+    # can; mutually exclusive with it (macd_green needs diff>=0). Sell mirror TBD.
+    out["macd_rising_below"] = macd_rising_below(out["macd_diff"])
+    out["scanner_bull_a"] = (
+        out["squeeze_on"]
+        & (out["rsi"] > 50)
+        & (out["ppo"] >= 0)
+        & (out["ema8"] > out["ema21"])
+        & bull_stacked
+        & out["macd_rising_below"]
+        & out["moxie_up"]
+    )
+    # 'A' early sell: the mirror -- 6 non-MACD bear conditions, MACD above zero
+    # and falling (not yet red). Fires one bar before scanner_bear can.
+    out["macd_falling_above"] = macd_falling_above(out["macd_diff"])
+    out["scanner_bear_a"] = (
+        out["squeeze_on"]
+        & (out["rsi"] < 50)
+        & (out["ppo"] < 0)
+        & (out["ema8"] < out["ema21"])
+        & bear_stacked
+        & out["macd_falling_above"]
         & out["moxie_dn"]
     )
     return out
@@ -133,6 +172,7 @@ def analyze(daily: pd.DataFrame) -> pd.DataFrame:
     out = confluence(out)
 
     grade = pd.Series("", index=out.index)
+    grade = grade.mask(out["scanner_bull_a"] | out["scanner_bear_a"], "A")
     grade = grade.mask(out["scanner_bull"] | out["scanner_bear"], "A++")
     out["grade"] = grade
     return out
@@ -253,7 +293,9 @@ def condition_breakdown(daily: pd.DataFrame, on_date=None) -> dict:
     stack_pass = bool(
         row["ema8"] > row["ema21"] > row["ema34"] and row["sma50"] > row["sma200"]
     )
-    direction = "bull" if row["scanner_bull"] else "bear" if row["scanner_bear"] else "none"
+    direction = ("bull" if (row["scanner_bull"] or row.get("scanner_bull_a", False))
+                 else "bear" if (row["scanner_bear"] or row.get("scanner_bear_a", False))
+                 else "none")
     return {
         "symbol": None,
         "date": row.name.strftime("%Y-%m-%d"),
@@ -271,6 +313,7 @@ def condition_breakdown(daily: pd.DataFrame, on_date=None) -> dict:
         "moxie_w": float(row["moxie_w"]) if pd.notna(row["moxie_w"]) else None,
         "moxie_pass": bool(row["moxie_up"]),
         "direction": direction,
+        "signal_grade": str(row["grade"]),   # "A++" (7/7), "A" (early), or ""
     }
 
 
@@ -284,8 +327,12 @@ def latest_signal(daily: pd.DataFrame, symbol: str | None = None) -> dict:
 
     if bool(last["scanner_bull"]):
         direction = "bull"
+    elif bool(last.get("scanner_bull_a", False)):
+        direction = "bull"          # 'A' early buy (grade carries the distinction)
     elif bool(last["scanner_bear"]):
         direction = "bear"
+    elif bool(last.get("scanner_bear_a", False)):
+        direction = "bear"          # 'A' early sell
     else:
         direction = "none"
 

@@ -29,10 +29,12 @@ def scan_frames(frames: dict[str, pd.DataFrame]) -> list[dict]:
 
 
 def rank_fired(payloads: list[dict]) -> list[dict]:
-    """Rank fired signals: bulls first, then by conviction score (desc)."""
+    """Rank fired signals: bulls first, full 'A++' above early 'A', then by
+    conviction score (desc)."""
     def key(p):
         direction_rank = 0 if p["direction"] == "bull" else 1
-        return (direction_rank, -p.get("score", 0))
+        grade_rank = 0 if p.get("grade") == "A++" else 1
+        return (direction_rank, grade_rank, -p.get("score", 0))
 
     return sorted(payloads, key=key)
 
