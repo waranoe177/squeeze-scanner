@@ -33,6 +33,23 @@ damage, not causing it. Any edge would have to come from **selection** (which si
 not from tuning the exit. Consistent with the project's standing "no demonstrated mechanical
 edge" verdict — the tool's value is as a discretionary watchlist / timing aid.
 
+## EMA21 selection filter (the promising lead)
+Files: `analysis_4mo_ema21touch.csv` (strict: bar wicked to EMA21 and closed on the
+correct side) and `analysis_4mo_ema21prox.csv` (relaxed: within 0.25×ATR of EMA21 **or**
+wicked to it, closing on the correct side).
+
+Both selected the **same 15 of 267 signals (6%)** — because the scanner's signals cluster
+either *right at* the EMA21 (rare) or clearly *extended* (>0.25×ATR, the other 94%), with
+little in between, so relaxing the band added no sample.
+
+The 15 that passed were **net positive** (stock +$1,636 / 60% win; option +$3,486) vs the
+252 rejected (stock −$12,472; option −$77,927) — the first filter to invert expectancy, and
+it matches the thesis that entries *at* the EMA beat extended chases. **But:** n=15 is far too
+small to trust, and the positive is **entirely short-driven** — bull (7): stock −$85 / option
+−$1,546; bear (8): stock +$1,720 / option +$5,031. A lead to validate, not a proven edge.
+Next test: a distance-from-EMA **gradient** across all 267 (does P&L improve monotonically as
+signals get closer to the EMA?) — a full-sample test instead of a 15-trade cutoff.
+
 ## Caveats
 - "Total P&L" assumes unlimited capital to take every signal at full budget; the honest
   per-signal metric is **avg P&L / trade**. A single account can't hold all 267 concurrently.
