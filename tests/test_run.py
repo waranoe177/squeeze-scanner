@@ -73,6 +73,28 @@ def test_send_failure_exits_nonzero_after_persist(tmp_path, monkeypatch):
     assert (site_dir / "index.html").exists()  # site rendered despite the failure
 
 
+def test_owner_ids_included_in_daily_broadcast(tmp_path, monkeypatch):
+    """A second owner (TELEGRAM_OWNER_IDS) receives the daily alert too — its
+    chat id is folded into the broadcast recipients."""
+    from scanner import notify
+
+    monkeypatch.setattr(data, "fetch_daily", lambda *a, **k: _fixture_frames())
+    monkeypatch.setattr(data, "company_name", lambda *a, **k: None)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "T")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.setenv("TELEGRAM_OWNER_IDS", "444")
+    monkeypatch.setattr(notify, "send_message", lambda *a, **k: {"result": {"message_id": 1}})
+    monkeypatch.setattr(notify, "send_photo", lambda *a, **k: {"result": {"message_id": 1}})
+    captured = {}
+    monkeypatch.setattr(
+        notify, "broadcast",
+        lambda token, chat_ids, *a, **k: captured.update(ids=list(chat_ids)) or {})
+    run.main(["--no-charts", "--no-site", "--out", str(tmp_path / "out"),
+              "--ledger", str(tmp_path / "l.jsonl")])
+    assert "444" in captured["ids"]
+    assert "1" not in captured["ids"]   # primary owner isn't double-sent
+
+
 def test_fold_decisions_applies_to_records(tmp_path):
     rec = {"id": "COST-2026-09-10", "symbol": "COST", "signal_date": "2026-09-10",
            "telegram_msg_id": 42, "status": "open", "entry_date": None}

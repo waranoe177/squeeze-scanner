@@ -154,8 +154,11 @@ def main(argv=None) -> dict:
     # Broadcast a clean copy of the alert to any extra recipients. Best-effort:
     # a secondary recipient's failure is logged but never marks the day failed
     # (the primary owner send above is the trust anchor).
-    extras = [c for c in notify.parse_chat_ids(os.environ.get("TELEGRAM_ALERT_CHAT_IDS"))
-              if c != chat_id]
+    # Extra recipients = broadcast list + any extra owner devices
+    # (TELEGRAM_OWNER_IDS), so a second owner account gets the daily alert too.
+    extras = notify.parse_chat_ids(os.environ.get("TELEGRAM_ALERT_CHAT_IDS")) \
+        + notify.parse_chat_ids(os.environ.get("TELEGRAM_OWNER_IDS"))
+    extras = [c for c in dict.fromkeys(extras) if c != chat_id]
     if extras:
         delivered = notify.broadcast(token, extras, results["fired"],
                                      out_dir / "charts", message, names=names)

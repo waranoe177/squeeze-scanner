@@ -942,6 +942,22 @@ def test_poll_once_routes_trade(tmp_path, monkeypatch):
     assert not any(r[0] == "chart" for r in routed)   # trade did NOT fall through to chart
 
 
+def test_poll_once_second_owner_gets_owner_rights(tmp_path, monkeypatch):
+    """A chat listed in TELEGRAM_OWNER_IDS (a second owner device on a different
+    number) is authorized AND passed is_owner=True to the trade handler."""
+    lpath, spath = tmp_path / "l.jsonl", tmp_path / "s.json"
+    ledger.save(lpath, [])
+    monkeypatch.setenv("TELEGRAM_OWNER_IDS", "444")
+    monkeypatch.delenv("TELEGRAM_ALLOWLIST", raising=False)
+    monkeypatch.setattr(decisions, "fetch_updates",
+                        lambda token, offset, timeout=0: ([_update("trade ES=F", uid=5, chat_id=444)], 6))
+    seen = []
+    bot.poll_once(token="T", chat_id="1", ledger_path=lpath, state_path=spath,
+                  command_handler=lambda sym, cid: True,
+                  trade_handler=lambda opts, cid, is_owner: seen.append((opts["symbol"], is_owner)) or True)
+    assert seen == [("ES=F", True)]   # second owner recognized as owner
+
+
 def test_anchor_payload_found_and_missing(tmp_path):
     results = {"as_of": "2026-08-28", "fired": [
         {"symbol": "APD", "direction": "bull", "close": 308.09, "date": "2026-08-28",

@@ -219,6 +219,9 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
         return {"updates": 0, "decisions": 0, "charts": 0}
 
     allowlist = access.parse_allowlist(os.environ.get("TELEGRAM_ALLOWLIST"))
+    # Owners: the primary TELEGRAM_CHAT_ID plus any TELEGRAM_OWNER_IDS (extra
+    # owner devices on different numbers). All get full owner rights.
+    owners = access.owner_set(owner_id, os.environ.get("TELEGRAM_OWNER_IDS"))
     command_handler = command_handler or (
         lambda sym, cid: handle_command(sym, cid, token))
     trade_handler = trade_handler or (
@@ -233,7 +236,7 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
         cid = _update_chat_id(u)
         if cid is None:
             continue
-        if not access.is_allowed(cid, owner_id, allowlist):
+        if not access.is_allowed(cid, owners, allowlist):
             print(f"  [bot] update from unlisted chat {cid} ignored")
             continue
         authorized.append((u, cid))
@@ -247,7 +250,7 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
         p = decisions.parse_decision(u)
         if not p:
             continue
-        if not access.is_owner(cid, owner_id):
+        if not access.is_owner(cid, owners):
             try:
                 notify.send_message(token, cid, "Only the owner can log go/pass decisions.")
             except Exception:
@@ -265,7 +268,7 @@ def poll_once(token=None, chat_id=None, ledger_path=None,
     for u, cid in authorized:
         if decisions.parse_decision(u):
             continue
-        owner = access.is_owner(cid, owner_id)
+        owner = access.is_owner(cid, owners)
         if not owner:
             if rate is not None and not rate.allow(cid):
                 try:

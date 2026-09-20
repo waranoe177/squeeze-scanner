@@ -16,11 +16,25 @@ def parse_allowlist(raw):
 
 
 def is_owner(chat_id, owner_id) -> bool:
-    """True iff chat_id is the configured owner (string-compared). No owner
-    configured (owner_id None/'') -> False."""
-    if owner_id is None or owner_id == "":
+    """True iff chat_id is a configured owner (string-compared). `owner_id` may
+    be a single id OR a collection of ids (multiple owner devices/accounts on
+    different numbers). No owner configured (None/''/empty) -> False."""
+    if not owner_id:
         return False
+    if isinstance(owner_id, (set, frozenset, list, tuple)):
+        return str(chat_id) in {str(o) for o in owner_id}
     return str(chat_id) == str(owner_id)
+
+
+def owner_set(owner_id, extra_raw=None) -> set:
+    """All owner chat ids as strings: the primary `owner_id` plus any comma-
+    separated `extra_raw` ids (e.g. a second owner device on a different phone
+    number, from TELEGRAM_OWNER_IDS). Empty set if none configured."""
+    owners: set[str] = set()
+    if owner_id:
+        owners.add(str(owner_id))
+    owners |= parse_allowlist(extra_raw)
+    return owners
 
 
 def is_allowed(chat_id, owner_id, allowlist) -> bool:
