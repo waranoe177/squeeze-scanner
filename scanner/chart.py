@@ -207,7 +207,11 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     Moxie for a daily chart; on a higher-timeframe chart pass the NEXT-higher TF
     (e.g. "ME" monthly on a weekly chart) so the stepped Moxie stays consistent.
     """
-    full = signals.analyze(df)
+    # Detect signals with the SAME higher-TF Moxie band the scan used, so the
+    # markers/verdict match what fired: "W" for a daily chart, "ME" for a weekly
+    # chart (monthly Moxie). Passing the wrong band made a weekly signal render
+    # as "no signal" (markers used weekly Moxie while the scan fired on monthly).
+    full = signals.analyze(df, htf_rule=moxie_tf)
     full["rev_rsi"] = ind.rev_eng_rsi(full["close"], 14)
     moxie_label = _MOXIE_LABELS.get(moxie_tf, moxie_tf)
     if moxie_tf != "W":
@@ -329,7 +333,7 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     ax[-1].set_xticks(ticks)
     ax[-1].set_xticklabels([e.index[i].strftime("%b %d") for i in ticks], color="#ccc")
 
-    bd = signals.condition_breakdown(df)
+    bd = signals.condition_breakdown(df, htf_rule=moxie_tf)
     if str(full["grade"].iloc[-1]) == "A":
         verdict = "A-BUY (early)" if bd["direction"] == "bull" else "A-SELL (early)"
     else:
