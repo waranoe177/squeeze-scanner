@@ -24,6 +24,9 @@ def format_trade(plan) -> str:
     if plan.get("extended"):
         return _extended_note(plan)
 
+    if plan.get("futures"):
+        return _format_futures(plan)
+
     d = plan["direction"]
     sym = plan["symbol"]
     exit_date = plan["exit_date"]
@@ -91,6 +94,51 @@ def format_trade(plan) -> str:
         f"  COST  needs {move} by {exit_date:%m/%d}; IV {c['iv'] * 100:.0f}% is {plan['iv_label']}",
         f"  SKIP  {plan['shares']} sh → ≈ +${plan['equity_target_reward']:,.0f}, no clock, no decay",
     ])
+
+
+def _dollars_pt(mult) -> str:
+    return f"${mult:,.0f}" if mult >= 1 else f"${mult:.2f}"
+
+
+def _format_futures(plan) -> str:
+    """Futures card: entry front and center, then stop and two targets as
+    price → distance → dollars → R:R (T1 = 2.5×ATR, T2 = 2.0×ATR, same stop),
+    a per-point value, an est. margin/notional line, and a micro downsize option."""
+    sym = notify._esc(plan["symbol"])
+    name = notify._esc(plan["name"])
+    action = "BUY" if plan["direction"] != "bear" else "SELL"
+    exit_date = plan["exit_date"]
+    spot, stop = plan["spot"], plan["stop"]
+    t1, t2 = plan["target"], plan["target2"]
+    stop_arrow = "↓" if stop < spot else "↑"
+    tgt_arrow = "↑" if t1 > spot else "↓"
+
+    def row(label, price, rest=""):
+        return f"  {label:<8}  {price:.2f}{rest}"
+
+    lines = [
+        f"<b>{sym} · {action} · {name} · exit by {exit_date:%a %m/%d}</b>",
+        f"  {_pct(plan['p'])} confidence · 1 contract · 1 pt = {_dollars_pt(plan['mult'])}",
+        "",
+        row("ENTER", spot),
+        row("STOP", stop,
+            f"   {stop_arrow} {plan['pt_risk']:.1f} pts   risk   −${plan['risk_dollars']:,.0f}"),
+        row("TARGET 1", t1,
+            f"   {tgt_arrow} {plan['pt_reward']:.1f} pts   +${plan['reward_dollars']:,.0f}"
+            f"   2.5×ATR · R:R {plan['rr']:.1f}"),
+        row("TARGET 2", t2,
+            f"   {tgt_arrow} {plan['pt_reward2']:.1f} pts   +${plan['reward2_dollars']:,.0f}"
+            f"   2.0×ATR · R:R {plan['rr2']:.1f}"),
+        "",
+        f"  Notional ≈ ${plan['notional'] / 1000:,.0f}k · est. margin ≈ "
+        f"${plan['margin_est'] / 1000:,.0f}k (varies by broker)",
+    ]
+    if plan.get("micro_symbol"):
+        lines.append(
+            f"  Smaller? {notify._esc(plan['micro_symbol'])} micro "
+            f"({_dollars_pt(plan['micro_mult'])}/pt) → risk −${plan['micro_risk']:,.0f}"
+            f" · T1 +${plan['micro_reward']:,.0f} / T2 +${plan['micro_reward2']:,.0f}")
+    return "\n".join(lines)
 
 
 def _extended_note(plan) -> str:

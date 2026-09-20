@@ -11,6 +11,8 @@ from datetime import date, timedelta
 
 import numpy as np
 
+from scanner import futures_spec
+
 
 def _norm_cdf(x: float) -> float:
     return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
@@ -178,6 +180,41 @@ def flip_point(entry, stop, target, contract, sizing, p_neither=0.20,
     return max(0.0, min(1.0, -d0 / (d1 - d0)))
 
 
+def _futures_plan(symbol, fut, direction, spot, stop, target, move_pct,
+                  exit_date, p, extended):
+    """Plan dict for a futures signal: sized in contracts with the contract's
+    point multiplier, not shares. One contract is the unit; the micro sibling is
+    offered for scaling risk down. Dollar figures = points × multiplier."""
+    mult = fut["mult"]
+    pt_risk = abs(spot - stop)
+    pt_reward = abs(target - spot)          # Target 1 = the scan's 2.5*ATR target
+    risk_dollars = pt_risk * mult
+    reward_dollars = pt_reward * mult
+    # Target 2 = a nearer 2.0*ATR target sharing the same stop. The scan's target
+    # is 2.5*ATR, so T2 is 2.0/2.5 = 0.8 of T1's distance -- derived as a ratio so
+    # the card needs no ATR of its own.
+    pt_reward2 = pt_reward * (2.0 / 2.5)
+    target2 = spot + pt_reward2 if direction != "bear" else spot - pt_reward2
+    reward2_dollars = pt_reward2 * mult
+    micro_mult = fut.get("micro_mult")
+    return {
+        "futures": True, "symbol": symbol, "name": fut["name"],
+        "direction": direction, "spot": spot, "stop": stop, "target": target,
+        "target2": target2, "move_pct": move_pct, "exit_date": exit_date, "p": p,
+        "extended": extended, "mult": mult,
+        "pt_risk": pt_risk, "pt_reward": pt_reward, "pt_reward2": pt_reward2,
+        "risk_dollars": risk_dollars, "reward_dollars": reward_dollars,
+        "reward2_dollars": reward2_dollars,
+        "rr": (reward_dollars / risk_dollars) if risk_dollars else 0.0,
+        "rr2": (reward2_dollars / risk_dollars) if risk_dollars else 0.0,
+        "notional": spot * mult, "margin_est": spot * mult * fut["margin_pct"],
+        "micro_symbol": fut.get("micro"), "micro_mult": micro_mult,
+        "micro_risk": pt_risk * micro_mult if micro_mult else None,
+        "micro_reward": pt_reward * micro_mult if micro_mult else None,
+        "micro_reward2": pt_reward2 * micro_mult if micro_mult else None,
+    }
+
+
 def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=21,
            hold_days=4, r=0.043, p_neither=0.20, asof=None):
     """Full equity-vs-option decision for one signal. Pure given `chain`.
@@ -194,6 +231,14 @@ def decide(signal, chain, *, p=None, risk_budget=500.0, target_dte=21,
     direction = signal["direction"]
     extended = (direction != "bear" and target <= spot) or \
                (direction == "bear" and target >= spot)
+
+    # Futures are sized in contracts with a point multiplier, not shares, and
+    # yfinance exposes no futures option chain -- so they get their own plan
+    # instead of the equity-vs-option path below.
+    fut = futures_spec.spec(signal["symbol"])
+    if fut is not None:
+        return _futures_plan(signal["symbol"], fut, direction, spot, stop,
+                             target, move_pct, exit_date, p, extended)
 
     base = {"symbol": signal["symbol"], "spot": spot, "target": target,
             "stop": stop, "move_pct": move_pct, "exit_date": exit_date, "p": p,
