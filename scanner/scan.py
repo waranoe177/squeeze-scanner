@@ -13,14 +13,16 @@ import pandas as pd
 from scanner import score, signals
 
 
-def scan_frames(frames: dict[str, pd.DataFrame]) -> list[dict]:
-    """Run latest_signal + conviction score for each symbol. Skips short frames."""
+def scan_frames(frames: dict[str, pd.DataFrame], htf_rule: str = "W") -> list[dict]:
+    """Run latest_signal + conviction score for each symbol. Skips short frames.
+    `htf_rule` = "W" for the daily scan, "ME" for a weekly-timeframe scan (picks
+    the Moxie band); all other indicators use the frames as given."""
     payloads = []
     for symbol, df in frames.items():
         if df is None or len(df) < 205:  # need ~200 bars for SMA200
             continue
-        payload = signals.latest_signal(df, symbol=symbol)
-        sc = score.conviction(df, symbol=symbol)
+        payload = signals.latest_signal(df, symbol=symbol, htf_rule=htf_rule)
+        sc = score.conviction(df, symbol=symbol, htf_rule=htf_rule)
         payload["score"] = sc["score"]
         payload["conviction_grade"] = sc["grade"]
         payload["score_parts"] = sc

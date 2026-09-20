@@ -78,9 +78,11 @@ def _fired_line(p: dict, cta: bool = False, name: str | None = None,
     )
 
 
-def format_message(results: dict, footer: str | None = None) -> str:
-    """Build the HTML message body for a results document."""
-    lines = [f"<b>Sqzdots Scan</b> — bar {_esc(results['as_of'])}"]
+def format_message(results: dict, footer: str | None = None,
+                   title: str = "Sqzdots Scan") -> str:
+    """Build the HTML message body for a results document. `title` lets the
+    weekly scan use a distinct header (e.g. '📅 Sqzdots WEEKLY Scan')."""
+    lines = [f"<b>{_esc(title)}</b> — bar {_esc(results['as_of'])}"]
     fired = results.get("fired", [])
 
     if fired:

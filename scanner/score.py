@@ -76,12 +76,14 @@ def _squeeze_freshness(scanner_bull: pd.Series) -> float:
     return _clamp(1.0 - (run - 1) / 5.0)
 
 
-def conviction(df: pd.DataFrame, symbol: str | None = None, hist: int = 252) -> dict:
-    """Full conviction score for the latest bar."""
-    out = signals.analyze(df)
+def conviction(df: pd.DataFrame, symbol: str | None = None, hist: int = 252,
+               htf_rule: str = "W") -> dict:
+    """Full conviction score for the latest bar. `htf_rule` selects the Moxie
+    band ("W" daily / "ME" weekly) so the score matches a weekly-timeframe scan."""
+    out = signals.analyze(df, htf_rule=htf_rule)
     last = out.iloc[-1]
-    bd = signals.condition_breakdown(df)
-    payload = signals.latest_signal(df, symbol=symbol)
+    bd = signals.condition_breakdown(df, htf_rule=htf_rule)
+    payload = signals.latest_signal(df, symbol=symbol, htf_rule=htf_rule)
 
     flags = {
         "structure_pass": bd["structure_pass"],

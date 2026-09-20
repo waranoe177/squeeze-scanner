@@ -127,11 +127,15 @@ def confluence(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def analyze(daily: pd.DataFrame) -> pd.DataFrame:
-    """Compute every indicator on a daily OHLC frame, align weekly Moxie, and
+def analyze(daily: pd.DataFrame, htf_rule: str = "W") -> pd.DataFrame:
+    """Compute every indicator on an OHLC frame, align the higher-TF Moxie, and
     apply the confluence. Returns the frame enriched with signal columns.
 
     `daily` must have columns open/high/low/close and a DatetimeIndex.
+    `htf_rule` is the Moxie aggregation one band up from the input's timeframe:
+    "W" (default) for a DAILY input -> weekly Moxie; "ME" for a WEEKLY input ->
+    monthly Moxie (the study's TF ladder). All other indicators are computed on
+    the input frame as-is, so passing weekly bars yields a weekly confluence.
     """
     out = daily.copy()
     close, high, low = out["close"], out["high"], out["low"]
@@ -147,11 +151,11 @@ def analyze(daily: pd.DataFrame) -> pd.DataFrame:
     out["atr"] = ind.atr(high, low, close, 14)
     out["squeeze_on"] = ind.squeeze_on(close, high, low, 20, 2.0, 2.0)
 
-    # Higher-timeframe Moxie: compute on weekly close. Color is a weekly
-    # bar-over-bar change (green = rising), so derive up/down on the weekly
-    # series, then forward-fill the value and the gates onto daily bars.
-    weekly = ind.resample_to_weekly(out[["open", "high", "low", "close"]])
-    moxie_w = ind.moxie(weekly["close"])
+    # Higher-timeframe Moxie: compute on the next band up (htf_rule). Color is a
+    # bar-over-bar change (green = rising) on that HTF series, then backfilled onto
+    # the input bars. Daily input -> weekly ("W"); weekly input -> monthly ("ME").
+    htf = _resample_ohlc(out[["open", "high", "low", "close"]], htf_rule)
+    moxie_w = ind.moxie(htf["close"])
     moxie_green = (moxie_w > 0) & (moxie_w >= moxie_w.shift(1))  # above zero AND rising
     moxie_red = (moxie_w < 0) & (moxie_w <= moxie_w.shift(1))    # below zero AND falling
 
@@ -284,11 +288,11 @@ def b3_rows(daily: pd.DataFrame, moxie_tf: str = "W") -> pd.DataFrame:
     return out
 
 
-def condition_breakdown(daily: pd.DataFrame, on_date=None) -> dict:
+def condition_breakdown(daily: pd.DataFrame, on_date=None, htf_rule: str = "W") -> dict:
     """Per-indicator breakdown for one bar: each of the 7 buy conditions with its
     raw value and pass/fail, so it can be cross-checked layer-by-layer vs TOS.
     """
-    out = analyze(daily)
+    out = analyze(daily, htf_rule=htf_rule)
     row = out.iloc[-1] if on_date is None else out.loc[on_date]
     stack_pass = bool(
         row["ema8"] > row["ema21"] > row["ema34"] and row["sma50"] > row["sma200"]
@@ -317,12 +321,14 @@ def condition_breakdown(daily: pd.DataFrame, on_date=None) -> dict:
     }
 
 
-def latest_signal(daily: pd.DataFrame, symbol: str | None = None) -> dict:
+def latest_signal(daily: pd.DataFrame, symbol: str | None = None,
+                  htf_rule: str = "W") -> dict:
     """Evaluate the most recent bar and return the scanner payload for one symbol.
 
     Levels follow the ATR Stop study: target = EMA21 +/- ATR*2.5, stop = close - ATR*1.5.
+    `htf_rule` picks the Moxie band ("W" daily, "ME" weekly) -- see analyze().
     """
-    out = analyze(daily)
+    out = analyze(daily, htf_rule=htf_rule)
     last = out.iloc[-1]
 
     if bool(last["scanner_bull"]):

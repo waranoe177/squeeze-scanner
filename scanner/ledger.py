@@ -66,8 +66,10 @@ def append_fired(records: list[dict], fired: list[dict]) -> list[dict]:
     return records
 
 
-def update(records: list[dict], frames: dict) -> list[dict]:
-    """Backfill entries and close positions from the latest bars.
+def update(records: list[dict], frames: dict, max_hold: int = MAX_HOLD) -> list[dict]:
+    """Backfill entries and close positions from the latest bars. `max_hold` is
+    the hold window in BARS (5 daily bars for the daily ledger; pass a weekly
+    count for a weekly-timeframe ledger fed weekly frames).
 
     Re-derives each non-closed record from ALL bars after its signal date, so a
     missed run self-heals on the next one. Closed records are never touched.
@@ -103,11 +105,11 @@ def update(records: list[dict], frames: dict) -> list[dict]:
             rec["target"], rec["stop"] = round(target, 4), round(stop, 4)
             rec["status"] = "open"
 
-        hold = after.iloc[:MAX_HOLD][["high", "low", "close"]]
+        hold = after.iloc[:max_hold][["high", "low", "close"]]
         result = backtest.simulate_trade(
             hold, rec["entry"], rec["target"], rec["stop"], rec["direction"]
         )
-        if result["outcome"] in ("win", "loss") or len(hold) >= MAX_HOLD:
+        if result["outcome"] in ("win", "loss") or len(hold) >= max_hold:
             rec["status"] = result["outcome"]
             rec["exit_price"] = round(result["exit_price"], 4)
             rec["exit_date"] = after.index[result["bars_held"] - 1].strftime("%Y-%m-%d")
