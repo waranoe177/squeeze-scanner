@@ -41,6 +41,17 @@ thesis, and execute.
   → decision.
 - **Risk level:** low — a better cockpit sharpens judgment; safe to build anytime.
 
+### 4. 2D & 3D chart rendering (match TOS screen)
+Add 2-day and 3-day aggregated charts so the multi-timeframe view matches what I see on TOS.
+- **Status:** PARTIALLY built, deferred. `chart.render_mtf_composite` (2x2 daily/2D/3D/weekly)
+  exists in code; weekly (1W + monthly Moxie) already validated and shipped. 2D/3D were pulled
+  because the aggregation/indicators looked "off and unacceptable" vs TOS.
+- **How:** fix the 2D/3D bar aggregation + anchoring (pin the N-day grouping to a FIXED reference
+  date, not the last bar, so pairing stays stable as bars are added) and calibrate the indicators
+  (squeeze/MACD/Moxie) on the aggregated bars to match TOS; then wire the composite back into the
+  `trade SYM` / weekly output. Validate each TF side-by-side against a TOS screenshot.
+- **Risk level:** low — display/visual only; no signal-logic or money risk.
+
 ---
 
 ## Refinement log (append as I go)
