@@ -6,10 +6,56 @@ TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env vars.
 """
 
 import html
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+# The routine is anchored to US market time, so the stamp the user reads is ET
+# regardless of where the runner lives (Actions runners are UTC).
+_ET = "America/New_York"
 
 
 def _esc(text) -> str:
     return html.escape(str(text))
+
+
+def provenance_line(results: dict, run_number=None, tz: str = _ET,
+                    label: str = "ET") -> str:
+    """One-line "did this run, and when?" stamp for the digest.
+
+    Answers it from the message alone, without opening GitHub -- the scan's own
+    wall-clock time in ET (converted from the stored UTC `generated_at`), the
+    bar it read, how many symbols it covered, and which CI run produced it.
+    Every field is optional: a missing one is dropped rather than rendered as
+    None, so a local/dry run still produces a sensible line.
+    """
+    bits = []
+    gen = results.get("generated_at")
+    if gen:
+        try:
+            dt = datetime.fromisoformat(str(gen).replace("Z", "+00:00"))
+        except ValueError:
+            dt = None
+        if dt is not None:
+            if dt.tzinfo is None:            # legacy naive stamps were UTC
+                dt = dt.replace(tzinfo=timezone.utc)
+            try:
+                local = dt.astimezone(ZoneInfo(tz))
+            except Exception:
+                # format_message was a TOTAL function before this line existed.
+                # A missing tz database must not crash the scan before it sends;
+                # drop the stamp and keep the rest of the digest.
+                local = None
+            if local is not None:
+                bits.append(f"scan {local.strftime('%H:%M:%S')} {label}")
+    if results.get("as_of"):
+        bits.append(f"bar {_esc(results['as_of'])}")
+    if results.get("universe") is not None:
+        # `is not None`, not truthiness: a universe of 0 means the watchlist
+        # failed to load, which is exactly when you want to see it.
+        bits.append(f"{results['universe']} names")
+    if run_number:
+        bits.append(f"run #{_esc(run_number)}")
+    return " · ".join(bits)
 
 
 # The seven buy conditions, bottom-to-top, as the user reads them off the B3
@@ -79,9 +125,16 @@ def _fired_line(p: dict, cta: bool = False, name: str | None = None,
 
 
 def format_message(results: dict, footer: str | None = None,
-                   title: str = "Sqzdots Scan") -> str:
+                   title: str = "Sqzdots Scan", run_number=None,
+                   provenance: bool = True) -> str:
     """Build the HTML message body for a results document. `title` lets the
-    weekly scan use a distinct header (e.g. '📅 Sqzdots WEEKLY Scan')."""
+    weekly scan use a distinct header (e.g. '📅 Sqzdots WEEKLY Scan').
+
+    `run_number` (GITHUB_RUN_NUMBER) feeds the provenance stamp; omitted for
+    local runs so a dry-run message stays clean. `provenance=False` drops the
+    stamp entirely -- the free/delayed channel posts YESTERDAY's results the
+    next morning, where last night's clock time reads as a bug and the universe
+    size isn't public."""
     lines = [f"<b>{_esc(title)}</b> — bar {_esc(results['as_of'])}"]
     fired = results.get("fired", [])
 
@@ -108,6 +161,14 @@ def format_message(results: dict, footer: str | None = None,
                              f"({top['lit']}/7 conditions lit, leaning {_esc(top['lean'])})")
         else:
             lines.append("No squeezes building today.")
+
+    # Provenance stamp on BOTH branches: the universe count used to appear only
+    # when nothing fired, so a fired-day message couldn't tell you the coverage
+    # or the scan's wall-clock time.
+    prov = provenance_line(results, run_number=run_number) if provenance else ""
+    if prov:
+        lines.append("")
+        lines.append(prov)
 
     if footer:
         lines.append("")

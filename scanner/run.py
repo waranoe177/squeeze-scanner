@@ -102,7 +102,8 @@ def main(argv=None) -> dict:
                 print(f"  [warn] weekly chart failed for {sym}: {exc}")
 
     (out_dir / "results.json").write_text(json.dumps(results, indent=2))
-    message = notify.format_message(results, footer=os.environ.get("TELEGRAM_FOOTER"))
+    message = notify.format_message(results, footer=os.environ.get("TELEGRAM_FOOTER"),
+                                    run_number=os.environ.get("GITHUB_RUN_NUMBER"))
     print("\n" + message + "\n")
 
     def _persist():

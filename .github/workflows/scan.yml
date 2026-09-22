@@ -2,20 +2,74 @@ name: Daily Squeeze Scan
 
 on:
   schedule:
-    # 21:30 UTC, weekdays — after the US close; daily bar is finalized.
-    - cron: "30 21 * * 1-5"
+    # 19:30 UTC, weekdays — deliberately EARLY, not the delivery time.
+    # GitHub deprioritizes this repo's schedule events by 1h38m–2h42m (measured
+    # over 14 consecutive runs, 64-minute spread), and cron is UTC-only so any
+    # fixed time also drifts an hour across US daylight saving. The `wait` job
+    # below absorbs both: it sleeps until 19:00 America/New_York, so delivery
+    # is the same wall-clock time year-round. Do NOT "fix" this to 19:00 UTC.
+    - cron: "30 19 * * 1-5"
   workflow_dispatch: {}
 
 permissions:
   contents: write          # commit out/ + ledger/ back to the repo
 
-concurrency:
-  group: sqzdots-ledger
-  cancel-in-progress: false
+# NOTE: concurrency is deliberately NOT set at workflow level. The `wait` job
+# sleeps for up to ~4.5h, and a workflow-level group would hold `sqzdots-ledger`
+# that whole time, blocking weekly.yml and bot.yml. It lives on `scan` instead.
 
 jobs:
-  scan:
+  # Absorbs GitHub's schedule delay so the scan lands at a predictable ET time.
+  # Deliberately has NO concurrency group and NO job-level `if`: a skipped job
+  # cascades through `needs` and would skip the scan entirely.
+  wait:
     runs-on: ubuntu-latest
+    timeout-minutes: 300     # max possible sleep is ~4h30m (target − 19:30 UTC)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # No pip install: waituntil uses only the stdlib (zoneinfo reads the
+      # runner's system tz database).
+
+      # Gated at STEP level so a manual dispatch runs immediately instead of
+      # sleeping until the evening.
+      #
+      # `run_attempt == 1` matters: "Re-run all jobs" KEEPS event_name=schedule,
+      # so a re-run at 09:00 would otherwise try to sleep 10h. waituntil's
+      # max_wait catches that too; this is the cheaper outer guard.
+      #
+      # timeout-minutes is on the STEP, not the job, on purpose. A JOB-level
+      # timeout CANCELS the job, and a cancelled job runs no `if: failure()`
+      # steps -- the alert below would never fire. A step timeout fails the step,
+      # which fails the job normally and lets the alert run.
+      - name: Wait until 19:00 ET
+        if: github.event_name == 'schedule' && github.run_attempt == '1'
+        timeout-minutes: 290
+        run: python -m scanner.waituntil --at 19:00 --tz America/New_York
+
+      # The scan job's own failure alert can't cover this one: if `wait` fails,
+      # `scan` is SKIPPED via `needs`, so its steps never run. Without this the
+      # only signal would be healthchecks.io ~60min later, saying "no ping"
+      # rather than naming what broke.
+      - name: Alert operator on failure
+        if: failure()
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          ADMIN: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+        run: |
+          curl -fsS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -d chat_id="${ADMIN}" \
+            -d text="🚨 Sqzdots WAIT job FAILED — the 19:00 ET scan never started — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+  scan:
+    needs: wait
+    runs-on: ubuntu-latest
+    concurrency:
+      group: sqzdots-ledger
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +80,21 @@ jobs:
 
       - name: Install deps
         run: pip install -r requirements.txt
+
+      # Fail LOUD rather than silently deliver nothing. scanner/run.py returns 0
+      # when these are absent (it just prints "[not sending: ...]"), which would
+      # let the deadman ping report green on a run that sent zero messages --
+      # the monitor certifying the exact silent failure it exists to catch.
+      - name: Verify Telegram credentials present
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID missing — the scan would run and deliver nothing."
+            exit 1
+          fi
+          echo "Telegram credentials present"
 
       # go/pass decisions AND on-demand chart requests are handled by the
       # separate bot workflow (bot.yml) — the single Telegram poller. Telegram
@@ -50,7 +119,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add out/ ledger/
           git diff --staged --quiet && exit 0
-          git commit -m "scan results $(date -u +%Y-%m-%d)"
+          git commit -m "scan results $(TZ=America/New_York date +%Y-%m-%d)"
           for i in 1 2 3; do
             git pull --rebase --autostash origin main && git push && exit 0
             echo "push rejected, retry $i"; sleep 3
@@ -66,12 +135,36 @@ jobs:
           publish_branch: main
           publish_dir: ./site
 
+      # Deadman: nothing running INSIDE GitHub can detect its own
+      # non-execution, so an external watchdog owns that. Configure the check as
+      # `0 19 * * 1-5` in America/New_York with a ~60min grace (healthchecks.io
+      # cron schedules are timezone-aware, unlike GitHub's). A missing ping =
+      # the run never happened. No-ops until the secret exists.
+      - name: Deadman ping
+        if: success()
+        env:
+          HC: ${{ secrets.HEALTHCHECK_URL_SCAN }}
+        run: |
+          # Best-effort, same rule as scanner/bot.py::_ping_healthcheck -- a ping
+          # failure must NEVER fail the scan. Unguarded, a healthchecks.io outage
+          # fails this step, trips "Alert operator on failure", and pages about a
+          # scan that actually succeeded.
+          if [ -z "$HC" ]; then
+            echo "HEALTHCHECK_URL_SCAN unset — skipping deadman ping"
+            exit 0
+          fi
+          if curl -fsS -m 10 --retry 3 "$HC" >/dev/null; then
+            echo "deadman pinged"
+          else
+            echo "deadman ping FAILED (non-fatal) — healthchecks.io will alert instead"
+          fi
+
       - name: Alert operator on failure
         if: failure()
         env:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           ADMIN: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+          curl -fsS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
             -d chat_id="${ADMIN}" \
             -d text="🚨 Sqzdots daily scan FAILED — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

@@ -11,7 +11,10 @@ from scanner import notify
 
 
 def format_delayed(results: dict, footer: str | None = None) -> str:
-    body = notify.format_message(results)
+    # provenance=False: this is the PUBLIC free channel, posted the NEXT
+    # morning. Last night's scan clock reads as a bug to a reader who does
+    # not know the feed is delayed, and universe size is not public.
+    body = notify.format_message(results, provenance=False)
     # swap the header line for the delayed variant
     lines = body.split("\n")
     lines[0] = f"<b>Sqzdots — yesterday's signals</b> — bar {notify._esc(results['as_of'])}"

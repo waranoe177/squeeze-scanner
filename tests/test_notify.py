@@ -176,3 +176,102 @@ def test_broadcast_is_best_effort_one_bad_recipient_does_not_stop_others(tmp_pat
         send_message=flaky_message,
     )
     assert res == {"111": False, "222": True}  # never raises; 222 still delivered
+
+
+# --- provenance line (issue #2) -----------------------------------------
+# "Did this run, and when?" must be answerable from the message alone, without
+# opening GitHub. The ET conversion is the load-bearing part: generated_at is
+# stored UTC, but the routine is anchored to ET and must not drift with DST.
+
+def _results_at(generated_at, universe=159, fired=None):
+    return {
+        "generated_at": generated_at,
+        "as_of": "2026-09-22",
+        "universe": universe,
+        "fired_count": len(fired or []),
+        "fired": fired or [],
+        "watching": [],
+    }
+
+
+def test_provenance_converts_utc_to_et_in_summer():
+    # 23:00:14Z on 2026-09-22 is EDT (UTC-4) -> 19:00:14 ET
+    line = notify.provenance_line(_results_at("2026-09-22T23:00:14+00:00"), run_number="69")
+    assert "scan 19:00:14 ET" in line
+
+
+def test_provenance_converts_utc_to_et_in_winter():
+    # 00:00:14Z on 2026-01-16 is EST (UTC-5) -> 19:00:14 ET on 2026-01-15
+    line = notify.provenance_line(_results_at("2026-01-16T00:00:14+00:00"), run_number="69")
+    assert "scan 19:00:14 ET" in line
+
+
+def test_provenance_accepts_z_suffix():
+    line = notify.provenance_line(_results_at("2026-09-22T23:00:14Z"), run_number="69")
+    assert "scan 19:00:14 ET" in line
+
+
+def test_provenance_has_bar_names_and_run():
+    line = notify.provenance_line(_results_at("2026-09-22T23:00:14+00:00"), run_number="69")
+    assert "bar 2026-09-22" in line
+    assert "159 names" in line
+    assert "run #69" in line
+
+
+def test_provenance_omits_run_when_absent():
+    line = notify.provenance_line(_results_at("2026-09-22T23:00:14+00:00"))
+    assert "run #" not in line
+    assert "159 names" in line
+
+
+def test_provenance_survives_missing_generated_at():
+    line = notify.provenance_line(_results_at(None))
+    assert "159 names" in line
+    assert "scan" not in line
+
+
+def test_message_carries_provenance_when_zero_fired():
+    msg = notify.format_message(_results_at("2026-09-22T23:00:14+00:00"), run_number="69")
+    assert "scan 19:00:14 ET" in msg
+    assert "run #69" in msg
+
+
+def test_message_carries_provenance_when_fired():
+    """The universe count used to appear ONLY in the zero-fired branch."""
+    msg = notify.format_message(
+        _results_at("2026-09-22T23:00:14+00:00", fired=[_p("NVDA")]), run_number="69")
+    assert "scan 19:00:14 ET" in msg
+    assert "159 names" in msg
+
+
+def test_format_message_still_works_without_run_number():
+    """Backward compatibility: weekrun.py calls format_message(results, title=...)."""
+    msg = notify.format_message(_results_at("2026-09-22T23:00:14+00:00"),
+                                title="Sqzdots WEEKLY Scan")
+    assert "Sqzdots WEEKLY Scan" in msg
+    assert "159 names" in msg
+
+
+def test_provenance_shows_zero_universe():
+    """0 names means the watchlist failed to load -- the case you most need to see.
+    Guards against a truthiness check silently dropping the field."""
+    line = notify.provenance_line(_results_at("2026-09-22T23:00:14+00:00", universe=0))
+    assert "0 names" in line
+
+
+def test_provenance_survives_a_broken_timezone_database():
+    """format_message was a total function before the provenance line. ZoneInfo
+    raising on the critical path would crash the scan BEFORE any send."""
+    r = _results_at("2026-09-22T23:00:14+00:00")
+    line = notify.provenance_line(r, run_number="69", tz="Mars/Olympus")
+    assert "159 names" in line      # degrades, does not raise
+    assert "scan" not in line
+
+
+def test_provenance_can_be_suppressed():
+    """delayed.py posts to the PUBLIC free channel the next morning; last
+    night's clock time reads as a bug there, and universe size is not public."""
+    msg = notify.format_message(_results_at("2026-09-22T23:00:14+00:00"),
+                                run_number="69", provenance=False)
+    assert "scan 19:00:14 ET" not in msg
+    assert "run #69" not in msg

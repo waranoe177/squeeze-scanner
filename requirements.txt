@@ -5,6 +5,13 @@ pandas==2.2.3
 numpy>=1.26,<2.3
 yfinance>=0.2.40
 requests>=2.31
+# zoneinfo's IANA database, which Windows does NOT ship. Needed by
+# notify.provenance_line (runs inside the scan job) and by the local test suite.
+# The `wait` job runs no pip install, so there it reads the runner's system db.
+tzdata>=2024.1
+# tests/test_scan_workflow.py asserts the wait/scan job split structurally;
+# present transitively via streamlit, pinned so that test can't break silently.
+pyyaml>=6.0
 matplotlib>=3.8
 streamlit>=1.40
 plotly>=5.20

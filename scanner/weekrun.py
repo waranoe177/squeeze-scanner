@@ -76,7 +76,8 @@ def main(argv=None) -> dict:
 
     (out_dir / "results.json").write_text(json.dumps(results, indent=2))
     message = notify.format_message(
-        results, footer=os.environ.get("TELEGRAM_FOOTER"), title=TITLE)
+        results, footer=os.environ.get("TELEGRAM_FOOTER"), title=TITLE,
+        run_number=os.environ.get("GITHUB_RUN_NUMBER"))
     print("\n" + message + "\n")
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN")

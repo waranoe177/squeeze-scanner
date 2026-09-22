@@ -30,3 +30,20 @@ def test_delayed_no_fire_has_no_upgrade_nudge():
 def test_delayed_footer():
     msg = delayed.format_delayed(_results([]), footer="https://example.com")
     assert msg.rstrip().endswith("https://example.com")
+
+
+def test_free_channel_omits_provenance():
+    """Guards the coupling: format_delayed reuses format_message, so a
+    provenance line added for the owner's digest must not leak to the public
+    free channel."""
+    from scanner import delayed
+    results = {
+        "generated_at": "2026-09-22T23:00:14+00:00", "as_of": "2026-09-22",
+        "universe": 159, "fired_count": 0, "fired": [], "watching": [],
+    }
+    body = delayed.format_delayed(results)
+    assert "scan 19:00:14 ET" not in body
+    # "· 159 names" is the provenance format. Bare "Scanned 159 names. 0 fired."
+    # is the long-standing zero-fired copy and must stay.
+    assert "· 159 names" not in body
+    assert "Scanned 159 names" in body
