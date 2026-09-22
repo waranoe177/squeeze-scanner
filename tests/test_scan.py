@@ -77,3 +77,85 @@ def test_build_results_watching_detail_sorted_by_lit():
     assert [d["symbol"] for d in detail] == ["BBB", "AAA"]  # CCC not squeezing
     assert detail[0] == {"symbol": "BBB", "lit": 6, "lean": "bull"}
     assert detail[1]["lean"] == "bear"
+
+
+# --- stale-bar guard (2026-09-21 incident) -------------------------------
+# On 2026-09-21 the scan alerted on signals computed from Friday 09-18 while the
+# header read "bar 2026-09-21": yfinance returned NaN OHLC for a subset of
+# symbols, normalize's dropna silently discarded those rows, and as_of =
+# max(bar date) hid it. A signal whose bar is not the session must never reach
+# the alert or the ledger -- its ATR-derived entry/stop/target are from the
+# wrong day, so the printed risk is not the real risk.
+
+def test_signals_on_an_older_bar_are_suppressed():
+    payloads = [
+        _payload("FRESH", "bull"),
+        dict(_payload("STALE", "bull"), date="2026-06-23"),
+    ]
+    res = scan.build_results(payloads, as_of="2026-06-26")
+    assert [p["symbol"] for p in res["fired"]] == ["FRESH"]
+    assert [p["symbol"] for p in res["stale_fired"]] == ["STALE"]
+
+
+def test_suppressed_signals_keep_their_real_bar_date_for_diagnosis():
+    payloads = [dict(_payload("STALE", "bear"), date="2026-06-23")]
+    res = scan.build_results(payloads, as_of="2026-06-26")
+    assert res["fired"] == []
+    assert res["stale_fired"][0]["date"] == "2026-06-23"
+
+
+def test_no_stale_list_when_every_signal_is_on_the_session():
+    res = scan.build_results([_payload("AAA", "bull"), _payload("BBB", "bear")],
+                             as_of="2026-06-26")
+    assert res["stale_fired"] == []
+    assert len(res["fired"]) == 2
+
+
+def test_watching_is_not_affected_by_the_stale_guard():
+    payloads = [dict(_payload("COILED", "none", squeeze_on=True), date="2026-06-23")]
+    res = scan.build_results(payloads, as_of="2026-06-26")
+    assert "COILED" in res["watching"]
+
+
+# --- session anchoring across asset classes ------------------------------
+# Verified in live 2y data: 2025-01-09 (Carter day of mourning) and 2025-07-04
+# have CME futures bars and NO equity bars. Both weekdays, so the cron runs.
+# If 8 futures define the session, ~150 legitimate equity signals get routed to
+# stale_fired: an empty alert, an empty ledger, and an operator message falsely
+# blaming the data source. Next occurrence 2026-07-03.
+
+def test_session_ignores_futures_that_traded_when_equities_did_not():
+    payloads = [
+        dict(_payload("SPY", "bull"), date="2026-07-02"),
+        dict(_payload("AAPL", "bull"), date="2026-07-02"),
+        dict(_payload("ES=F", "bull"), date="2026-07-03"),
+        dict(_payload("GC=F", "bull"), date="2026-07-03"),
+    ]
+    assert scan.session_date(payloads) == "2026-07-02"
+
+
+def test_session_uses_max_not_mode_so_a_stale_majority_cannot_win():
+    """The 09-21 incident was a SUBSET falling behind. A modal session would
+    follow them down and the guard would never fire."""
+    payloads = [
+        dict(_payload("A", "bull"), date="2026-09-18"),
+        dict(_payload("B", "bull"), date="2026-09-18"),
+        dict(_payload("C", "bull"), date="2026-09-21"),
+    ]
+    assert scan.session_date(payloads) == "2026-09-21"
+
+
+def test_session_falls_back_to_futures_when_there_are_no_equities():
+    payloads = [dict(_payload("ES=F", "bull"), date="2026-07-03")]
+    assert scan.session_date(payloads) == "2026-07-03"
+
+
+def test_futures_ahead_of_the_equity_session_are_not_suppressed():
+    """Ahead is not stale. Only BEHIND the session means bad data."""
+    payloads = [
+        dict(_payload("SPY", "bull"), date="2026-07-02"),
+        dict(_payload("ES=F", "bull"), date="2026-07-03"),
+    ]
+    res = scan.build_results(payloads, as_of=scan.session_date(payloads))
+    assert sorted(p["symbol"] for p in res["fired"]) == ["ES=F", "SPY"]
+    assert res["stale_fired"] == []

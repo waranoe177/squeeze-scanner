@@ -131,10 +131,13 @@ def format_message(results: dict, footer: str | None = None,
     weekly scan use a distinct header (e.g. '📅 Sqzdots WEEKLY Scan').
 
     `run_number` (GITHUB_RUN_NUMBER) feeds the provenance stamp; omitted for
-    local runs so a dry-run message stays clean. `provenance=False` drops the
-    stamp entirely -- the free/delayed channel posts YESTERDAY's results the
-    next morning, where last night's clock time reads as a bug and the universe
-    size isn't public."""
+    local runs so a dry-run message stays clean.
+
+    `provenance=False` drops ALL operator-facing diagnostics -- the scan stamp
+    AND the stale-signal suppression notice. delayed.py posts to the PUBLIC free
+    channel a morning late, where last night's clock time reads as a bug, the
+    universe size isn't public, and a notice about our data source returning an
+    old session is actively bad. Keep new diagnostics inside this gate."""
     lines = [f"<b>{_esc(title)}</b> — bar {_esc(results['as_of'])}"]
     fired = results.get("fired", [])
 
@@ -165,6 +168,25 @@ def format_message(results: dict, footer: str | None = None,
     # Provenance stamp on BOTH branches: the universe count used to appear only
     # when nothing fired, so a fired-day message couldn't tell you the coverage
     # or the scan's wall-clock time.
+    # Withheld signals must be announced. A quiet night and a night where the
+    # data went bad have to look different, or silence means nothing.
+    # Gated on `provenance` because this is OPERATOR diagnostics: delayed.py
+    # posts to the PUBLIC free channel, which must not carry a notice about our
+    # data source returning an old session.
+    stale = (results.get("stale_fired") or []) if provenance else []
+    if stale:
+        # Bound both lists: Telegram caps a message at 4096 chars and run.py
+        # turns a failed send into sys.exit(1), so an unbounded suppression list
+        # could take down the very run it is reporting on.
+        dates = ", ".join(sorted({str(p.get("date")) for p in stale})[:4])
+        syms = ", ".join(str(p.get("symbol")) for p in stale[:8])
+        if len(stale) > 8:
+            syms += f" +{len(stale) - 8} more"
+        lines.append("")
+        lines.append(f"⚠️ <b>{len(stale)} signal(s) suppressed</b> — stale bar "
+                     f"{_esc(dates)} (expected {_esc(results.get('as_of'))}): {_esc(syms)}")
+        lines.append("   Data source returned an old session for these. Re-run to retry.")
+
     prov = provenance_line(results, run_number=run_number) if provenance else ""
     if prov:
         lines.append("")

@@ -47,3 +47,17 @@ def test_free_channel_omits_provenance():
     # is the long-standing zero-fired copy and must stay.
     assert "· 159 names" not in body
     assert "Scanned 159 names" in body
+
+
+def test_free_channel_omits_stale_suppression_notice():
+    """Operator diagnostics must not reach the PUBLIC channel. A marketing post
+    announcing "our data source returned an old session" is not the message."""
+    from scanner import delayed
+    results = {
+        "generated_at": "2026-09-22T23:00:14+00:00", "as_of": "2026-09-22",
+        "universe": 158, "fired_count": 0, "fired": [], "watching": [],
+        "stale_fired": [{"symbol": "RIVN", "date": "2026-09-18"}],
+    }
+    body = delayed.format_delayed(results)
+    assert "suppressed" not in body
+    assert "stale" not in body.lower()

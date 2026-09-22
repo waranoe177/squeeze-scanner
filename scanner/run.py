@@ -56,7 +56,7 @@ def main(argv=None) -> dict:
     print(f"scanning {len(symbols)} symbols...")
     frames = data.fetch_daily(symbols, period=args.period)
     payloads = scan.scan_frames(frames)
-    as_of = max((p["date"] for p in payloads), default="")
+    as_of = scan.session_date(payloads)
     results = scan.build_results(payloads, as_of=as_of)
 
     # Provisional entry-anchored levels for the alert (finalized at next open).

@@ -46,7 +46,7 @@ def main(argv=None) -> dict:
     print(f"weekly-scanning {len(symbols)} symbols...")
     frames = data.fetch_weekly(symbols)               # native 1wk bars
     payloads = scan.scan_frames(frames, htf_rule="ME")  # weekly confluence, monthly Moxie
-    as_of = max((p["date"] for p in payloads), default="")
+    as_of = scan.session_date(payloads)
     results = scan.build_results(payloads, as_of=as_of)
 
     # Provisional entry-anchored levels (weekly ATR -> wider, swing-scale).

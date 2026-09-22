@@ -186,3 +186,110 @@ def test_drop_forming_bar_keeps_when_last_bar_is_a_prior_day():
     now = datetime(2026, 6, 29, 10, 0, tzinfo=ET)
     out = data.drop_forming_bar(df, now=now)
     assert len(out) == 3
+
+
+# --- stale-source handling (2026-09-21 incident) -------------------------
+
+def _multi(spec):
+    """Build a yfinance-shaped group_by='ticker' frame. spec = {ticker: [dates]};
+    a date a ticker lacks comes back as NaN OHLC, which is exactly how the real
+    partial failure presented."""
+    all_dates = sorted({d for ds in spec.values() for d in ds})
+    idx = pd.to_datetime(all_dates)
+    cols, cells = [], {}
+    for t, ds in spec.items():
+        have = set(ds)
+        for f in ("Open", "High", "Low", "Close", "Volume"):
+            cols.append((t, f))
+            cells[(t, f)] = [1.0 if d in have else np.nan for d in all_dates]
+    df = pd.DataFrame(cells, index=idx)
+    df.columns = pd.MultiIndex.from_tuples(cols)
+    return df
+
+
+def test_normalize_warns_when_the_newest_bar_is_dropped(capsys):
+    """dropna silently discarding the newest row is what made the incident
+    invisible. It must be loud."""
+    idx = pd.to_datetime(["2026-09-18", "2026-09-21"])
+    df = pd.DataFrame({"Open": [1.0, np.nan], "High": [2.0, np.nan],
+                       "Low": [0.5, np.nan], "Close": [1.5, np.nan],
+                       "Volume": [10, 20]}, index=idx)
+    out = data.normalize(df, "TEST")
+    assert out.index[-1].strftime("%Y-%m-%d") == "2026-09-18"
+    printed = capsys.readouterr().out
+    assert "TEST" in printed and "2026-09-21" in printed
+
+
+def test_fetch_daily_refetches_symbols_that_came_back_stale():
+    """The bulk threaded download fails PARTIALLY. Re-requesting just the stale
+    names usually succeeds -- that is the difference between losing a night's
+    real signals and a scan that takes 40s longer."""
+    calls = []
+
+    def fake_download(**kw):
+        calls.append(tuple(kw["tickers"]))
+        if len(calls) == 1:
+            return _multi({"GOOD": ["2026-09-18", "2026-09-21"],
+                           "STALE": ["2026-09-18"]})
+        return _multi({"STALE": ["2026-09-18", "2026-09-21"]})
+
+    frames = data.fetch_daily(["GOOD", "STALE"], download=fake_download,
+                              drop_forming=False)
+    assert len(calls) == 2
+    assert calls[1] == ("STALE",)
+    assert frames["STALE"].index[-1].strftime("%Y-%m-%d") == "2026-09-21"
+
+
+def test_fetch_daily_does_not_refetch_when_all_symbols_are_current():
+    calls = []
+
+    def fake_download(**kw):
+        calls.append(tuple(kw["tickers"]))
+        return _multi({"A": ["2026-09-18", "2026-09-21"],
+                       "B": ["2026-09-18", "2026-09-21"]})
+
+    data.fetch_daily(["A", "B"], download=fake_download, drop_forming=False)
+    assert len(calls) == 1
+
+
+def test_fetch_daily_keeps_the_stale_frame_when_the_refetch_also_fails():
+    """Degrade, never crash -- and leave the old bar date visible so the
+    downstream stale guard can suppress the signal."""
+    def fake_download(**kw):
+        return _multi({"GOOD": ["2026-09-18", "2026-09-21"],
+                       "STALE": ["2026-09-18"]})
+
+    frames = data.fetch_daily(["GOOD", "STALE"], download=fake_download,
+                              drop_forming=False)
+    assert frames["STALE"].index[-1].strftime("%Y-%m-%d") == "2026-09-18"
+
+
+def test_fetch_daily_does_not_refetch_a_whole_universe_divergence():
+    """If most of the batch is behind, that is a calendar divergence or a total
+    outage -- never the per-symbol NaN glitch the retry exists for. Re-requesting
+    150 symbols serially can never recover a bar that does not exist."""
+    calls = []
+
+    def fake_download(**kw):
+        calls.append(tuple(kw["tickers"]))
+        return _multi({"FUT": ["2026-07-02", "2026-07-03"],
+                       "E1": ["2026-07-02"], "E2": ["2026-07-02"],
+                       "E3": ["2026-07-02"], "E4": ["2026-07-02"]})
+
+    data.fetch_daily(["FUT", "E1", "E2", "E3", "E4"], download=fake_download,
+                     drop_forming=False)
+    assert len(calls) == 1, "should bail, not serially refetch 4/5 of the batch"
+
+
+def test_refetch_is_rejected_when_it_returns_a_shorter_history():
+    """A newer last bar is not enough. A truncated frame can drop the symbol
+    under scan_frames' 205-bar floor and it vanishes with no log."""
+    def fake_download(**kw):
+        if len(kw["tickers"]) > 1:
+            return _multi({"GOOD": ["2026-09-17", "2026-09-18", "2026-09-21"],
+                           "SHORT": ["2026-09-17", "2026-09-18"]})
+        return _multi({"SHORT": ["2026-09-21"]})       # newer, but 1 bar
+
+    frames = data.fetch_daily(["GOOD", "SHORT"], download=fake_download,
+                              drop_forming=False)
+    assert len(frames["SHORT"]) == 2, "short retry frame must be rejected"

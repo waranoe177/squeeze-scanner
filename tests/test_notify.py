@@ -275,3 +275,26 @@ def test_provenance_can_be_suppressed():
                                 run_number="69", provenance=False)
     assert "scan 19:00:14 ET" not in msg
     assert "run #69" not in msg
+
+
+def test_message_announces_suppressed_stale_signals():
+    """Silence must never be ambiguous: if signals were withheld, say so."""
+    r = _results_at("2026-09-22T23:00:14+00:00")
+    r["stale_fired"] = [{"symbol": "RIVN", "date": "2026-09-18"},
+                        {"symbol": "BA", "date": "2026-09-18"}]
+    msg = notify.format_message(r)
+    assert "2 signal(s) suppressed" in msg
+    assert "2026-09-18" in msg
+
+
+def test_message_says_nothing_when_no_signals_were_suppressed():
+    msg = notify.format_message(_results_at("2026-09-22T23:00:14+00:00"))
+    assert "suppressed" not in msg
+
+
+def test_suppression_list_says_how_many_it_truncated():
+    r = _results_at("2026-09-22T23:00:14+00:00")
+    r["stale_fired"] = [{"symbol": f"S{i}", "date": "2026-09-18"} for i in range(12)]
+    msg = notify.format_message(r)
+    assert "12 signal(s) suppressed" in msg
+    assert "+4 more" in msg
