@@ -71,7 +71,15 @@ jobs:
       group: sqzdots-ledger
       cancel-in-progress: false
     steps:
+      # ref: main, NOT the trigger SHA. The wait job fires ~3.5h before the scan
+      # runs, so a default checkout would pin the code to main as it was at
+      # 15:30 ET and silently ignore anything pushed during the trading day
+      # (a universe.csv edit, a signal fix). Whatever is on main at 19:00 is
+      # what runs. Consistent with the commit step, which already rebases on
+      # origin/main to handle the branch moving underneath it.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:

@@ -159,3 +159,11 @@ def test_commit_date_uses_market_time_not_utc():
     commit = next(s for s in _steps(_doc(), "scan") if "git commit" in str(s.get("run", "")))
     assert "TZ=America/New_York date" in commit["run"]
     assert "date -u" not in commit["run"]
+
+
+def test_scan_checks_out_main_not_the_trigger_sha():
+    """The wait job fires ~3.5h before the scan runs. A default checkout pins
+    the code to main as of 15:30 ET and silently drops anything pushed during
+    the trading day."""
+    checkout = next(s for s in _steps(_doc(), "scan") if "checkout" in str(s.get("uses", "")))
+    assert checkout.get("with", {}).get("ref") == "main"
