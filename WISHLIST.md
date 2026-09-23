@@ -142,6 +142,40 @@ so I know the technical setup is about to meet a catalyst it can't price.
   so the honest failure mode is a WRONG or stale date giving false confidence. A missing warning
   must fail loud (say "earnings date unavailable"), never silently imply "all clear".
 
+### 6. MACD convergence/divergence readout on the daily chart caption
+Under the daily chart notification, **below the ✅ condition checklist**, add a line describing
+what MACD is actually doing — not just whether it passed.
+- **Status:** not started (filed 2026-09-22)
+- **Why it matters:** the ladder is binary. `✅ MACD↑` tells me the gate passed; it does not tell
+  me whether momentum is **accelerating into** the signal or **fading** as it fires. Two A++ cards
+  can look identical on the checklist while one has an expanding histogram and the other is a
+  hair over the line and rolling. That difference is exactly the judgment call I make manually on
+  the TOS screen today, so the card should carry it.
+- **Where:** `notify._fired_line()`, immediately after the `_ladder()` block (the caption body sent
+  by `run.py:135` with `show_ladder=True`, and by `notify.broadcast()`). One line, phone-readable.
+- **Two readings of "convergence/divergence" — settle this before building:**
+  1. **Histogram state (cheap, deterministic).** Is `macd_diff` expanding or contracting over the
+     last N bars, and how far from zero? Already available — `macd_diff` is on every payload
+     (`signals.py:315`), so this is a formatting job, no new indicator math. Example line:
+     `📈 MACD hist −0.18 → −0.04, expanding 3 bars (accelerating up)`.
+  2. **Classic price/MACD divergence (the real trading signal).** Price makes a higher high while
+     MACD makes a lower high (bearish) or the mirror (bullish). Higher value, more work: needs
+     swing-pivot detection on both series — `indicators.find_fractal_pivots` (13-bar centered
+     fractals) already exists from the major-pivots work and is the obvious starting point, though
+     it takes high/low so the MACD side needs the same logic on a single series. Example line:
+     `⚠️ bearish divergence — price HH 2026-09-18, MACD LH (fading)`.
+- **Recommendation:** build **(1) first** — it is a caption change with no new signal logic and it
+  answers the "is this accelerating or dying" question immediately. Then decide whether (2) earns
+  its complexity once I've watched (1) for a few weeks against real setups.
+- **Risk level:** (1) low — display only, no signal-logic or sizing change. (2) medium — divergence
+  detection is genuinely subjective (which pivots count?) and a **wrong** divergence call on the
+  card is worse than no call, because it would argue against a signal the ladder just confirmed.
+  If (2) ships, it must never suppress or downgrade a signal on its own — advisory line only.
+- **Watch the caption budget:** Telegram caps a photo caption at **1024 characters** and
+  `send_photo` truncates at `caption[:1024]` (`notify.py:233`). The card already carries head +
+  levels + A-note + recommendation + 2-line ladder + CTA. Adding lines silently eats the CTA off
+  the bottom. Measure the worst case (A-grade + recommendation + news stance) before shipping.
+
 ---
 
 ## Refinement log (append as I go)
