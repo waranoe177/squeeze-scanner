@@ -176,6 +176,37 @@ what MACD is actually doing — not just whether it passed.
   levels + A-note + recommendation + 2-line ladder + CTA. Adding lines silently eats the CTA off
   the bottom. Measure the worst case (A-grade + recommendation + news stance) before shipping.
 
+### 7. Volatility-normalized readouts — ATR % of price, and extension vs EMA21
+Two small numbers that make signals **comparable across tickers**. Raw dollars don't compare: a
+$28 currency ETF and a $1082 semi stock are unreadable side by side.
+- **Status:** not started (filed 2026-09-26)
+- **The two numbers:**
+  1. **ATR % of price** = `atr / close * 100`. How much a name moves in a day/week, in its own
+     terms. UUP weekly = 1.02%; a typical equity in the universe = 2.2–2.4%.
+  2. **Extension vs EMA21** = `(close - ema21) / atr` (ATR units) or `(close / ema21 - 1) * 100`
+     (percent). How far the entry sits above/below the anchor — i.e. am I buying into the move or
+     chasing the end of it.
+- **What prompted it (2026-09-26):** UUP fired A++ on the weekly and *looked* wrong — the moving
+  averages appeared unstacked. They weren't: ema8 28.273 > ema21 28.084 > ema34 27.900. The gaps
+  were real but only **19 cents**, because UUP's ATR is ~1% of price where the equities around it
+  run 2%+. Expressed in ATR units the spreads were 0.65 / 0.63 — **mid-pack** for that week's A++
+  bulls, tighter on MDB (0.51/0.30) and ARKK (0.73/0.34). The eye was being fooled by the price
+  scale; the ATR normalization made it legible in one line.
+- **Where it would show:** the alert card and the `trade SYM` card. Something like
+  `📐 ATR 1.02% of price · entry 1.8 ATR above EMA21`.
+- **Honest note — this is a READABILITY aid, not a filter.** Both were tested against the 248
+  closed signals (2026-09-25 analysis, `reports/signal_features.csv`) and neither separated
+  winners from losers: `atr_pct` median 2.39 (win) vs 2.28 (lose), `ext_ema21` 2.87 vs 2.73 —
+  both well inside noise. Do NOT build this expecting an edge. Build it because it makes two
+  charts comparable and it explains away the "this looks off" reaction that isn't a real problem.
+- **Where it genuinely helps:** position sizing. ATR % of price tells me how much room the trade
+  needs and therefore how big a position the account can carry at a fixed dollar risk. That is a
+  real use even with zero predictive power.
+- **Risk level:** low — display and sizing only, no signal-logic change. The one trap is that a
+  number on the card implies importance; label it plainly so it isn't read as a quality score
+  (the conviction score already taught that lesson — see the 2026-09-25 finding that it runs
+  backwards within bulls).
+
 ---
 
 ## Refinement log (append as I go)
