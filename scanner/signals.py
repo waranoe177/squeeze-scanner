@@ -251,23 +251,39 @@ def b3_rows(daily: pd.DataFrame, moxie_tf: str = "W") -> pd.DataFrame:
     mox = ind.moxie(wk["close"])
     mox_fast = ind.moxie(wk["close"], fast=3, slow=8, signal=9)
 
+    # BACKFILL to the CONTAINING week, matching analyze()'s moxie_w. These used
+    # to forward-fill to the last COMPLETED week, so during a live week the dot
+    # rows showed the PREVIOUS week's state while the signal markers on the same
+    # chart used the current one -- the two halves disagreed, and the rows went
+    # dark at the right edge where TOS shows colour (confirmed against a TOS
+    # screenshot of PFE, 2026-09-26). Mid-week bars repaint, exactly as in
+    # analyze(); that is what TOS does.
     def _ff_bool(s):
-        # forward-fill = last COMPLETED weekly bar (matches TOS higher-timeframe,
-        # which holds the prior week's value until the current week closes).
-        r = s.reindex(daily.index, method="ffill")
+        r = s.reindex(daily.index, method="bfill")
         return r.where(r.notna(), False).astype(bool)
 
     def _ff_val(s):
-        return s.reindex(daily.index, method="ffill")
+        return s.reindex(daily.index, method="bfill")
 
     moxw, moxfw = _ff_val(mox), _ff_val(mox_fast)
-    # Per "b3 stripped down": macdCol = Moxie > 0 (NOT Moxie rising).
-    macd_col1 = moxw > 0
+    # macdCol = Moxie RISING, per "declare lower 2.25 2.5.docx":
+    #     def lastChange = if Moxie > Moxie[1] then 1 else 0;
+    #     def macdCol = lastChange;
+    # The earlier "b3 stripped down" transcription had `Moxie > 0` here. They
+    # disagree exactly when slow Moxie is below zero but turning up, which is
+    # the case this row exists to catch, so the newer source wins.
+    #
+    # Rising is evaluated on the WEEKLY series and then held across that week's
+    # daily bars (_ff_bool). Evaluating it on the already-ffilled daily series
+    # would be true only on the single bar where the weekly value steps, which
+    # would render as isolated specks rather than the runs TOS shows.
+    macd_col1 = _ff_bool(mox > mox.shift(1))
     macd_col4 = moxfw > 0
     buyzone = ppo >= 0
 
     bullfull1 = macd_col1 & macd_col4 & buyzone
-    bearfull1 = (moxw <= 0) & (moxfw <= 0) & (~buyzone)
+    # bearplayfull1 = macdCol == 0 and macdCol4 == 0 and emacol == 0
+    bearfull1 = (~macd_col1) & (moxfw <= 0) & (~buyzone)
     bullmoxie, bearmoxie = (moxw > 0) & (moxfw > 0), (moxw <= 0) & (moxfw <= 0)
     bullsqz, bearsqz = sqz & rsiup & bulltrend & bullstruct, sqz & rsidn & beartrend & bearstruct
     bullsqzst, bearsqzst = bullsqz & bullstack, bearsqz & bearstack

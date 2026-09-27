@@ -145,28 +145,58 @@ _B3_SPEC = [
     ("structure", 1, "o", {"bull": "#1fd655", "bear": "#ff3b3b", "neutral": "#f4d03f"}),
 ]
 _B3_LABELS = {
+    "mo_aaa": "MO A++ (2.5)", "mix": "Mix (2.25)",
     "scanner": "Scanner", "sqz": "Sqz", "sqzstack": "Sqz+Stack",
     "stack1": "Stack", "structure": "Structure",
 }
 
 
-def _draw_b3_dots(ax, rows, size=40):
-    """Draw the 7 B3 rows on `ax` (black background), on an ordinal x-axis."""
+# The two ACTIVE plots from "declare lower 2.25 2.5":
+#   Dots_MO_AAA (TOS y=2.5)  -> mo_aaa : Moxie rising & fast Moxie>0 & PPO>=0
+#   Dots_mix    (TOS y=2.25) -> mix    : slow Moxie>0 & fast Moxie>0
+# They live in the MOXIE panel, not the dot box: both are computed entirely
+# from Moxie, so cause and effect stay in one place, and they stay subordinate
+# to the Scanner row, which is the headline. TOS paints "neither" black, so an
+# absent mark here means the same thing it does there.
+# Each entry: (column, y as a fraction of the panel's Moxie scale, colors).
+_MOXIE_STRIP = [
+    ("mo_aaa", -1.26, {"bull": "#1a8f3c", "bear": "#a52a2a"}),
+    ("mix",    -1.41, {"bull": "#1a8f3c", "bear": "#a52a2a"}),
+]
+
+# Panel heights: price, dots, MACD, Moxie(+strip).
+#
+# The MACD box used to be 2.0 against 1.3/1.6 -- half again as tall as the dot
+# box, reading as importance it had not earned. Everything reclaimed went to
+# the price panel (46% -> 56% of the figure) and the figure itself got shorter,
+# which matters because these are read on a phone.
+#
+# Not strictly uniform: the MACD box carries a continuous line plus the RSI
+# cloud and needs vertical range, while the dot box is five discrete rows that
+# only need row spacing. Tuned by eye on 2026-09-26 -- MACD +15%, dots -15%
+# off an equal 1.4 baseline. Those cancel, so the price share is unaffected.
+HEIGHT_RATIOS = [5.4, 1.19, 1.61, 1.5]
+FIGSIZE = (11, 11.5)
+
+
+def _draw_b3_dots(ax, rows, size=40, spec=None):
+    """Draw the B3 rows on `ax` (black background), on an ordinal x-axis."""
+    spec = _B3_SPEC if spec is None else spec
     n = len(rows)
     pos = np.arange(n)
     ax.set_facecolor("#000")
-    for col, y, marker, cmap in _B3_SPEC:
+    for col, y, marker, cmap in spec:
         vals = rows[col].to_numpy()
         for state, color in cmap.items():
             mask = vals == state
             if mask.any():
                 ax.scatter(pos[mask], np.full(mask.sum(), y), marker=marker,
                            c=color, s=size, edgecolors="none", zorder=3)
-    yvals = [s[1] for s in _B3_SPEC]
+    yvals = [s[1] for s in spec]
     ax.set_ylim(min(yvals) - 0.6, max(yvals) + 0.6)
     ax.set_xlim(-1, n)
     ax.set_yticks(yvals)
-    ax.set_yticklabels([_B3_LABELS[s[0]] for s in _B3_SPEC], color="#ddd", fontsize=8)
+    ax.set_yticklabels([_B3_LABELS[s[0]] for s in spec], color="#ddd", fontsize=8)
     for spine in ax.spines.values():
         spine.set_color("#333")
 
@@ -199,7 +229,7 @@ _MOXIE_LABELS = {"W": "weekly", "ME": "monthly", "QE": "quarterly"}
 
 
 def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
-                  moxie_tf: str = "W") -> str:
+                  moxie_tf: str = "W", height_ratios=None, figsize=None) -> str:
     """Multi-panel diagnostic: each buy condition on its own row so it can be
     cross-checked layer-by-layer against the TOS studies.
 
@@ -223,8 +253,8 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     pos = np.arange(n)  # ordinal x -> no weekend/holiday gaps
     rows = signals.b3_rows(df, moxie_tf=moxie_tf).tail(lookback)
     fig, ax = plt.subplots(
-        4, 1, sharex=True, figsize=(11, 12.5), dpi=110,
-        gridspec_kw={"height_ratios": [4.2, 1.3, 2.0, 1.6]},  # price panel dominant
+        4, 1, sharex=True, figsize=figsize or FIGSIZE, dpi=110,
+        gridspec_kw={"height_ratios": height_ratios or HEIGHT_RATIOS},
     )
     fig.patch.set_facecolor("#000")
 
@@ -326,6 +356,19 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     mm = max(abs(np.nanmin(mox)), abs(np.nanmax(mox)), 1e-3)
     ax[3].set_xlim(-1, n); ax[3].set_ylim(-mm * 1.2, mm * 1.2)
     ax[3].set_ylabel(f"Moxie ({moxie_label})")
+
+    # The two Moxie-derived rows (see _MOXIE_STRIP): a thin strip under the
+    # line that produces them, small and dim enough to read past.
+    ax[3].set_ylim(-mm * 1.52, mm * 1.2)
+    for col, yf, cmap in _MOXIE_STRIP:
+        vals = rows[col].to_numpy()
+        for state, color in cmap.items():
+            m = vals == state
+            if m.any():
+                ax[3].scatter(pos[m], np.full(m.sum(), mm * yf), marker="s",
+                              c=color, s=7, edgecolors="none", zorder=4)
+        ax[3].text(-0.5, mm * yf, _B3_LABELS[col].split(" (")[0] + " ",
+                   color="#666", fontsize=6, ha="right", va="center")
 
     # date tick labels on the ordinal axis
     step = max(1, n // 9)

@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from scanner import indicators as ind
 from scanner import signals as sig
 
 
@@ -264,3 +265,100 @@ def test_b3_rows_moxie_tf_ladder():
     pd.testing.assert_series_equal(wk["scanner"], me["scanner"], check_names=False)
     # weekly vs monthly higher-TF Moxie must move the Moxie-driven rows somewhere
     assert not wk["mo_aaa"].equals(me["mo_aaa"]) or not wk["mix"].equals(me["mix"])
+
+
+def test_mo_aaa_uses_moxie_RISING_not_moxie_above_zero():
+    """Dots_MO_AAA (TOS plot at 2.5) gates on macdCol = Moxie > Moxie[1].
+
+    The earlier 'b3 stripped down' transcription used Moxie > 0 instead. The
+    two disagree whenever slow Moxie is below zero but rising -- which is
+    exactly the turn this row is meant to catch. Source:
+    'declare lower 2.25 2.5.docx':
+        def lastChange = if Moxie > Moxie[1] then 1 else 0;
+        def macdCol = lastChange;
+        def bullplayfull1 = macdCol > 0 and macdCol4 > 0 and emacol > 0;
+    """
+    df = _ohlc(step=0.09, noise=0.6, seed=7)
+    rows = sig.b3_rows(df)
+
+    wk = sig._resample_ohlc(df[["open", "high", "low", "close"]], "W")
+    mox_w = ind.moxie(wk["close"])
+    moxf = ind.moxie(wk["close"], fast=3, slow=8, signal=9).reindex(df.index, method="bfill")
+    ppo = ind.ppo(df["close"], 10, 20)
+
+    # "rising" is evaluated on the WEEKLY series and then held across that
+    # week's daily bars, so the row reads as sustained runs. Evaluating it on
+    # the already-mapped daily series would only ever be true on the one bar
+    # where the weekly value steps. bfill = containing week, per
+    # test_b3_rows_use_the_CONTAINING_week_like_analyze_does.
+    rising = (mox_w > mox_w.shift(1)).reindex(df.index, method="bfill").fillna(False)
+    above = (mox_w > 0).reindex(df.index, method="bfill").fillna(False)
+    bull_rising = (rising & (moxf > 0) & (ppo >= 0)).fillna(False).to_numpy()
+    bull_above = (above & (moxf > 0) & (ppo >= 0)).fillna(False).to_numpy()
+
+    # the two definitions must actually differ on this fixture, else the test
+    # proves nothing
+    assert (bull_rising != bull_above).any(), "fixture does not discriminate"
+
+    got = (rows["mo_aaa"] == "bull").to_numpy()
+    assert (got == bull_rising).all()
+
+
+def test_the_two_active_tos_plots_render_in_the_moxie_panel():
+    """Dots_MO_AAA (2.5) and Dots_mix (2.25) were computed but never drawn.
+
+    They render in the MOXIE panel rather than the dot box: both are derived
+    purely from Moxie, and keeping them there leaves the Scanner row as the
+    headline. TOS stacks 2.5 above 2.25, so mo_aaa sits higher.
+    """
+    from scanner import chart
+
+    cols = [s[0] for s in chart._MOXIE_STRIP]
+    assert cols == ["mo_aaa", "mix"]
+    levels = {s[0]: s[1] for s in chart._MOXIE_STRIP}
+    assert levels["mo_aaa"] > levels["mix"]          # 2.5 above 2.25
+    assert all(v < -1.0 for v in levels.values())    # below the Moxie line itself
+    assert all(c in chart._B3_LABELS for c in cols)
+    # and they must NOT also appear in the dot box
+    assert not {"mo_aaa", "mix"} & {s[0] for s in chart._B3_SPEC}
+
+
+def test_price_panel_dominates_and_no_indicator_box_balloons():
+    """The MACD box used to be 2.0 against 1.3/1.6 -- a 1.54x spread that read
+    as importance it had not earned.
+
+    The boxes are not strictly uniform (MACD carries a line plus the RSI cloud;
+    the dot box is five discrete rows), but the spread stays well under what it
+    was, and the price panel takes more height than all three combined.
+    """
+    from scanner import chart
+
+    price, *indicators = chart.HEIGHT_RATIOS
+    assert max(indicators) / min(indicators) < 1.40, indicators
+    assert price > sum(indicators) * 1.2, "price panel should dominate"
+    assert price / sum(chart.HEIGHT_RATIOS) > 0.5, "price should be >half the figure"
+
+
+def test_b3_rows_use_the_CONTAINING_week_like_analyze_does():
+    """b3_rows must read the same higher-TF Moxie bar that analyze() reads.
+
+    analyze() backfills to the CONTAINING week because that is what TOS shows
+    on a daily chart (see the moxie_w comment there). b3_rows used to forward-
+    fill to the last COMPLETED week, so during a live week the dot rows showed
+    the PREVIOUS week's state while the signal used the current one -- the two
+    halves of the same chart disagreed.
+    """
+    df = _ohlc(step=0.08, noise=0.5, seed=11)
+    wk = sig._resample_ohlc(df[["open", "high", "low", "close"]], "W")
+    mox_w = ind.moxie(wk["close"])
+    fast_w = ind.moxie(wk["close"], fast=3, slow=8, signal=9)
+
+    containing_slow = mox_w.reindex(df.index, method="bfill")
+    containing_fast = fast_w.reindex(df.index, method="bfill")
+    expect = ((containing_slow > 0) & (containing_fast > 0)).fillna(False).to_numpy()
+
+    got = (sig.b3_rows(df)["mix"] == "bull").to_numpy()
+    assert (got == expect).all(), (
+        f"{(got != expect).sum()} of {len(got)} bars disagree -- b3_rows is "
+        "reading a different weekly bar than analyze()"
+    )
