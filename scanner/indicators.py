@@ -51,6 +51,16 @@ def rsi(close: pd.Series, length: int = 14) -> pd.Series:
     return 50.0 * (ratio + 1.0)
 
 
+def rsi_exp(close: pd.Series, length: int = 14) -> pd.Series:
+    """ThinkScript RSI with averageType = EXPONENTIAL: 50 * (ChgRatio + 1), the
+    net and total change smoothed with ExpAverage (alpha 2/(len+1)). The v5
+    signal's RSI, per "RSI oversold overbuy 66"."""
+    chg = close.diff()
+    net = ema(chg, length)
+    tot = ema(chg.abs(), length)
+    ratio = (net / tot).where(tot != 0, 0.0)
+    return 50.0 * (ratio + 1.0)
+
 def macd_diff(close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 34) -> pd.Series:
     """MACD histogram (Diff) = MACD line - signal line, all EMA-based."""
     macd_line = ema(close, fast) - ema(close, slow)
