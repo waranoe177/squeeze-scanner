@@ -390,10 +390,7 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
 
 
 # --- Multi-timeframe (MTF) composite -------------------------------------
-# TOS anchors multi-day aggregation to a fixed reference; this date is a
-# confirmed 2D/3D group-start (validated vs the user's TOS on 2026-09-16), so
-# grouping stays phase-aligned with TOS and stable as new bars arrive.
-MTF_ANCHOR = pd.Timestamp("2026-09-16")
+TOS_EPOCH = np.datetime64("1970-01-05")  # a Monday: TOS counts N-day bars in weekdays from here
 
 
 def moxie_tf_for(n_days: int) -> str:
@@ -402,22 +399,20 @@ def moxie_tf_for(n_days: int) -> str:
     return "W" if n_days <= 1 else "ME"
 
 
-def agg_multiday(daily: pd.DataFrame, n: int, anchor: pd.Timestamp = MTF_ANCHOR) -> pd.DataFrame:
-    """Aggregate daily bars into n-day bars, anchored so `anchor` starts a group
-    (matches TOS's fixed aggregation phase; stable as new bars arrive). Each
-    output bar is dated by its last constituent day."""
-    idx = daily.index
-    a = int(idx.searchsorted(anchor, side="right")) - 1
-    if a < 0:
-        a = 0
-    grp = (np.arange(len(idx)) - a) // n
-    o = daily["open"].groupby(grp).first().values
-    h = daily["high"].groupby(grp).max().values
-    l = daily["low"].groupby(grp).min().values
-    c = daily["close"].groupby(grp).last().values
-    last_date = pd.Series(idx).groupby(grp).last().values
-    return pd.DataFrame({"open": o, "high": h, "low": l, "close": c},
-                        index=pd.DatetimeIndex(last_date)).sort_index()
+def agg_multiday(daily: pd.DataFrame, n: int) -> pd.DataFrame:
+    """TOS N-day aggregation: every n WEEKDAYS (Mon-Fri) counted from Monday
+    1970-01-05. Exchange holidays COUNT as days, so a bar spanning a holiday holds
+    fewer trading days (the 2D bar starting Fri 2026-09-04 is that Friday alone).
+    Each bar is dated by its FIRST day, as TOS dates it, and the last bar may be
+    unfinished. n=5 is the Mon-Fri week. Confirmed 2026-10-09 against the owner's
+    TOS SPY 2D/3D charts: bar starts, O/H/L/C and EMA21/SMA50/SMA200 to the cent."""
+    days = daily.index.values.astype("datetime64[D]")
+    grp = np.busday_count(TOS_EPOCH, days) // n
+    g = daily.groupby(grp)
+    out = pd.DataFrame({"open": g["open"].first(), "high": g["high"].max(),
+                        "low": g["low"].min(), "close": g["close"].last()})
+    out.index = pd.DatetimeIndex(pd.Series(daily.index).groupby(grp).first().values)
+    return out.sort_index()
 
 
 def render_mtf_composite(daily: pd.DataFrame, symbol: str, out_path: str, *,

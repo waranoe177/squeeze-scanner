@@ -8,12 +8,13 @@ TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set and --dry-run is not passed.
 """
 
 import argparse
+import html
 import json
 import os
 import sys
 from pathlib import Path
 
-from scanner import backtest, chart, data, ledger, notify, scan, trackrecord
+from scanner import backtest, chart, data, ledger, mtf, mtf_render, notify, scan, trackrecord
 
 
 def _fold_decisions(records, path="ledger/decisions.jsonl"):
@@ -27,6 +28,60 @@ def _fold_decisions(records, path="ledger/decisions.jsonl"):
               if line.strip()]
     from scanner import decisions
     return decisions.apply_decisions(records, parsed)
+
+
+def _build_mtf(symbols, out_dir, as_of) -> dict:
+    """Compute, record and render the multi-timeframe table (spec 2026-10-09 §3-§6).
+    Never raises: a failure comes back as outcome["error"] so it can never touch
+    the daily charts, the summary or the run's exit status."""
+    try:
+        frames = data.fetch_daily(symbols, period="5y", adjust=False)
+        if not frames:
+            raise RuntimeError("no data downloaded")
+        stale = mtf.stale_symbols(frames, as_of)
+        if len(stale) == len(frames):
+            # Never let a download that is a day behind read as a quiet day.
+            raise RuntimeError(f"all {len(frames)} symbols stale (last bar before {as_of})")
+        day = as_of or max(f.index[-1] for f in frames.values()).strftime("%Y-%m-%d")
+        rows = mtf.build_table(frames, as_of)
+        record = mtf.table_record(rows, day)
+        record["stale"] = stale
+        (Path(out_dir) / "mtf_table.json").write_text(
+            json.dumps(record, indent=2), encoding="utf-8")
+        paths = mtf_render.render_table(rows, day, out_dir)
+        caption = mtf_render.caption_text(rows)
+        if stale:
+            caption += f" · {len(stale)} stale skipped"
+        print(f"[mtf table: {len(rows)} rows, {len(paths)} image(s), {len(stale)} stale]")
+        return {"paths": [str(p) for p in paths], "caption": caption, "error": None}
+    except Exception as exc:
+        print(f"[mtf table FAILED: {exc!r}]")
+        return {"paths": [], "caption": "", "error": f"{type(exc).__name__}: {exc}"}
+
+
+def _send_mtf(token, chat_id, outcome, *, alert_on_error: bool) -> None:
+    """Send the table (or the quiet-day line) to one chat. Never raises. Only the
+    primary chat (alert_on_error=True) hears about a failure."""
+    def warn(reason):
+        if alert_on_error:
+            notify.send_message(token, chat_id,
+                                f"⚠️ MTF table failed: {html.escape(reason, quote=False)}")
+
+    try:
+        if outcome["error"]:
+            warn(outcome["error"])
+            return
+        if not outcome["paths"]:
+            notify.send_message(token, chat_id, mtf_render.QUIET)
+            return
+        for i, p in enumerate(outcome["paths"]):
+            notify.send_photo(token, chat_id, p, caption=outcome["caption"] if i == 0 else "")
+    except Exception as exc:
+        print(f"[mtf table send to {chat_id} failed (non-fatal): {exc}]")
+        try:
+            warn(f"{type(exc).__name__}: {exc}")
+        except Exception:
+            pass
 
 
 def main(argv=None) -> dict:
@@ -120,6 +175,7 @@ def main(argv=None) -> dict:
     if args.dry_run or not (token and chat_id):
         reason = "dry-run" if args.dry_run else "no TELEGRAM_BOT_TOKEN/CHAT_ID set"
         print(f"[not sending: {reason}]")
+        _build_mtf(symbols, out_dir, as_of)    # the table is still recorded on a dry run
         _persist()
         return results
 
@@ -152,6 +208,11 @@ def main(argv=None) -> dict:
         print("[hint: open YOUR bot in Telegram and tap Start, and check the secrets]")
         send_failed = True
 
+    # Multi-timeframe table: built only AFTER the primary alert is out, so its 5y
+    # download can never delay the daily charts or summary (spec §7).
+    mtf_outcome = _build_mtf(symbols, out_dir, as_of)
+    _send_mtf(token, chat_id, mtf_outcome, alert_on_error=True)
+
     # Broadcast a clean copy of the alert to any extra recipients. Best-effort:
     # a secondary recipient's failure is logged but never marks the day failed
     # (the primary owner send above is the trust anchor).
@@ -164,6 +225,8 @@ def main(argv=None) -> dict:
         delivered = notify.broadcast(token, extras, results["fired"],
                                      out_dir / "charts", message, names=names)
         print(f"[broadcast to extra chats: {delivered}]")
+        for cid in extras:
+            _send_mtf(token, cid, mtf_outcome, alert_on_error=False)
 
     _persist()
     if send_failed:
