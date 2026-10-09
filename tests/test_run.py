@@ -228,3 +228,51 @@ def test_mtf_fetch_is_unadjusted_5y(tmp_path, monkeypatch):
     run.main(["--dry-run", "--no-charts", "--no-site", "--out", str(tmp_path / "out"),
               "--ledger", str(tmp_path / "l.jsonl")])
     assert {"period": "5y", "adjust": False} in seen
+
+
+def test_primary_summary_is_sent_before_the_mtf_download(tmp_path, monkeypatch):
+    calls = []
+    _wire_telegram(monkeypatch, calls)
+
+    def fetch(symbols, **kw):
+        calls.append(("fetch", kw.get("adjust", True), None))
+        return _fixture_frames()
+
+    monkeypatch.setattr(data, "fetch_daily", fetch)
+    _run(tmp_path)
+    summary = next(i for i, c in enumerate(calls) if c[0] == "msg" and c[1] == "1")
+    table_fetch = calls.index(("fetch", False, None))
+    assert summary < table_fetch
+
+
+def test_all_stale_download_alerts_instead_of_a_quiet_day(tmp_path, monkeypatch):
+    from scanner import mtf_render
+    calls = []
+    _wire_telegram(monkeypatch, calls)
+
+    def fetch(symbols, **kw):
+        frames = _fixture_frames()
+        if kw.get("adjust", True) is False:          # the table's download is a day behind
+            frames = {s: f.iloc[:-1] for s, f in frames.items()}
+        return frames
+
+    monkeypatch.setattr(data, "fetch_daily", fetch)
+    _run(tmp_path)
+    warnings = [c for c in calls if c[0] == "msg" and c[2].startswith("⚠️ MTF table failed")]
+    assert len(warnings) == 1 and "stale" in warnings[0][2]
+    assert not any(c[2] == mtf_render.QUIET for c in calls if c[0] == "msg")
+
+
+def test_partly_stale_download_is_noted_in_caption_and_record(tmp_path, monkeypatch):
+    import json
+    from scanner import mtf
+    frames = _fixture_frames()
+    frames["IYT"] = frames["IYT"].iloc[:-1]
+    as_of = frames["QQQ"].index[-1].strftime("%Y-%m-%d")
+    monkeypatch.setattr(data, "fetch_daily", lambda *a, **k: frames)
+    monkeypatch.setattr(mtf, "build_table", lambda fr, a: [_mtf_row()])
+    outcome = run._build_mtf(list(frames), tmp_path, as_of)
+    assert outcome["error"] is None
+    assert outcome["caption"].endswith(" · 1 stale skipped")
+    rec = json.loads((tmp_path / "mtf_table.json").read_text(encoding="utf-8"))
+    assert rec["stale"] == ["IYT"]

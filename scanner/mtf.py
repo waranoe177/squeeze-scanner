@@ -138,6 +138,13 @@ def display_name(symbol: str) -> str:
     return "/" + symbol[:-2] if symbol.endswith("=F") else symbol
 
 
+def stale_symbols(frames: dict[str, pd.DataFrame], as_of: str | None) -> list[str]:
+    """Symbols build_table leaves out: an empty frame, or a last bar older than as_of."""
+    cutoff = pd.Timestamp(as_of) if as_of else None
+    return [s for s, f in frames.items()
+            if f.empty or (cutoff is not None and f.index[-1] < cutoff)]
+
+
 def build_table(frames: dict[str, pd.DataFrame], as_of: str | None) -> list[Row]:
     """Qualifying rows, sorted. A frame that is empty, or whose last bar is older
     than `as_of` (a stale download), is left out."""

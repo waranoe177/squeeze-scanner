@@ -38,14 +38,22 @@ def _build_mtf(symbols, out_dir, as_of) -> dict:
         frames = data.fetch_daily(symbols, period="5y", adjust=False)
         if not frames:
             raise RuntimeError("no data downloaded")
+        stale = mtf.stale_symbols(frames, as_of)
+        if len(stale) == len(frames):
+            # Never let a download that is a day behind read as a quiet day.
+            raise RuntimeError(f"all {len(frames)} symbols stale (last bar before {as_of})")
         day = as_of or max(f.index[-1] for f in frames.values()).strftime("%Y-%m-%d")
         rows = mtf.build_table(frames, as_of)
+        record = mtf.table_record(rows, day)
+        record["stale"] = stale
         (Path(out_dir) / "mtf_table.json").write_text(
-            json.dumps(mtf.table_record(rows, day), indent=2), encoding="utf-8")
+            json.dumps(record, indent=2), encoding="utf-8")
         paths = mtf_render.render_table(rows, day, out_dir)
-        print(f"[mtf table: {len(rows)} rows, {len(paths)} image(s)]")
-        return {"paths": [str(p) for p in paths], "caption": mtf_render.caption_text(rows),
-                "error": None}
+        caption = mtf_render.caption_text(rows)
+        if stale:
+            caption += f" · {len(stale)} stale skipped"
+        print(f"[mtf table: {len(rows)} rows, {len(paths)} image(s), {len(stale)} stale]")
+        return {"paths": [str(p) for p in paths], "caption": caption, "error": None}
     except Exception as exc:
         print(f"[mtf table FAILED: {exc!r}]")
         return {"paths": [], "caption": "", "error": f"{type(exc).__name__}: {exc}"}
@@ -153,10 +161,6 @@ def main(argv=None) -> dict:
                                     run_number=os.environ.get("GITHUB_RUN_NUMBER"))
     print("\n" + message + "\n")
 
-    # Multi-timeframe table: computed and recorded on every run (dry-run too),
-    # sent after the summary below. Its failure is isolated (spec §7).
-    mtf_outcome = _build_mtf(symbols, out_dir, as_of)
-
     def _persist():
         ledger.save(args.ledger, records)
         if not args.no_site:
@@ -171,6 +175,7 @@ def main(argv=None) -> dict:
     if args.dry_run or not (token and chat_id):
         reason = "dry-run" if args.dry_run else "no TELEGRAM_BOT_TOKEN/CHAT_ID set"
         print(f"[not sending: {reason}]")
+        _build_mtf(symbols, out_dir, as_of)    # the table is still recorded on a dry run
         _persist()
         return results
 
@@ -203,6 +208,9 @@ def main(argv=None) -> dict:
         print("[hint: open YOUR bot in Telegram and tap Start, and check the secrets]")
         send_failed = True
 
+    # Multi-timeframe table: built only AFTER the primary alert is out, so its 5y
+    # download can never delay the daily charts or summary (spec §7).
+    mtf_outcome = _build_mtf(symbols, out_dir, as_of)
     _send_mtf(token, chat_id, mtf_outcome, alert_on_error=True)
 
     # Broadcast a clean copy of the alert to any extra recipients. Best-effort:
