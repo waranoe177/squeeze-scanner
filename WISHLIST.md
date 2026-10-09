@@ -209,6 +209,13 @@ $28 currency ETF and a $1082 semi stock are unreadable side by side.
 
 ---
 
+### 8. On-demand multi-timeframe table (`table` bot command)
+Reply `table` to the bot to get the current WK/3D/2D/1D table at any time, not only after the
+19:00 ET scan.
+- **Status:** parked 2026-10-09 (out of scope for the daily table, spec 2026-10-09-mtf-table).
+- **How:** the Fly bot calls `run._build_mtf` on demand and sends the image.
+- **Risk level:** low — display only.
+
 ## Refinement log (append as I go)
 
 ### Setups that actually work (real-world observations)
