@@ -66,7 +66,7 @@ _LADDER_BULL = ["Squeeze", "RSI&gt;50", "PPO≥0", "EMA8&gt;21", "Stack", "MACD�
 _LADDER_BEAR = ["Squeeze", "RSI&lt;50", "PPO&lt;0", "EMA8&lt;21", "Stack↓", "MACD↓", "Moxie↓"]
 
 
-def _ladder(direction: str, grade: str | None = None) -> str:
+def _ladder(direction: str, grade: str | None = None, moxie_up: bool = True) -> str:
     labels = _LADDER_BEAR if direction == "bear" else _LADDER_BULL
     # The early 'A' tier meets all conditions EXCEPT MACD (index 5): for a buy it
     # is rising-but-not-green (🔼), for a sell falling-but-not-red (🔽). Show that
@@ -76,6 +76,10 @@ def _ladder(direction: str, grade: str | None = None) -> str:
         (f"{a_macd} {lbl}" if (grade == "A" and i == 5) else f"✅ {lbl}")
         for i, lbl in enumerate(labels)
     ]
+    # An A buy only needs weekly Moxie above zero (signals.confluence): when it is
+    # not also rising, say so instead of ticking "Moxie↑".
+    if grade == "A" and direction == "bull" and not moxie_up:
+        marks[6] = "🟡 Moxie&gt;0"
     return f"\n   {'  '.join(marks[:4])}\n   {'  '.join(marks[4:])}"
 
 
@@ -111,7 +115,7 @@ def _fired_line(p: dict, cta: bool = False, name: str | None = None,
         a_note = f"\n   ⚪ <b>early A</b> — MACD {_mv}"
     else:
         a_note = ""
-    ladder = _ladder(p["direction"], grade) if show_ladder else ""
+    ladder = _ladder(p["direction"], grade, p.get("moxie_up", True)) if show_ladder else ""
     cta_line = "\n   ↩️ Reply to this chart: go or pass" if cta else ""
     return (
         f"{head}\n"
