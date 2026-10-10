@@ -33,6 +33,7 @@ def _bull_row_df():
             "macd_diff": [0.5, 1.0],   # >=0 and rising -> macd green
             "moxie_up": [True, True],  # weekly Moxie >0 and rising
             "moxie_dn": [False, False],
+            "moxie_w": [2.0, 2.1],
         }
     )
 
@@ -51,6 +52,7 @@ def _bear_row_df():
             "macd_diff": [-0.5, -1.0],  # <=0 and falling -> macd red
             "moxie_up": [False, False],
             "moxie_dn": [True, True],   # weekly Moxie <0 and falling
+            "moxie_w": [-2.0, -2.1],
         }
     )
 

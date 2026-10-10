@@ -61,7 +61,7 @@ def confluence(df: pd.DataFrame) -> pd.DataFrame:
     """Apply the user's trading process and add scanner_bull / scanner_bear.
 
     Expects columns: squeeze_on, rsi, ppo, ema8, ema21, ema34, sma50, sma200,
-    macd_diff, moxie_up, moxie_dn.
+    macd_diff, moxie_up, moxie_dn, moxie_w.
 
     BUY  = squeeze + RSI>50 + PPO>=0 + EMA8>EMA21 + full stack + MACD green + Moxie up.
     SELL = the mirror.
@@ -99,9 +99,12 @@ def confluence(df: pd.DataFrame) -> pd.DataFrame:
         & out["macd_red"]
         & out["moxie_dn"]
     )
-    # 'A' early buy: the same 6 non-MACD bull conditions, but MACD is still below
+    # 'A' early buy: the same non-MACD bull conditions, but MACD is still below
     # zero and merely RISING (not yet green). Fires one bar before scanner_bull
-    # can; mutually exclusive with it (macd_green needs diff>=0). Sell mirror TBD.
+    # can; mutually exclusive with it (macd_green needs diff>=0).
+    # Weekly Moxie only has to be ABOVE ZERO here, not rising (owner's choice,
+    # 2026-10-10): the week-to-date "rising vs last week" test held XOM's A buy
+    # back from 10/06 to 10/08 while Moxie sat at +1.6. A++ still needs rising.
     out["macd_rising_below"] = macd_rising_below(out["macd_diff"])
     out["scanner_bull_a"] = (
         out["squeeze_on"]
@@ -110,7 +113,7 @@ def confluence(df: pd.DataFrame) -> pd.DataFrame:
         & (out["ema8"] > out["ema21"])
         & bull_stacked
         & out["macd_rising_below"]
-        & out["moxie_up"]
+        & (out["moxie_w"] > 0)
     )
     # 'A' early sell: the mirror -- 6 non-MACD bear conditions, MACD above zero
     # and falling (not yet red). Fires one bar before scanner_bear can.
@@ -386,6 +389,7 @@ def latest_signal(daily: pd.DataFrame, symbol: str | None = None,
         "atr": atr,
         "ema21": ema21,
         "lit_bull": int(lit_bull),
+        "moxie_up": bool(last["moxie_up"]),   # weekly Moxie above zero AND rising
         "lit_bear": int(lit_bear),
         "target_up": round(ema21 + atr * 2.5, 4),
         "target_dn": round(ema21 - atr * 2.5, 4),
