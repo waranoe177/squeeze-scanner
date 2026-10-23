@@ -119,3 +119,23 @@ def test_render_b3_dots_writes_a_png(tmp_path):
     assert out.exists()
     assert out.stat().st_size > 3000
     assert path == str(out)
+
+
+def test_render_layers_draws_yellow_b4_arrows_on_the_right_bars(tmp_path, monkeypatch):
+    """Owner 2026-10-22: B4 arrows on the price panel, yellow (#ffd400), line weight 2, B4 in the legend."""
+    from pathlib import Path
+    from matplotlib.colors import to_hex
+    from scanner import b4
+    df = pd.read_csv(Path(__file__).parent / "fixtures" / "AFRM_daily_2026-10-21.csv", index_col=0, parse_dates=True)
+    kept = []
+    monkeypatch.setattr(chart.plt, "close", lambda fig=None: kept.append(fig))
+    chart.render_layers(df, "AFRM", str(tmp_path / "a.png"), lookback=90)
+    ax = kept[-1].axes[0]
+    arrows = [t for t in ax.texts if getattr(t, "arrow_patch", None) is not None
+              and to_hex(t.arrow_patch.get_edgecolor()) == "#ffd400"]
+    up, down = b4.b4_arrows(df)
+    tail = df.tail(90).index
+    want = int(up.reindex(tail).sum() + down.reindex(tail).sum())
+    assert want > 0 and len(arrows) == want
+    assert all(a.arrow_patch.get_linewidth() == 2 for a in arrows)
+    assert "B4" in [t.get_text() for t in ax.get_legend().get_texts()]
