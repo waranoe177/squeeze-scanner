@@ -15,12 +15,16 @@ import pandas as pd  # noqa: E402
 from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.patches import Rectangle  # noqa: E402
 
+from scanner import b4  # noqa: E402
 from scanner import indicators as ind  # noqa: E402
 from scanner import signals  # noqa: E402
 
 GREEN, RED, BLUE, ORANGE = "#10a050", "#d0202a", "#1a2fd0", "#e8901a"
 PIVOT_PEAK, PIVOT_VALLEY = "#90ee90", "#ff8080"  # TOS light_green / light_red S&R
 
+
+B4_COLOR = "#ffd400"   # owner 2026-10-22: yellow, line weight 2
+B4_HEAD, B4_TAIL = 0.045, 0.10   # arrow tip / tail offset from the bar, as a share of the price range
 
 def _draw_major_pivots(ax, full, n_display: int, length: int = 13):
     """Overlay Major Pivots on an ordinal-x price panel, matching the TOS study's
@@ -304,6 +308,24 @@ def render_layers(df, symbol: str, out_path: str, lookback: int = 140, *,
     _draw_major_pivots(ax[0], full, n)
     lo = min(e["low"].min(), atr_bot.min(), e["sma200"].min())
     hi = max(e["high"].max(), atr_top.max())
+    # B4 arrows (owner's TOS "declare upper b4" + REV-RSI colour gate, scanner/b4.py): thin yellow
+    # arrows, a little further from the bar than the A triangles so the two never merge
+    b4_up, b4_dn = b4.b4_arrows(df)
+    b4_up = b4_up.reindex(e.index, fill_value=False).to_numpy(dtype=bool)
+    b4_dn = b4_dn.reindex(e.index, fill_value=False).to_numpy(dtype=bool)
+    span = hi - lo
+    for i in np.flatnonzero(b4_up):
+        ax[0].annotate("", xy=(i, lows[i] - B4_HEAD * span), xytext=(i, lows[i] - B4_TAIL * span),
+                       arrowprops=dict(arrowstyle="-|>", color=B4_COLOR, lw=2, mutation_scale=11), zorder=7)
+    for i in np.flatnonzero(b4_dn):
+        ax[0].annotate("", xy=(i, highs[i] + B4_HEAD * span), xytext=(i, highs[i] + B4_TAIL * span),
+                       arrowprops=dict(arrowstyle="-|>", color=B4_COLOR, lw=2, mutation_scale=11), zorder=7)
+    if b4_up.any() or b4_dn.any():
+        ax[0].plot([], [], color=B4_COLOR, lw=2, label="B4")
+    if b4_up.any():
+        lo = min(lo, float(lows[b4_up].min()) - (B4_TAIL + 0.01) * span)
+    if b4_dn.any():
+        hi = max(hi, float(highs[b4_dn].max()) + (B4_TAIL + 0.01) * span)
     pad = (hi - lo) * 0.04
     ax[0].set_xlim(-1, n); ax[0].set_ylim(lo - pad, hi + pad)
     ax[0].set_ylabel("Price · candles=REV RSI")
