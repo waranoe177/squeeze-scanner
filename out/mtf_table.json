@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-23",
+  "date": "2026-10-26",
   "timeframes": [
     "WK",
     "3D",
@@ -7,13 +7,43 @@
     "1D"
   ],
   "counts": {
-    "buy": 34,
-    "sell": 38,
+    "buy": 29,
+    "sell": 28,
     "mixed": 0
   },
   "rows": [
     {
-      "symbol": "/CL",
+      "symbol": "AMGN",
+      "direction": "buy",
+      "cells": {
+        "WK": {
+          "side": "B",
+          "run": 1,
+          "squeeze": false,
+          "text": "B: 1"
+        },
+        "3D": {
+          "side": "B",
+          "run": 1,
+          "squeeze": false,
+          "text": "B: 1"
+        },
+        "2D": {
+          "side": "B",
+          "run": 2,
+          "squeeze": false,
+          "text": "B: 2"
+        },
+        "1D": {
+          "side": "B",
+          "run": 1,
+          "squeeze": false,
+          "text": "B: 1"
+        }
+      }
+    },
+    {
+      "symbol": "LMT",
       "direction": "buy",
       "cells": {
         "WK": {
@@ -29,51 +59,21 @@
           "text": "B: 2"
         },
         "2D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "1D": {
-          "side": "B",
-          "run": 1,
-          "squeeze": false,
-          "text": "B: 1"
-        }
-      }
-    },
-    {
-      "symbol": "COST",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": "B",
-          "run": 1,
-          "squeeze": true,
-          "text": "* B: 1"
-        },
-        "3D": {
           "side": "B",
           "run": 2,
           "squeeze": false,
           "text": "B: 2"
         },
-        "2D": {
-          "side": "B",
-          "run": 4,
-          "squeeze": false,
-          "text": "B: 4"
-        },
         "1D": {
-          "side": null,
-          "run": 0,
+          "side": "B",
+          "run": 6,
           "squeeze": false,
-          "text": "\u2014"
+          "text": "B: 6"
         }
       }
     },
     {
-      "symbol": "DIS",
+      "symbol": "XLP",
       "direction": "buy",
       "cells": {
         "WK": {
@@ -85,20 +85,50 @@
         "3D": {
           "side": "B",
           "run": 3,
-          "squeeze": true,
-          "text": "* B: 3"
+          "squeeze": false,
+          "text": "B: 3"
         },
         "2D": {
+          "side": "B",
+          "run": 4,
+          "squeeze": false,
+          "text": "B: 4"
+        },
+        "1D": {
+          "side": null,
+          "run": 0,
+          "squeeze": false,
+          "text": "\u2014"
+        }
+      }
+    },
+    {
+      "symbol": "COST",
+      "direction": "buy",
+      "cells": {
+        "WK": {
           "side": "B",
           "run": 2,
           "squeeze": true,
           "text": "* B: 2"
         },
-        "1D": {
+        "3D": {
           "side": "B",
-          "run": 4,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 4"
+          "text": "B: 3"
+        },
+        "2D": {
+          "side": "B",
+          "run": 5,
+          "squeeze": false,
+          "text": "B: 5"
+        },
+        "1D": {
+          "side": null,
+          "run": 0,
+          "squeeze": false,
+          "text": "\u2014"
         }
       }
     },
@@ -108,21 +138,21 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": true,
-          "text": "* B: 1"
+          "text": "* B: 2"
         },
         "3D": {
-          "side": "B",
-          "run": 1,
-          "squeeze": true,
-          "text": "* B: 1"
-        },
-        "2D": {
           "side": "B",
           "run": 2,
           "squeeze": true,
           "text": "* B: 2"
+        },
+        "2D": {
+          "side": "B",
+          "run": 3,
+          "squeeze": false,
+          "text": "B: 3"
         },
         "1D": {
           "side": null,
@@ -138,27 +168,27 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         },
         "3D": {
+          "side": "B",
+          "run": 4,
+          "squeeze": true,
+          "text": "* B: 4"
+        },
+        "2D": {
           "side": "B",
           "run": 3,
           "squeeze": true,
           "text": "* B: 3"
         },
-        "2D": {
-          "side": "B",
-          "run": 2,
-          "squeeze": true,
-          "text": "* B: 2"
-        },
         "1D": {
           "side": "B",
-          "run": 4,
+          "run": 5,
           "squeeze": false,
-          "text": "B: 4"
+          "text": "B: 5"
         }
       }
     },
@@ -168,27 +198,27 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         },
         "3D": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": true,
-          "text": "* B: 1"
+          "text": "* B: 2"
         },
         "2D": {
           "side": "B",
-          "run": 3,
+          "run": 4,
           "squeeze": false,
-          "text": "B: 3"
+          "text": "B: 4"
         },
         "1D": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         }
       }
     },
@@ -198,57 +228,27 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         },
         "3D": {
-          "side": "B",
-          "run": 1,
-          "squeeze": false,
-          "text": "B: 1"
-        },
-        "2D": {
           "side": "B",
           "run": 2,
           "squeeze": false,
           "text": "B: 2"
         },
-        "1D": {
+        "2D": {
           "side": "B",
           "run": 3,
           "squeeze": false,
           "text": "B: 3"
-        }
-      }
-    },
-    {
-      "symbol": "AAPL",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": "B",
-          "run": 2,
-          "squeeze": true,
-          "text": "* B: 2"
-        },
-        "3D": {
-          "side": "B",
-          "run": 1,
-          "squeeze": false,
-          "text": "B: 1"
-        },
-        "2D": {
-          "side": "B",
-          "run": 5,
-          "squeeze": true,
-          "text": "* B: 5"
         },
         "1D": {
           "side": "B",
-          "run": 2,
-          "squeeze": true,
-          "text": "* B: 2"
+          "run": 4,
+          "squeeze": false,
+          "text": "B: 4"
         }
       }
     },
@@ -258,27 +258,27 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
-          "squeeze": true,
-          "text": "* B: 2"
-        },
-        "3D": {
-          "side": "B",
           "run": 3,
           "squeeze": false,
           "text": "B: 3"
         },
-        "2D": {
+        "3D": {
           "side": "B",
           "run": 4,
           "squeeze": false,
           "text": "B: 4"
         },
+        "2D": {
+          "side": "B",
+          "run": 5,
+          "squeeze": false,
+          "text": "B: 5"
+        },
         "1D": {
           "side": "B",
-          "run": 11,
+          "run": 12,
           "squeeze": false,
-          "text": "B: 11"
+          "text": "B: 12"
         }
       }
     },
@@ -288,27 +288,27 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
+          "text": "B: 3"
         },
         "3D": {
-          "side": "B",
-          "run": 4,
-          "squeeze": false,
-          "text": "B: 4"
-        },
-        "2D": {
           "side": "B",
           "run": 5,
           "squeeze": false,
           "text": "B: 5"
         },
+        "2D": {
+          "side": "B",
+          "run": 6,
+          "squeeze": false,
+          "text": "B: 6"
+        },
         "1D": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         }
       }
     },
@@ -318,27 +318,27 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
+          "text": "B: 3"
         },
         "3D": {
-          "side": "B",
-          "run": 4,
-          "squeeze": false,
-          "text": "B: 4"
-        },
-        "2D": {
           "side": "B",
           "run": 5,
           "squeeze": false,
           "text": "B: 5"
         },
+        "2D": {
+          "side": "B",
+          "run": 6,
+          "squeeze": false,
+          "text": "B: 6"
+        },
         "1D": {
           "side": "B",
-          "run": 8,
+          "run": 9,
           "squeeze": false,
-          "text": "B: 8"
+          "text": "B: 9"
         }
       }
     },
@@ -348,45 +348,15 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
-          "squeeze": false,
-          "text": "B: 2"
-        },
-        "3D": {
-          "side": "B",
-          "run": 2,
-          "squeeze": true,
-          "text": "* B: 2"
-        },
-        "2D": {
-          "side": "B",
           "run": 3,
           "squeeze": false,
           "text": "B: 3"
         },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "MA",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": "B",
-          "run": 2,
-          "squeeze": false,
-          "text": "B: 2"
-        },
         "3D": {
           "side": "B",
-          "run": 4,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 4"
+          "text": "B: 3"
         },
         "2D": {
           "side": "B",
@@ -408,21 +378,21 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
+          "text": "B: 3"
         },
         "3D": {
-          "side": "B",
-          "run": 3,
+          "side": null,
+          "run": 0,
           "squeeze": true,
-          "text": "* B: 3"
+          "text": "\u2014"
         },
         "2D": {
           "side": "B",
-          "run": 4,
-          "squeeze": true,
-          "text": "* B: 4"
+          "run": 5,
+          "squeeze": false,
+          "text": "B: 5"
         },
         "1D": {
           "side": null,
@@ -438,21 +408,21 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": true,
-          "text": "* B: 2"
+          "text": "* B: 3"
         },
         "3D": {
-          "side": "B",
-          "run": 4,
-          "squeeze": false,
-          "text": "B: 4"
-        },
-        "2D": {
           "side": "B",
           "run": 5,
           "squeeze": false,
           "text": "B: 5"
+        },
+        "2D": {
+          "side": "B",
+          "run": 6,
+          "squeeze": false,
+          "text": "B: 6"
         },
         "1D": {
           "side": null,
@@ -468,45 +438,15 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
+          "text": "B: 3"
         },
         "3D": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
-        },
-        "2D": {
-          "side": "B",
-          "run": 4,
-          "squeeze": true,
-          "text": "* B: 4"
-        },
-        "1D": {
-          "side": "B",
-          "run": 6,
-          "squeeze": false,
-          "text": "B: 6"
-        }
-      }
-    },
-    {
-      "symbol": "XLE",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": "B",
-          "run": 2,
-          "squeeze": false,
-          "text": "B: 2"
-        },
-        "3D": {
-          "side": "B",
-          "run": 4,
-          "squeeze": false,
-          "text": "B: 4"
+          "text": "B: 3"
         },
         "2D": {
           "side": "B",
@@ -516,9 +456,39 @@
         },
         "1D": {
           "side": "B",
-          "run": 1,
+          "run": 7,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 7"
+        }
+      }
+    },
+    {
+      "symbol": "XLE",
+      "direction": "buy",
+      "cells": {
+        "WK": {
+          "side": "B",
+          "run": 3,
+          "squeeze": false,
+          "text": "B: 3"
+        },
+        "3D": {
+          "side": "B",
+          "run": 5,
+          "squeeze": false,
+          "text": "B: 5"
+        },
+        "2D": {
+          "side": "B",
+          "run": 6,
+          "squeeze": false,
+          "text": "B: 6"
+        },
+        "1D": {
+          "side": "B",
+          "run": 2,
+          "squeeze": false,
+          "text": "B: 2"
         }
       }
     },
@@ -528,21 +498,21 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
+          "text": "B: 3"
         },
         "3D": {
           "side": "B",
-          "run": 3,
+          "run": 4,
           "squeeze": true,
-          "text": "* B: 3"
+          "text": "* B: 4"
         },
         "2D": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
+          "text": "B: 3"
         },
         "1D": {
           "side": null,
@@ -558,27 +528,27 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "B: 2"
+          "text": "B: 3"
         },
         "3D": {
           "side": "B",
+          "run": 3,
+          "squeeze": true,
+          "text": "* B: 3"
+        },
+        "2D": {
+          "side": "B",
           "run": 2,
           "squeeze": false,
           "text": "B: 2"
         },
-        "2D": {
-          "side": "B",
-          "run": 1,
-          "squeeze": true,
-          "text": "* B: 1"
-        },
         "1D": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         }
       }
     },
@@ -588,21 +558,21 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 3,
+          "run": 4,
           "squeeze": false,
-          "text": "B: 3"
+          "text": "B: 4"
         },
         "3D": {
-          "side": "B",
-          "run": 5,
-          "squeeze": false,
-          "text": "B: 5"
-        },
-        "2D": {
           "side": "B",
           "run": 6,
           "squeeze": false,
           "text": "B: 6"
+        },
+        "2D": {
+          "side": "B",
+          "run": 7,
+          "squeeze": false,
+          "text": "B: 7"
         },
         "1D": {
           "side": null,
@@ -618,21 +588,21 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 3,
+          "run": 4,
           "squeeze": false,
-          "text": "B: 3"
+          "text": "B: 4"
         },
         "3D": {
           "side": "B",
-          "run": 4,
+          "run": 5,
           "squeeze": false,
-          "text": "B: 4"
+          "text": "B: 5"
         },
         "2D": {
           "side": "B",
-          "run": 4,
+          "run": 5,
           "squeeze": false,
-          "text": "B: 4"
+          "text": "B: 5"
         },
         "1D": {
           "side": null,
@@ -648,32 +618,62 @@
       "cells": {
         "WK": {
           "side": "B",
-          "run": 3,
-          "squeeze": false,
-          "text": "B: 3"
-        },
-        "3D": {
-          "side": "B",
           "run": 4,
           "squeeze": false,
           "text": "B: 4"
         },
+        "3D": {
+          "side": "B",
+          "run": 5,
+          "squeeze": false,
+          "text": "B: 5"
+        },
         "2D": {
           "side": "B",
-          "run": 6,
+          "run": 7,
           "squeeze": false,
-          "text": "B: 6"
+          "text": "B: 7"
         },
         "1D": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         }
       }
     },
     {
-      "symbol": "/GC",
+      "symbol": "GOOGL",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 1,
+          "squeeze": true,
+          "text": "* S: 1"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "1D": {
+          "side": "S",
+          "run": 4,
+          "squeeze": false,
+          "text": "S: 4"
+        }
+      }
+    },
+    {
+      "symbol": "LRCX",
       "direction": "sell",
       "cells": {
         "WK": {
@@ -690,15 +690,75 @@
         },
         "2D": {
           "side": "S",
-          "run": 1,
+          "run": 5,
           "squeeze": false,
-          "text": "S: 1"
+          "text": "S: 5"
         },
         "1D": {
+          "side": "S",
+          "run": 9,
+          "squeeze": false,
+          "text": "S: 9"
+        }
+      }
+    },
+    {
+      "symbol": "UBER",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 1,
+          "squeeze": true,
+          "text": "* S: 1"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": true,
+          "text": "* S: 3"
+        },
+        "1D": {
+          "side": "S",
+          "run": 1,
+          "squeeze": true,
+          "text": "* S: 1"
+        }
+      }
+    },
+    {
+      "symbol": "/GC",
+      "direction": "sell",
+      "cells": {
+        "WK": {
           "side": "S",
           "run": 2,
           "squeeze": true,
           "text": "* S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
+        },
+        "2D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "1D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": true,
+          "text": "* S: 3"
         }
       }
     },
@@ -708,15 +768,15 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "S: 1"
+          "text": "S: 2"
         },
         "3D": {
           "side": "S",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "S: 1"
+          "text": "S: 2"
         },
         "2D": {
           "side": null,
@@ -738,57 +798,27 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": true,
-          "text": "* S: 3"
-        },
-        "2D": {
-          "side": "S",
-          "run": 5,
-          "squeeze": false,
-          "text": "S: 5"
-        },
-        "1D": {
-          "side": "S",
           "run": 2,
           "squeeze": false,
           "text": "S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "GDX",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
         },
         "3D": {
           "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
+          "run": 4,
+          "squeeze": false,
+          "text": "S: 4"
         },
         "2D": {
           "side": "S",
-          "run": 1,
+          "run": 6,
           "squeeze": false,
-          "text": "S: 1"
+          "text": "S: 6"
         },
         "1D": {
           "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
         }
       }
     },
@@ -798,27 +828,27 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "S: 1"
+          "text": "S: 2"
         },
         "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": false,
-          "text": "S: 3"
-        },
-        "1D": {
           "side": "S",
           "run": 2,
           "squeeze": false,
           "text": "S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 4,
+          "squeeze": false,
+          "text": "S: 4"
+        },
+        "1D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
         }
       }
     },
@@ -828,75 +858,15 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "3D": {
-          "side": "S",
           "run": 2,
           "squeeze": false,
           "text": "S: 2"
         },
-        "2D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "GLD",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
         "3D": {
           "side": "S",
-          "run": 1,
+          "run": 3,
           "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "KLAC",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
+          "text": "S: 3"
         },
         "2D": {
           "side": "S",
@@ -906,21 +876,261 @@
         },
         "1D": {
           "side": "S",
-          "run": 6,
+          "run": 3,
           "squeeze": false,
-          "text": "S: 6"
+          "text": "S: 3"
         }
       }
     },
     {
-      "symbol": "MS",
+      "symbol": "GLD",
       "direction": "sell",
       "cells": {
         "WK": {
           "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "1D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
+        }
+      }
+    },
+    {
+      "symbol": "KLAC",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
+        },
+        "2D": {
+          "side": "S",
+          "run": 4,
+          "squeeze": false,
+          "text": "S: 4"
+        },
+        "1D": {
+          "side": "S",
+          "run": 7,
+          "squeeze": false,
+          "text": "S: 7"
+        }
+      }
+    },
+    {
+      "symbol": "NFLX",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
+        },
+        "1D": {
+          "side": "S",
           "run": 1,
           "squeeze": false,
           "text": "S: 1"
+        }
+      }
+    },
+    {
+      "symbol": "ORCL",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 4,
+          "squeeze": false,
+          "text": "S: 4"
+        },
+        "1D": {
+          "side": null,
+          "run": 0,
+          "squeeze": true,
+          "text": "\u2014"
+        }
+      }
+    },
+    {
+      "symbol": "T",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
+        },
+        "1D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        }
+      }
+    },
+    {
+      "symbol": "TMUS",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "1D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        }
+      }
+    },
+    {
+      "symbol": "XLC",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "3D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": true,
+          "text": "* S: 2"
+        },
+        "2D": {
+          "side": "S",
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
+        },
+        "1D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
+        }
+      }
+    },
+    {
+      "symbol": "/SI",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 3,
+          "squeeze": true,
+          "text": "* S: 3"
+        },
+        "3D": {
+          "side": "S",
+          "run": 4,
+          "squeeze": false,
+          "text": "S: 4"
+        },
+        "2D": {
+          "side": "S",
+          "run": 6,
+          "squeeze": false,
+          "text": "S: 6"
+        },
+        "1D": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
+        }
+      }
+    },
+    {
+      "symbol": "BAC",
+      "direction": "sell",
+      "cells": {
+        "WK": {
+          "side": "S",
+          "run": 3,
+          "squeeze": false,
+          "text": "S: 3"
         },
         "3D": {
           "side": "S",
@@ -937,306 +1147,6 @@
         "1D": {
           "side": null,
           "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "NFLX",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "ORCL",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": true,
-          "text": "* S: 3"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "T",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "1D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        }
-      }
-    },
-    {
-      "symbol": "TMUS",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        }
-      }
-    },
-    {
-      "symbol": "XLC",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "XLI",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "/SI",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        },
-        "3D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": false,
-          "text": "S: 3"
-        },
-        "2D": {
-          "side": "S",
-          "run": 5,
-          "squeeze": false,
-          "text": "S: 5"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "AVGO",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "BAC",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "3D": {
-          "side": "S",
-          "run": 6,
-          "squeeze": false,
-          "text": "S: 6"
-        },
-        "2D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "JETS",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "3D": {
-          "side": "S",
-          "run": 4,
-          "squeeze": false,
-          "text": "S: 4"
-        },
-        "2D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
           "squeeze": false,
           "text": "\u2014"
         }
@@ -1248,27 +1158,27 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 2,
+          "run": 3,
           "squeeze": true,
-          "text": "* S: 2"
+          "text": "* S: 3"
         },
         "3D": {
           "side": "S",
-          "run": 6,
+          "run": 7,
           "squeeze": false,
-          "text": "S: 6"
+          "text": "S: 7"
         },
         "2D": {
           "side": "S",
-          "run": 8,
+          "run": 9,
           "squeeze": false,
-          "text": "S: 8"
+          "text": "S: 9"
         },
         "1D": {
           "side": "S",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "S: 2"
+          "text": "S: 3"
         }
       }
     },
@@ -1278,21 +1188,21 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "S: 2"
+          "text": "S: 3"
         },
         "3D": {
           "side": "S",
-          "run": 5,
+          "run": 6,
           "squeeze": false,
-          "text": "S: 5"
+          "text": "S: 6"
         },
         "2D": {
           "side": "S",
-          "run": 9,
+          "run": 10,
           "squeeze": false,
-          "text": "S: 9"
+          "text": "S: 10"
         },
         "1D": {
           "side": null,
@@ -1308,87 +1218,27 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 2,
+          "run": 3,
           "squeeze": true,
-          "text": "* S: 2"
+          "text": "* S: 3"
         },
         "3D": {
+          "side": "S",
+          "run": 4,
+          "squeeze": false,
+          "text": "S: 4"
+        },
+        "2D": {
+          "side": "S",
+          "run": 6,
+          "squeeze": false,
+          "text": "S: 6"
+        },
+        "1D": {
           "side": "S",
           "run": 3,
           "squeeze": false,
           "text": "S: 3"
-        },
-        "2D": {
-          "side": "S",
-          "run": 5,
-          "squeeze": false,
-          "text": "S: 5"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "TAN",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "3D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "UAL",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        },
-        "3D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": false,
-          "text": "S: 3"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
         }
       }
     },
@@ -1398,27 +1248,27 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 2,
+          "run": 3,
           "squeeze": true,
-          "text": "* S: 2"
+          "text": "* S: 3"
         },
         "3D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": false,
-          "text": "S: 3"
-        },
-        "2D": {
           "side": "S",
           "run": 4,
           "squeeze": false,
           "text": "S: 4"
         },
-        "1D": {
+        "2D": {
           "side": "S",
-          "run": 2,
+          "run": 5,
           "squeeze": false,
-          "text": "S: 2"
+          "text": "S: 5"
+        },
+        "1D": {
+          "side": null,
+          "run": 0,
+          "squeeze": false,
+          "text": "\u2014"
         }
       }
     },
@@ -1428,27 +1278,27 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        },
-        "3D": {
-          "side": "S",
           "run": 3,
           "squeeze": false,
           "text": "S: 3"
         },
-        "2D": {
+        "3D": {
           "side": "S",
           "run": 4,
           "squeeze": false,
           "text": "S: 4"
         },
+        "2D": {
+          "side": "S",
+          "run": 5,
+          "squeeze": false,
+          "text": "S: 5"
+        },
         "1D": {
           "side": "S",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "S: 2"
+          "text": "S: 3"
         }
       }
     },
@@ -1458,32 +1308,32 @@
       "cells": {
         "WK": {
           "side": "S",
-          "run": 4,
+          "run": 5,
           "squeeze": true,
-          "text": "* S: 4"
+          "text": "* S: 5"
         },
         "3D": {
           "side": "S",
-          "run": 5,
+          "run": 6,
           "squeeze": false,
-          "text": "S: 5"
+          "text": "S: 6"
         },
         "2D": {
-          "side": "S",
-          "run": 1,
+          "side": null,
+          "run": 0,
           "squeeze": false,
-          "text": "S: 1"
+          "text": "\u2014"
         },
         "1D": {
           "side": null,
           "run": 0,
-          "squeeze": true,
+          "squeeze": false,
           "text": "\u2014"
         }
       }
     },
     {
-      "symbol": "CL",
+      "symbol": "APD",
       "direction": "buy",
       "cells": {
         "WK": {
@@ -1500,9 +1350,9 @@
         },
         "2D": {
           "side": "B",
-          "run": 3,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 3"
+          "text": "B: 2"
         },
         "1D": {
           "side": null,
@@ -1524,51 +1374,21 @@
         },
         "3D": {
           "side": "B",
-          "run": 1,
-          "squeeze": true,
-          "text": "* B: 1"
-        },
-        "2D": {
-          "side": "B",
-          "run": 3,
-          "squeeze": false,
-          "text": "B: 3"
-        },
-        "1D": {
-          "side": "B",
           "run": 2,
           "squeeze": false,
           "text": "B: 2"
-        }
-      }
-    },
-    {
-      "symbol": "LMT",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "B",
-          "run": 1,
-          "squeeze": false,
-          "text": "B: 1"
         },
         "2D": {
           "side": "B",
-          "run": 1,
+          "run": 4,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 4"
         },
         "1D": {
-          "side": "B",
-          "run": 5,
+          "side": null,
+          "run": 0,
           "squeeze": false,
-          "text": "B: 5"
+          "text": "\u2014"
         }
       }
     },
@@ -1584,21 +1404,21 @@
         },
         "3D": {
           "side": "B",
-          "run": 1,
-          "squeeze": false,
-          "text": "B: 1"
-        },
-        "2D": {
-          "side": "B",
           "run": 2,
           "squeeze": false,
           "text": "B: 2"
         },
-        "1D": {
-          "side": null,
-          "run": 0,
+        "2D": {
+          "side": "B",
+          "run": 3,
           "squeeze": false,
-          "text": "\u2014"
+          "text": "B: 3"
+        },
+        "1D": {
+          "side": "B",
+          "run": 1,
+          "squeeze": false,
+          "text": "B: 1"
         }
       }
     },
@@ -1614,15 +1434,15 @@
         },
         "3D": {
           "side": "B",
-          "run": 1,
+          "run": 2,
           "squeeze": false,
-          "text": "B: 1"
+          "text": "B: 2"
         },
         "2D": {
           "side": "B",
-          "run": 4,
+          "run": 5,
           "squeeze": false,
-          "text": "B: 4"
+          "text": "B: 5"
         },
         "1D": {
           "side": null,
@@ -1644,45 +1464,15 @@
         },
         "3D": {
           "side": "B",
-          "run": 2,
-          "squeeze": false,
-          "text": "B: 2"
-        },
-        "2D": {
-          "side": "B",
-          "run": 6,
-          "squeeze": false,
-          "text": "B: 6"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "XLP",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "B",
-          "run": 2,
-          "squeeze": false,
-          "text": "B: 2"
-        },
-        "2D": {
-          "side": "B",
           "run": 3,
           "squeeze": false,
           "text": "B: 3"
+        },
+        "2D": {
+          "side": "B",
+          "run": 7,
+          "squeeze": false,
+          "text": "B: 7"
         },
         "1D": {
           "side": null,
@@ -1699,31 +1489,31 @@
         "WK": {
           "side": null,
           "run": 0,
-          "squeeze": true,
+          "squeeze": false,
           "text": "\u2014"
         },
         "3D": {
           "side": "B",
-          "run": 3,
+          "run": 4,
           "squeeze": false,
-          "text": "B: 3"
+          "text": "B: 4"
         },
         "2D": {
-          "side": "B",
-          "run": 1,
-          "squeeze": false,
-          "text": "B: 1"
-        },
-        "1D": {
           "side": "B",
           "run": 2,
           "squeeze": false,
           "text": "B: 2"
+        },
+        "1D": {
+          "side": "B",
+          "run": 3,
+          "squeeze": false,
+          "text": "B: 3"
         }
       }
     },
     {
-      "symbol": "GOOGL",
+      "symbol": "HOOD",
       "direction": "sell",
       "cells": {
         "WK": {
@@ -1740,9 +1530,9 @@
         },
         "2D": {
           "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
+          "run": 2,
+          "squeeze": false,
+          "text": "S: 2"
         },
         "1D": {
           "side": "S",
@@ -1753,92 +1543,32 @@
       }
     },
     {
-      "symbol": "INTC",
+      "symbol": "GDX",
       "direction": "sell",
       "cells": {
         "WK": {
           "side": null,
           "run": 0,
-          "squeeze": true,
+          "squeeze": false,
           "text": "\u2014"
         },
         "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 4,
-          "squeeze": false,
-          "text": "S: 4"
-        },
-        "1D": {
           "side": "S",
           "run": 2,
           "squeeze": false,
           "text": "S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "LRCX",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 4,
-          "squeeze": false,
-          "text": "S: 4"
-        },
-        "1D": {
-          "side": "S",
-          "run": 8,
-          "squeeze": false,
-          "text": "S: 8"
-        }
-      }
-    },
-    {
-      "symbol": "UBER",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
         },
         "2D": {
           "side": "S",
           "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
+          "squeeze": false,
+          "text": "S: 2"
         },
         "1D": {
-          "side": null,
-          "run": 0,
+          "side": "S",
+          "run": 3,
           "squeeze": true,
-          "text": "\u2014"
+          "text": "* S: 3"
         }
       }
     },
@@ -1849,61 +1579,31 @@
         "WK": {
           "side": null,
           "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "2D": {
-          "side": "S",
-          "run": 4,
-          "squeeze": false,
-          "text": "S: 4"
-        },
-        "1D": {
-          "side": "S",
-          "run": 7,
-          "squeeze": false,
-          "text": "S: 7"
-        }
-      }
-    },
-    {
-      "symbol": "ARM",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
           "squeeze": false,
           "text": "\u2014"
         },
         "3D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        },
-        "2D": {
           "side": "S",
           "run": 3,
           "squeeze": false,
           "text": "S: 3"
         },
+        "2D": {
+          "side": "S",
+          "run": 5,
+          "squeeze": false,
+          "text": "S: 5"
+        },
         "1D": {
           "side": "S",
-          "run": 10,
+          "run": 8,
           "squeeze": false,
-          "text": "S: 10"
+          "text": "S: 8"
         }
       }
     },
     {
-      "symbol": "APD",
+      "symbol": "TXN",
       "direction": "buy",
       "cells": {
         "WK": {
@@ -1915,7 +1615,7 @@
         "3D": {
           "side": null,
           "run": 0,
-          "squeeze": false,
+          "squeeze": true,
           "text": "\u2014"
         },
         "2D": {
@@ -1926,9 +1626,9 @@
         },
         "1D": {
           "side": "B",
-          "run": 6,
-          "squeeze": false,
-          "text": "B: 6"
+          "run": 1,
+          "squeeze": true,
+          "text": "* B: 1"
         }
       }
     },
@@ -1950,80 +1650,20 @@
         },
         "2D": {
           "side": "B",
-          "run": 2,
-          "squeeze": true,
-          "text": "* B: 2"
+          "run": 3,
+          "squeeze": false,
+          "text": "B: 3"
         },
         "1D": {
           "side": "B",
-          "run": 5,
+          "run": 6,
           "squeeze": false,
-          "text": "B: 5"
+          "text": "B: 6"
         }
       }
     },
     {
-      "symbol": "INTU",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        },
-        "2D": {
-          "side": "B",
-          "run": 2,
-          "squeeze": false,
-          "text": "B: 2"
-        },
-        "1D": {
-          "side": "B",
-          "run": 7,
-          "squeeze": false,
-          "text": "B: 7"
-        }
-      }
-    },
-    {
-      "symbol": "UNH",
-      "direction": "buy",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "2D": {
-          "side": "B",
-          "run": 2,
-          "squeeze": false,
-          "text": "B: 2"
-        },
-        "1D": {
-          "side": "B",
-          "run": 7,
-          "squeeze": false,
-          "text": "B: 7"
-        }
-      }
-    },
-    {
-      "symbol": "ANET",
+      "symbol": "COIN",
       "direction": "sell",
       "cells": {
         "WK": {
@@ -2046,9 +1686,9 @@
         },
         "1D": {
           "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
+          "run": 1,
+          "squeeze": true,
+          "text": "* S: 1"
         }
       }
     },
@@ -2070,105 +1710,15 @@
         },
         "2D": {
           "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "1D": {
-          "side": "S",
           "run": 2,
           "squeeze": true,
           "text": "* S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "HOOD",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
         },
         "1D": {
           "side": "S",
-          "run": 2,
+          "run": 3,
           "squeeze": false,
-          "text": "S: 2"
-        }
-      }
-    },
-    {
-      "symbol": "NEM",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        }
-      }
-    },
-    {
-      "symbol": "SMH",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
+          "text": "S: 3"
         }
       }
     }
