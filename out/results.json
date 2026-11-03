@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T23:05:19+00:00",
+  "generated_at": "2026-11-03T01:43:18+00:00",
   "as_of": "2026-10-30",
   "universe": 159,
   "fired_count": 1,
@@ -10,12 +10,12 @@
       "direction": "bull",
       "grade": "A++",
       "close": 208.7899932861328,
-      "rsi": 65.01312937250717,
-      "ppo": 1.48771672703811,
+      "rsi": 65.01312935408298,
+      "ppo": 1.487716727233293,
       "squeeze_on": true,
-      "moxie_w": 3.9986803438489105,
-      "atr": 5.1894429353278335,
-      "ema21": 200.2407621691289,
+      "moxie_w": 3.996744542341707,
+      "atr": 5.189442935479684,
+      "ema21": 200.24076216856338,
       "lit_bull": 7,
       "moxie_up": true,
       "lit_bear": 1,
@@ -91,11 +91,11 @@
     "TGT",
     "VZ",
     "DAL",
-    "YM=F",
     "JPM",
     "DE",
     "AFRM",
     "MDB",
+    "YM=F",
     "RTY=F"
   ],
   "watching_detail": [
@@ -300,11 +300,6 @@
       "lean": "bull"
     },
     {
-      "symbol": "YM=F",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
       "symbol": "JPM",
       "lit": 3,
       "lean": "bull"
@@ -321,6 +316,11 @@
     },
     {
       "symbol": "MDB",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "YM=F",
       "lit": 3,
       "lean": "bull"
     },
