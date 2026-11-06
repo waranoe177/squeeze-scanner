@@ -1,423 +1,317 @@
 {
-  "generated_at": "2026-11-05T00:28:16+00:00",
-  "as_of": "2026-11-04",
+  "generated_at": "2026-11-06T00:28:33+00:00",
+  "as_of": "2026-11-05",
   "universe": 159,
-  "fired_count": 8,
+  "fired_count": 6,
   "fired": [
     {
-      "symbol": "ABBV",
-      "date": "2026-11-04",
-      "direction": "bull",
-      "grade": "A++",
-      "close": 294.8299865722656,
-      "rsi": 66.14725715216805,
-      "ppo": 1.6641086947027126,
-      "squeeze_on": true,
-      "moxie_w": 9.081538662382936,
-      "atr": 6.978350124197223,
-      "ema21": 283.3072137328004,
-      "lit_bull": 7,
-      "moxie_up": true,
-      "lit_bear": 1,
-      "target_up": 300.7531,
-      "target_dn": 265.8613,
-      "stop": 284.3625,
-      "score": 91.3,
-      "conviction_grade": "A+",
-      "score_parts": {
-        "symbol": "ABBV",
-        "date": "2026-11-04",
-        "direction": "bull",
-        "score": 91.3,
-        "grade": "A+",
-        "signal_grade": "A++",
-        "confluence": 60.0,
-        "strength": 31.3,
-        "rr": 0.57,
-        "atr_pct": 2.37,
-        "parts": {
-          "momentum": 15.6,
-          "moxie": 10.9,
-          "freshness": 4.0,
-          "risk_reward": 0.8
-        }
-      },
-      "prov_target": 312.28,
-      "prov_stop": 284.36,
-      "chart": "charts/ABBV.png",
-      "weekly_chart": "charts/ABBV_weekly.png"
-    },
-    {
-      "symbol": "PM",
-      "date": "2026-11-04",
-      "direction": "bull",
-      "grade": "A++",
-      "close": 211.27999877929688,
-      "rsi": 66.70970139666625,
-      "ppo": 1.5997935898897813,
-      "squeeze_on": true,
-      "moxie_w": 4.440398706351922,
-      "atr": 5.147478603883418,
-      "ema21": 202.65712716262925,
-      "lit_bull": 7,
-      "moxie_up": true,
-      "lit_bear": 1,
-      "target_up": 215.5258,
-      "target_dn": 189.7884,
-      "stop": 203.5588,
-      "score": 91.3,
-      "conviction_grade": "A+",
-      "score_parts": {
-        "symbol": "PM",
-        "date": "2026-11-04",
-        "direction": "bull",
-        "score": 91.3,
-        "grade": "A+",
-        "signal_grade": "A++",
-        "confluence": 60.0,
-        "strength": 31.3,
-        "rr": 0.55,
-        "atr_pct": 2.44,
-        "parts": {
-          "momentum": 16.1,
-          "moxie": 10.5,
-          "freshness": 4.0,
-          "risk_reward": 0.7
-        }
-      },
-      "prov_target": 224.15,
-      "prov_stop": 203.56,
-      "chart": "charts/PM.png",
-      "weekly_chart": "charts/PM_weekly.png"
-    },
-    {
       "symbol": "PYPL",
-      "date": "2026-11-04",
+      "date": "2026-11-05",
       "direction": "bull",
       "grade": "A++",
-      "close": 60.20000076293945,
-      "rsi": 68.06027942145091,
-      "ppo": 1.4791440005434302,
+      "close": 58.959999084472656,
+      "rsi": 60.65492939449282,
+      "ppo": 1.5202951219484946,
       "squeeze_on": true,
-      "moxie_w": 1.3682898441425588,
-      "atr": 1.4934615366786756,
-      "ema21": 56.828109526012526,
+      "moxie_w": 1.130887834214982,
+      "atr": 1.561785767313942,
+      "ema21": 57.0219176676633,
       "lit_bull": 7,
       "moxie_up": true,
       "lit_bear": 1,
-      "target_up": 60.5618,
-      "target_dn": 53.0945,
-      "stop": 57.9598,
-      "score": 87.6,
-      "conviction_grade": "A+",
+      "target_up": 60.9264,
+      "target_dn": 53.1175,
+      "stop": 56.6173,
+      "score": 84.6,
+      "conviction_grade": "A",
       "score_parts": {
         "symbol": "PYPL",
-        "date": "2026-11-04",
+        "date": "2026-11-05",
         "direction": "bull",
-        "score": 87.6,
-        "grade": "A+",
+        "score": 84.6,
+        "grade": "A",
         "signal_grade": "A++",
         "confluence": 60.0,
-        "strength": 27.6,
-        "rr": 0.16,
-        "atr_pct": 2.48,
+        "strength": 24.6,
+        "rr": 0.84,
+        "atr_pct": 2.65,
         "parts": {
-          "momentum": 16.0,
-          "moxie": 8.9,
-          "freshness": 2.4,
-          "risk_reward": 0.2
+          "momentum": 13.1,
+          "moxie": 8.8,
+          "freshness": 1.6,
+          "risk_reward": 1.1
         }
       },
-      "prov_target": 63.93,
-      "prov_stop": 57.96,
+      "prov_target": 62.86,
+      "prov_stop": 56.62,
       "chart": "charts/PYPL.png",
       "weekly_chart": "charts/PYPL_weekly.png"
     },
     {
       "symbol": "MSFT",
-      "date": "2026-11-04",
+      "date": "2026-11-05",
       "direction": "bull",
       "grade": "A",
-      "close": 555.7999877929688,
-      "rsi": 64.33119965111663,
-      "ppo": 0.483454980464871,
+      "close": 535.9299926757812,
+      "rsi": 54.45587534258043,
+      "ppo": 0.5374188322382131,
       "squeeze_on": true,
-      "moxie_w": 17.54520263155307,
-      "atr": 14.837878428781174,
-      "ema21": 526.8853703478297,
-      "lit_bull": 6,
-      "moxie_up": true,
+      "moxie_w": 13.741032148217172,
+      "atr": 15.55802874871743,
+      "ema21": 527.7076087413159,
+      "lit_bull": 5,
+      "moxie_up": false,
       "lit_bear": 1,
-      "target_up": 563.9801,
-      "target_dn": 489.7907,
-      "stop": 533.5432,
-      "score": 72.7,
-      "conviction_grade": "A",
+      "target_up": 566.6027,
+      "target_dn": 488.8125,
+      "stop": 512.5929,
+      "score": 53.7,
+      "conviction_grade": "C",
       "score_parts": {
         "symbol": "MSFT",
-        "date": "2026-11-04",
+        "date": "2026-11-05",
         "direction": "bull",
-        "score": 72.7,
-        "grade": "A",
+        "score": 53.7,
+        "grade": "C",
         "signal_grade": "A",
-        "confluence": 52.0,
-        "strength": 20.7,
-        "rr": 0.37,
-        "atr_pct": 2.67,
+        "confluence": 40.0,
+        "strength": 13.7,
+        "rr": 1.31,
+        "atr_pct": 2.9,
         "parts": {
-          "momentum": 10.4,
-          "moxie": 9.8,
+          "momentum": 6.7,
+          "moxie": 5.2,
           "freshness": 0.0,
-          "risk_reward": 0.5
+          "risk_reward": 1.8
         }
       },
-      "prov_target": 592.89,
-      "prov_stop": 533.54,
+      "prov_target": 574.83,
+      "prov_stop": 512.59,
       "chart": "charts/MSFT.png",
       "weekly_chart": "charts/MSFT_weekly.png"
     },
     {
-      "symbol": "TMO",
-      "date": "2026-11-04",
-      "direction": "bull",
-      "grade": "A",
-      "close": 706.1599731445312,
-      "rsi": 60.48861003984138,
-      "ppo": 1.2379187558803764,
-      "squeeze_on": true,
-      "moxie_w": 23.830261442322794,
-      "atr": 20.324389542114417,
-      "ema21": 684.7055718927911,
-      "lit_bull": 5,
-      "moxie_up": false,
-      "lit_bear": 1,
-      "target_up": 735.5165,
-      "target_dn": 633.8946,
-      "stop": 675.6734,
-      "score": 56.2,
-      "conviction_grade": "B",
-      "score_parts": {
-        "symbol": "TMO",
-        "date": "2026-11-04",
-        "direction": "bull",
-        "score": 56.2,
-        "grade": "B",
-        "signal_grade": "A",
-        "confluence": 40.0,
-        "strength": 16.2,
-        "rr": 0.96,
-        "atr_pct": 2.88,
-        "parts": {
-          "momentum": 10.0,
-          "moxie": 4.9,
-          "freshness": 0.0,
-          "risk_reward": 1.3
-        }
-      },
-      "prov_target": 756.97,
-      "prov_stop": 675.67,
-      "chart": "charts/TMO.png",
-      "weekly_chart": "charts/TMO_weekly.png"
-    },
-    {
       "symbol": "AAPL",
-      "date": "2026-11-04",
+      "date": "2026-11-05",
       "direction": "bull",
       "grade": "A",
-      "close": 349.510009765625,
-      "rsi": 57.781936124001085,
-      "ppo": 0.3621607344320749,
+      "close": 344.1700134277344,
+      "rsi": 53.007872579040395,
+      "ppo": 0.3576730895377787,
       "squeeze_on": true,
-      "moxie_w": 2.173156907436363,
-      "atr": 8.52453355204134,
-      "ema21": 341.54734909957546,
+      "moxie_w": 1.1507986700715485,
+      "atr": 8.869057107864524,
+      "ema21": 341.7857731294081,
       "lit_bull": 5,
       "moxie_up": false,
       "lit_bear": 1,
-      "target_up": 362.8587,
-      "target_dn": 320.236,
-      "stop": 336.7232,
-      "score": 52.6,
+      "target_up": 363.9584,
+      "target_dn": 319.6131,
+      "stop": 330.8664,
+      "score": 51.2,
       "conviction_grade": "C",
       "score_parts": {
         "symbol": "AAPL",
-        "date": "2026-11-04",
+        "date": "2026-11-05",
         "direction": "bull",
-        "score": 52.6,
+        "score": 51.2,
         "grade": "C",
         "signal_grade": "A",
         "confluence": 40.0,
-        "strength": 12.6,
-        "rr": 1.04,
-        "atr_pct": 2.44,
+        "strength": 11.2,
+        "rr": 1.49,
+        "atr_pct": 2.58,
         "parts": {
-          "momentum": 7.7,
-          "moxie": 3.6,
+          "momentum": 5.8,
+          "moxie": 3.5,
           "freshness": 0.0,
-          "risk_reward": 1.4
+          "risk_reward": 2.0
         }
       },
-      "prov_target": 370.82,
-      "prov_stop": 336.72,
+      "prov_target": 366.34,
+      "prov_stop": 330.87,
       "chart": "charts/AAPL.png",
       "weekly_chart": "charts/AAPL_weekly.png"
     },
     {
       "symbol": "ORCL",
-      "date": "2026-11-04",
+      "date": "2026-11-05",
       "direction": "bear",
       "grade": "A++",
-      "close": 123.7300033569336,
-      "rsi": 42.751796712653636,
-      "ppo": -2.1433556601342043,
+      "close": 115.16000366210938,
+      "rsi": 37.828309865485906,
+      "ppo": -2.872304952144351,
       "squeeze_on": true,
-      "moxie_w": -2.571863087242649,
-      "atr": 8.030305113911242,
-      "ema21": 131.89782556130382,
+      "moxie_w": -4.212615093992753,
+      "atr": 8.36297711135264,
+      "ema21": 130.37620538864977,
       "lit_bull": 1,
       "moxie_up": false,
       "lit_bear": 7,
-      "target_up": 151.9736,
-      "target_dn": 111.8221,
-      "stop": 111.6845,
-      "score": 20.5,
+      "target_up": 151.2836,
+      "target_dn": 109.4688,
+      "stop": 102.6155,
+      "score": 18.9,
       "conviction_grade": "C",
       "score_parts": {
         "symbol": "ORCL",
-        "date": "2026-11-04",
+        "date": "2026-11-05",
         "direction": "bear",
-        "score": 20.5,
+        "score": 18.9,
         "grade": "C",
         "signal_grade": "A++",
         "confluence": 10.0,
-        "strength": 10.5,
-        "rr": 0.99,
-        "atr_pct": 6.49,
+        "strength": 8.9,
+        "rr": 0.45,
+        "atr_pct": 7.26,
         "parts": {
-          "momentum": 4.4,
-          "moxie": 4.8,
+          "momentum": 3.8,
+          "moxie": 4.5,
           "freshness": 0.0,
-          "risk_reward": 1.3
+          "risk_reward": 0.6
         }
       },
-      "prov_target": 103.65,
-      "prov_stop": 135.78,
+      "prov_target": 94.25,
+      "prov_stop": 127.7,
       "chart": "charts/ORCL.png",
       "weekly_chart": "charts/ORCL_weekly.png"
     },
     {
-      "symbol": "XME",
-      "date": "2026-11-04",
+      "symbol": "ON",
+      "date": "2026-11-05",
       "direction": "bear",
       "grade": "A++",
-      "close": 95.77999877929688,
-      "rsi": 35.08585324593743,
-      "ppo": -1.9387995662920852,
+      "close": 63.0099983215332,
+      "rsi": 33.55897722430387,
+      "ppo": -2.537848194339272,
       "squeeze_on": true,
-      "moxie_w": -6.040332042234962,
-      "atr": 3.3256470323796243,
-      "ema21": 100.48786097342277,
+      "moxie_w": -6.512566643585951,
+      "atr": 4.183975444665409,
+      "ema21": 73.3258553211793,
       "lit_bull": 1,
       "moxie_up": false,
       "lit_bear": 7,
-      "target_up": 108.802,
-      "target_dn": 92.1737,
-      "stop": 90.7915,
-      "score": 17.2,
+      "target_up": 83.7858,
+      "target_dn": 62.8659,
+      "stop": 56.734,
+      "score": 14.9,
       "conviction_grade": "C",
       "score_parts": {
-        "symbol": "XME",
-        "date": "2026-11-04",
+        "symbol": "ON",
+        "date": "2026-11-05",
         "direction": "bear",
-        "score": 17.2,
+        "score": 14.9,
         "grade": "C",
         "signal_grade": "A++",
         "confluence": 10.0,
-        "strength": 7.2,
-        "rr": 0.72,
-        "atr_pct": 3.47,
+        "strength": 4.9,
+        "rr": 0.02,
+        "atr_pct": 6.64,
         "parts": {
-          "momentum": 4.8,
-          "moxie": 1.5,
+          "momentum": 2.8,
+          "moxie": 2.0,
           "freshness": 0.0,
-          "risk_reward": 1.0
+          "risk_reward": 0.0
         }
       },
-      "prov_target": 87.47,
-      "prov_stop": 100.77,
-      "chart": "charts/XME.png",
-      "weekly_chart": "charts/XME_weekly.png"
+      "prov_target": 52.55,
+      "prov_stop": 69.29,
+      "chart": "charts/ON.png",
+      "weekly_chart": "charts/ON_weekly.png"
+    },
+    {
+      "symbol": "XLI",
+      "date": "2026-11-05",
+      "direction": "bear",
+      "grade": "A",
+      "close": 162.47000122070312,
+      "rsi": 37.211394215333705,
+      "ppo": -0.23701998952194991,
+      "squeeze_on": true,
+      "moxie_w": -6.0756378768990915,
+      "atr": 3.108802916627668,
+      "ema21": 168.17971477358563,
+      "lit_bull": 1,
+      "moxie_up": false,
+      "lit_bear": 6,
+      "target_up": 175.9517,
+      "target_dn": 160.4077,
+      "stop": 157.8068,
+      "score": 17.6,
+      "conviction_grade": "C",
+      "score_parts": {
+        "symbol": "XLI",
+        "date": "2026-11-05",
+        "direction": "bear",
+        "score": 17.6,
+        "grade": "C",
+        "signal_grade": "A",
+        "confluence": 10.0,
+        "strength": 7.6,
+        "rr": 0.44,
+        "atr_pct": 1.91,
+        "parts": {
+          "momentum": 6.4,
+          "moxie": 0.6,
+          "freshness": 0.0,
+          "risk_reward": 0.6
+        }
+      },
+      "prov_target": 154.7,
+      "prov_stop": 167.13,
+      "chart": "charts/XLI.png",
+      "weekly_chart": "charts/XLI_weekly.png"
     }
   ],
   "stale_fired": [],
   "stale_count": 0,
   "watching": [
-    "DIA",
-    "XOP",
-    "ABNB",
+    "QCOM",
     "XYZ",
-    "WFC",
     "DE",
     "TGT",
-    "ON",
     "AFRM",
-    "MDB",
-    "YM=F",
+    "ES=F",
     "IWM",
-    "XLI",
-    "XBI",
-    "IYT",
-    "OIH",
+    "TAN",
     "JETS",
+    "HYG",
     "UUP",
+    "AMZN",
     "CRM",
-    "JPM",
-    "AXP",
+    "ABNB",
+    "WFC",
+    "GS",
     "MRK",
-    "OXY",
+    "ABBV",
     "VZ",
+    "PM",
     "UAL",
     "RTY=F",
     "CL=F",
-    "XLE",
-    "TAN",
-    "HYG",
-    "BITO",
-    "ADBE",
-    "QCOM",
-    "GS",
+    "BTC=F",
+    "DIA",
+    "IYT",
     "MS",
+    "AXP",
+    "UNH",
+    "TMO",
     "TMUS",
-    "IBIT",
-    "SPY",
-    "AMZN",
+    "XBI",
+    "ADBE",
+    "JPM",
+    "HON",
     "NEM",
-    "ES=F",
-    "BTC=F"
+    "YM=F"
   ],
   "watching_detail": [
     {
-      "symbol": "DIA",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
-      "symbol": "XOP",
+      "symbol": "QCOM",
       "lit": 6,
       "lean": "bear"
     },
     {
-      "symbol": "ABNB",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
       "symbol": "XYZ",
-      "lit": 6,
-      "lean": "bull"
-    },
-    {
-      "symbol": "WFC",
       "lit": 6,
       "lean": "bull"
     },
@@ -432,49 +326,24 @@
       "lean": "bull"
     },
     {
-      "symbol": "ON",
-      "lit": 6,
-      "lean": "bear"
-    },
-    {
       "symbol": "AFRM",
       "lit": 6,
-      "lean": "bull"
-    },
-    {
-      "symbol": "MDB",
-      "lit": 6,
       "lean": "bear"
     },
     {
-      "symbol": "YM=F",
+      "symbol": "ES=F",
       "lit": 6,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
       "symbol": "IWM",
       "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "XLI",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "XBI",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "IYT",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "OIH",
-      "lit": 5,
       "lean": "bear"
+    },
+    {
+      "symbol": "TAN",
+      "lit": 5,
+      "lean": "bull"
     },
     {
       "symbol": "JETS",
@@ -482,7 +351,17 @@
       "lean": "bull"
     },
     {
+      "symbol": "HYG",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
       "symbol": "UUP",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "AMZN",
       "lit": 5,
       "lean": "bull"
     },
@@ -492,14 +371,19 @@
       "lean": "bear"
     },
     {
-      "symbol": "JPM",
+      "symbol": "ABNB",
       "lit": 5,
       "lean": "bull"
     },
     {
-      "symbol": "AXP",
+      "symbol": "WFC",
       "lit": 5,
       "lean": "bull"
+    },
+    {
+      "symbol": "GS",
+      "lit": 5,
+      "lean": "bear"
     },
     {
       "symbol": "MRK",
@@ -507,12 +391,17 @@
       "lean": "bull"
     },
     {
-      "symbol": "OXY",
+      "symbol": "ABBV",
       "lit": 5,
-      "lean": "bear"
+      "lean": "bull"
     },
     {
       "symbol": "VZ",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "PM",
       "lit": 5,
       "lean": "bull"
     },
@@ -524,7 +413,7 @@
     {
       "symbol": "RTY=F",
       "lit": 5,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
       "symbol": "CL=F",
@@ -532,42 +421,37 @@
       "lean": "bear"
     },
     {
-      "symbol": "XLE",
+      "symbol": "BTC=F",
+      "lit": 5,
+      "lean": "bear"
+    },
+    {
+      "symbol": "DIA",
       "lit": 4,
       "lean": "bull"
     },
     {
-      "symbol": "TAN",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "HYG",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
-      "symbol": "BITO",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
-      "symbol": "ADBE",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "QCOM",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
-      "symbol": "GS",
+      "symbol": "IYT",
       "lit": 4,
       "lean": "bull"
     },
     {
       "symbol": "MS",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "AXP",
+      "lit": 4,
+      "lean": "bull"
+    },
+    {
+      "symbol": "UNH",
+      "lit": 4,
+      "lean": "bull"
+    },
+    {
+      "symbol": "TMO",
       "lit": 4,
       "lean": "bull"
     },
@@ -577,19 +461,24 @@
       "lean": "bear"
     },
     {
-      "symbol": "IBIT",
-      "lit": 4,
-      "lean": "bear"
+      "symbol": "XBI",
+      "lit": 3,
+      "lean": "bull"
     },
     {
-      "symbol": "SPY",
+      "symbol": "ADBE",
       "lit": 3,
       "lean": "bear"
     },
     {
-      "symbol": "AMZN",
+      "symbol": "JPM",
       "lit": 3,
-      "lean": "bear"
+      "lean": "bull"
+    },
+    {
+      "symbol": "HON",
+      "lit": 3,
+      "lean": "bull"
     },
     {
       "symbol": "NEM",
@@ -597,14 +486,9 @@
       "lean": "bear"
     },
     {
-      "symbol": "ES=F",
+      "symbol": "YM=F",
       "lit": 3,
-      "lean": "bear"
-    },
-    {
-      "symbol": "BTC=F",
-      "lit": 3,
-      "lean": "bear"
+      "lean": "bull"
     }
   ]
 }
