@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T00:01:19+00:00",
+  "generated_at": "2026-11-10T02:20:31+00:00",
   "as_of": "2026-11-06",
   "universe": 159,
   "fired_count": 6,
@@ -10,12 +10,12 @@
       "direction": "bull",
       "grade": "A++",
       "close": 59.2400016784668,
-      "rsi": 61.66913259198845,
-      "ppo": 1.5650586506573183,
+      "rsi": 61.66913259194378,
+      "ppo": 1.5650586506572552,
       "squeeze_on": true,
-      "moxie_w": 1.1844951652322406,
-      "atr": 1.6116070807707623,
-      "ema21": 57.22356166864544,
+      "moxie_w": 1.185810159573637,
+      "atr": 1.6116070807722807,
+      "ema21": 57.223561668645466,
       "lit_bull": 7,
       "moxie_up": true,
       "lit_bear": 1,
@@ -56,7 +56,7 @@
       "rsi": 60.99957534521367,
       "ppo": 0.13627160848142103,
       "squeeze_on": true,
-      "moxie_w": 0.16284002836880745,
+      "moxie_w": 0.1630843241256859,
       "atr": 0.12036752307543591,
       "ema21": 28.954229601133534,
       "lit_bull": 6,
@@ -65,22 +65,22 @@
       "target_up": 29.2551,
       "target_dn": 28.6533,
       "stop": 28.9494,
-      "score": 71.2,
+      "score": 71.1,
       "conviction_grade": "A",
       "score_parts": {
         "symbol": "UUP",
         "date": "2026-11-06",
         "direction": "bull",
-        "score": 71.2,
+        "score": 71.1,
         "grade": "A",
         "signal_grade": "A",
         "confluence": 52.0,
-        "strength": 19.2,
+        "strength": 19.1,
         "rr": 0.69,
         "atr_pct": 0.41,
         "parts": {
           "momentum": 8.7,
-          "moxie": 9.7,
+          "moxie": 9.5,
           "freshness": 0.0,
           "risk_reward": 0.9
         }
@@ -96,18 +96,18 @@
       "direction": "bear",
       "grade": "A++",
       "close": 116.0999984741211,
-      "rsi": 38.66270613531392,
+      "rsi": 38.66270613531544,
       "ppo": -3.3143798540224463,
       "squeeze_on": true,
-      "moxie_w": -4.032650207739259,
-      "atr": 8.49847890094975,
+      "moxie_w": -4.035188646164793,
+      "atr": 8.514907167202674,
       "ema21": 129.07836839669156,
       "lit_bull": 1,
       "moxie_up": false,
       "lit_bear": 7,
-      "target_up": 150.3246,
-      "target_dn": 107.8322,
-      "stop": 103.3523,
+      "target_up": 150.3656,
+      "target_dn": 107.7911,
+      "stop": 103.3276,
       "score": 18.8,
       "conviction_grade": "C",
       "score_parts": {
@@ -120,7 +120,7 @@
         "confluence": 10.0,
         "strength": 8.8,
         "rr": 0.65,
-        "atr_pct": 7.32,
+        "atr_pct": 7.33,
         "parts": {
           "momentum": 3.3,
           "moxie": 4.6,
@@ -128,8 +128,8 @@
           "risk_reward": 0.9
         }
       },
-      "prov_target": 94.85,
-      "prov_stop": 128.85,
+      "prov_target": 94.81,
+      "prov_stop": 128.87,
       "chart": "charts/ORCL.png",
       "weekly_chart": "charts/ORCL_weekly.png"
     },
@@ -139,12 +139,12 @@
       "direction": "bear",
       "grade": "A++",
       "close": 93.44999694824219,
-      "rsi": 35.93231149463671,
-      "ppo": -2.5432734742813423,
+      "rsi": 35.932311494666216,
+      "ppo": -2.5432734742813703,
       "squeeze_on": true,
-      "moxie_w": -6.4864180279100525,
-      "atr": 3.668987799268468,
-      "ema21": 99.01600037582205,
+      "moxie_w": -6.4883918441192705,
+      "atr": 3.6689877992704183,
+      "ema21": 99.01600037582213,
       "lit_bull": 1,
       "moxie_up": false,
       "lit_bear": 7,
@@ -182,10 +182,10 @@
       "direction": "bear",
       "grade": "A++",
       "close": 63.310001373291016,
-      "rsi": 34.15541152913713,
+      "rsi": 34.15541152913714,
       "ppo": -3.2898823653330913,
       "squeeze_on": true,
-      "moxie_w": -6.455130161881899,
+      "moxie_w": -6.457794141626514,
       "atr": 4.227645421162024,
       "ema21": 72.41532314409855,
       "lit_bull": 1,
@@ -225,18 +225,18 @@
       "direction": "bear",
       "grade": "A",
       "close": 162.6699981689453,
-      "rsi": 37.734655761866335,
-      "ppo": -0.47640510221957966,
+      "rsi": 37.73465575829231,
+      "ppo": -0.4764051023347959,
       "squeeze_on": true,
-      "moxie_w": -6.037347885061873,
-      "atr": 3.0360310181464505,
-      "ema21": 167.67883144589106,
+      "moxie_w": -6.038716193090416,
+      "atr": 3.0367449108059983,
+      "ema21": 167.6788314461894,
       "lit_bull": 1,
       "moxie_up": false,
       "lit_bear": 6,
-      "target_up": 175.2689,
-      "target_dn": 160.0888,
-      "stop": 158.116,
+      "target_up": 175.2707,
+      "target_dn": 160.087,
+      "stop": 158.1149,
       "score": 16.5,
       "conviction_grade": "C",
       "score_parts": {
@@ -258,7 +258,7 @@
         }
       },
       "prov_target": 155.08,
-      "prov_stop": 167.22,
+      "prov_stop": 167.23,
       "chart": "charts/XLI.png",
       "weekly_chart": "charts/XLI_weekly.png"
     }
@@ -271,7 +271,6 @@
     "TGT",
     "KO",
     "AFRM",
-    "YM=F",
     "DIA",
     "TAN",
     "HYG",
@@ -283,6 +282,7 @@
     "BAC",
     "WFC",
     "GS",
+    "PFE",
     "MRK",
     "ABBV",
     "TMO",
@@ -291,21 +291,22 @@
     "NEM",
     "UAL",
     "ISRG",
-    "CL=F",
     "BTC=F",
     "IWM",
     "MS",
     "AXP",
     "UNH",
-    "PFE",
     "TMUS",
     "PM",
     "BKNG",
-    "RTY=F",
+    "ES=F",
+    "GC=F",
     "XBI",
     "IYT",
     "JPM",
-    "RTX"
+    "RTX",
+    "YM=F",
+    "RTY=F"
   ],
   "watching_detail": [
     {
@@ -330,11 +331,6 @@
     },
     {
       "symbol": "AFRM",
-      "lit": 6,
-      "lean": "bear"
-    },
-    {
-      "symbol": "YM=F",
       "lit": 6,
       "lean": "bear"
     },
@@ -394,6 +390,11 @@
       "lean": "bear"
     },
     {
+      "symbol": "PFE",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
       "symbol": "MRK",
       "lit": 5,
       "lean": "bull"
@@ -434,11 +435,6 @@
       "lean": "bull"
     },
     {
-      "symbol": "CL=F",
-      "lit": 5,
-      "lean": "bear"
-    },
-    {
       "symbol": "BTC=F",
       "lit": 5,
       "lean": "bear"
@@ -464,11 +460,6 @@
       "lean": "bull"
     },
     {
-      "symbol": "PFE",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
       "symbol": "TMUS",
       "lit": 4,
       "lean": "bull"
@@ -484,7 +475,12 @@
       "lean": "bull"
     },
     {
-      "symbol": "RTY=F",
+      "symbol": "ES=F",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "GC=F",
       "lit": 4,
       "lean": "bear"
     },
@@ -505,6 +501,16 @@
     },
     {
       "symbol": "RTX",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "YM=F",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "RTY=F",
       "lit": 3,
       "lean": "bull"
     }

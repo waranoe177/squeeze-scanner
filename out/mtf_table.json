@@ -8,7 +8,7 @@
   ],
   "counts": {
     "buy": 21,
-    "sell": 36,
+    "sell": 33,
     "mixed": 0
   },
   "rows": [
@@ -943,36 +943,6 @@
       }
     },
     {
-      "symbol": "/SI",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 4,
-          "squeeze": false,
-          "text": "S: 4"
-        },
-        "3D": {
-          "side": "S",
-          "run": 7,
-          "squeeze": false,
-          "text": "S: 7"
-        },
-        "2D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
       "symbol": "AVGO",
       "direction": "sell",
       "cells": {
@@ -1119,36 +1089,6 @@
           "run": 7,
           "squeeze": false,
           "text": "B: 7"
-        }
-      }
-    },
-    {
-      "symbol": "/ES",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": true,
-          "text": "* S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
         }
       }
     },
@@ -1419,36 +1359,6 @@
           "run": 6,
           "squeeze": false,
           "text": "S: 6"
-        }
-      }
-    },
-    {
-      "symbol": "/NQ",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": false,
-          "text": "S: 3"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "1D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
         }
       }
     },
