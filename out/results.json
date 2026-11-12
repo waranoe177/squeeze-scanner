@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-11T00:09:31+00:00",
+  "generated_at": "2026-11-12T01:37:27+00:00",
   "as_of": "2026-11-10",
   "universe": 159,
   "fired_count": 5,
@@ -10,12 +10,12 @@
       "direction": "bull",
       "grade": "A++",
       "close": 96.91000366210938,
-      "rsi": 68.00260013494322,
-      "ppo": 1.5325200982414047,
+      "rsi": 68.00260013920169,
+      "ppo": 1.5325200982911202,
       "squeeze_on": true,
-      "moxie_w": 1.6311841588344769,
-      "atr": 1.748294044586953,
-      "ema21": 93.5885340208102,
+      "moxie_w": 1.6311841901624304,
+      "atr": 1.7482940446009307,
+      "ema21": 93.58853402073656,
       "lit_bull": 7,
       "moxie_up": true,
       "lit_bear": 1,
@@ -53,12 +53,12 @@
       "direction": "bull",
       "grade": "A",
       "close": 718.2000122070312,
-      "rsi": 60.31336175082479,
-      "ppo": 1.3060238098454213,
+      "rsi": 60.313361753391106,
+      "ppo": 1.3060238098769819,
       "squeeze_on": true,
-      "moxie_w": 21.737847330508302,
-      "atr": 22.036667839944805,
-      "ema21": 691.0271330009743,
+      "moxie_w": 21.737846963947057,
+      "atr": 22.036667837006036,
+      "ema21": 691.0271330006295,
       "lit_bull": 6,
       "moxie_up": true,
       "lit_bear": 1,
@@ -139,18 +139,18 @@
       "direction": "bull",
       "grade": "A",
       "close": 348.510009765625,
-      "rsi": 55.621889268058354,
-      "ppo": 0.5240457114655199,
+      "rsi": 55.62188926712046,
+      "ppo": 0.5240457114598119,
       "squeeze_on": true,
-      "moxie_w": 0.6116977850271148,
-      "atr": 8.752226476331415,
-      "ema21": 343.17684755167153,
+      "moxie_w": 0.6116979916116403,
+      "atr": 8.752263533399312,
+      "ema21": 343.176847551707,
       "lit_bull": 5,
       "moxie_up": false,
       "lit_bear": 1,
-      "target_up": 365.0574,
-      "target_dn": 321.2963,
-      "stop": 335.3817,
+      "target_up": 365.0575,
+      "target_dn": 321.2962,
+      "stop": 335.3816,
       "score": 52.6,
       "conviction_grade": "C",
       "score_parts": {
@@ -182,12 +182,12 @@
       "direction": "bear",
       "grade": "A++",
       "close": 117.9800033569336,
-      "rsi": 40.798815248294105,
-      "ppo": -3.426061603322536,
+      "rsi": 40.79881525111808,
+      "ppo": -3.4260616032156195,
       "squeeze_on": true,
-      "moxie_w": -4.6398795343642565,
-      "atr": 8.034639481732103,
-      "ema21": 127.3017924442204,
+      "moxie_w": -4.639879462070022,
+      "atr": 8.034639479881758,
+      "ema21": 127.30179244399791,
       "lit_bull": 1,
       "moxie_up": false,
       "lit_bear": 7,
@@ -256,7 +256,8 @@
     "PM",
     "NEM",
     "ON",
-    "ES=F",
+    "YM=F",
+    "RTY=F",
     "GC=F",
     "XLI",
     "TAN",
@@ -267,11 +268,10 @@
     "AXP",
     "INTU",
     "ISRG",
+    "ES=F",
     "HYG",
     "MS",
-    "ANET",
-    "YM=F",
-    "RTY=F"
+    "ANET"
   ],
   "watching_detail": [
     {
@@ -440,9 +440,14 @@
       "lean": "bear"
     },
     {
-      "symbol": "ES=F",
+      "symbol": "YM=F",
       "lit": 5,
-      "lean": "bear"
+      "lean": "bull"
+    },
+    {
+      "symbol": "RTY=F",
+      "lit": 5,
+      "lean": "bull"
     },
     {
       "symbol": "GC=F",
@@ -495,6 +500,11 @@
       "lean": "bull"
     },
     {
+      "symbol": "ES=F",
+      "lit": 4,
+      "lean": "bear"
+    },
+    {
       "symbol": "HYG",
       "lit": 3,
       "lean": "bull"
@@ -508,16 +518,6 @@
       "symbol": "ANET",
       "lit": 3,
       "lean": "bear"
-    },
-    {
-      "symbol": "YM=F",
-      "lit": 3,
-      "lean": "bull"
-    },
-    {
-      "symbol": "RTY=F",
-      "lit": 3,
-      "lean": "bull"
     }
   ]
 }

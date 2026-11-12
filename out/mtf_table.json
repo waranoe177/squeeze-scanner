@@ -8,7 +8,7 @@
   ],
   "counts": {
     "buy": 30,
-    "sell": 19,
+    "sell": 18,
     "mixed": 0
   },
   "rows": [
@@ -843,36 +843,6 @@
           "run": 11,
           "squeeze": false,
           "text": "S: 11"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "/SI",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 5,
-          "squeeze": false,
-          "text": "S: 5"
-        },
-        "3D": {
-          "side": "S",
-          "run": 7,
-          "squeeze": false,
-          "text": "S: 7"
-        },
-        "2D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
         },
         "1D": {
           "side": null,
