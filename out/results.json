@@ -1,256 +1,303 @@
 {
-  "generated_at": "2026-11-17T02:34:18+00:00",
-  "as_of": "2026-11-13",
-  "universe": 158,
-  "fired_count": 4,
+  "generated_at": "2026-11-18T01:45:06+00:00",
+  "as_of": "2026-11-16",
+  "universe": 159,
+  "fired_count": 5,
   "fired": [
     {
-      "symbol": "AAPL",
-      "date": "2026-11-13",
-      "direction": "bull",
-      "grade": "A++",
-      "close": 356.2699890136719,
-      "rsi": 60.90279971419288,
-      "ppo": 0.9805391225181025,
-      "squeeze_on": true,
-      "moxie_w": 2.149843224858582,
-      "atr": 8.2116212201183,
-      "ema21": 346.0539151248797,
-      "lit_bull": 7,
-      "moxie_up": true,
-      "lit_bear": 1,
-      "target_up": 366.583,
-      "target_dn": 325.5249,
-      "stop": 343.9526,
-      "score": 84.3,
-      "conviction_grade": "A",
-      "score_parts": {
-        "symbol": "AAPL",
-        "date": "2026-11-13",
-        "direction": "bull",
-        "score": 84.3,
-        "grade": "A",
-        "signal_grade": "A++",
-        "confluence": 60.0,
-        "strength": 24.3,
-        "rr": 0.84,
-        "atr_pct": 2.3,
-        "parts": {
-          "momentum": 12.1,
-          "moxie": 7.8,
-          "freshness": 3.2,
-          "risk_reward": 1.1
-        }
-      },
-      "prov_target": 376.8,
-      "prov_stop": 343.95,
-      "chart": "charts/AAPL.png",
-      "weekly_chart": "charts/AAPL_weekly.png"
-    },
-    {
-      "symbol": "XME",
-      "date": "2026-11-13",
-      "direction": "bear",
-      "grade": "A++",
-      "close": 93.73999786376953,
-      "rsi": 39.665881415764446,
-      "ppo": -1.7563992015331327,
-      "squeeze_on": true,
-      "moxie_w": -6.506222575645102,
-      "atr": 3.487758828212051,
-      "ema21": 97.89885122377669,
-      "lit_bull": 1,
-      "moxie_up": false,
-      "lit_bear": 7,
-      "target_up": 106.6182,
-      "target_dn": 89.1795,
-      "stop": 88.5084,
-      "score": 17.8,
-      "conviction_grade": "C",
-      "score_parts": {
-        "symbol": "XME",
-        "date": "2026-11-13",
-        "direction": "bear",
-        "score": 17.8,
-        "grade": "C",
-        "signal_grade": "A++",
-        "confluence": 10.0,
-        "strength": 7.8,
-        "rr": 0.87,
-        "atr_pct": 3.72,
-        "parts": {
-          "momentum": 5.4,
-          "moxie": 1.2,
-          "freshness": 0.0,
-          "risk_reward": 1.2
-        }
-      },
-      "prov_target": 85.02,
-      "prov_stop": 98.97,
-      "chart": "charts/XME.png",
-      "weekly_chart": "charts/XME_weekly.png"
-    },
-    {
-      "symbol": "GC=F",
+      "symbol": "ORCL",
       "date": "2026-11-16",
       "direction": "bear",
       "grade": "A++",
-      "close": 3870.39990234375,
-      "rsi": 35.068690522526765,
-      "ppo": -1.3030445001561775,
+      "close": 119.08999633789062,
+      "rsi": 42.707850118687816,
+      "ppo": -2.1249080461280774,
       "squeeze_on": true,
-      "moxie_w": -134.0375237160955,
-      "atr": 88.06111579676676,
-      "ema21": 4027.3524900808275,
+      "moxie_w": -3.475061021861041,
+      "atr": 7.9961091113317035,
+      "ema21": 126.45319399466031,
       "lit_bull": 1,
       "moxie_up": false,
       "lit_bear": 7,
-      "target_up": 4247.5053,
-      "target_dn": 3807.1997,
-      "stop": 3738.3082,
-      "score": 17.7,
+      "target_up": 146.4435,
+      "target_dn": 106.4629,
+      "stop": 107.0958,
+      "score": 20.7,
       "conviction_grade": "C",
       "score_parts": {
-        "symbol": "GC=F",
+        "symbol": "ORCL",
         "date": "2026-11-16",
         "direction": "bear",
-        "score": 17.7,
+        "score": 20.7,
         "grade": "C",
         "signal_grade": "A++",
         "confluence": 10.0,
-        "strength": 7.7,
-        "rr": 0.48,
-        "atr_pct": 2.28,
+        "strength": 10.7,
+        "rr": 1.05,
+        "atr_pct": 6.71,
         "parts": {
-          "momentum": 4.2,
-          "moxie": 2.9,
+          "momentum": 4.8,
+          "moxie": 4.5,
+          "freshness": 0.0,
+          "risk_reward": 1.4
+        }
+      },
+      "prov_target": 99.1,
+      "prov_stop": 131.08,
+      "chart": "charts/ORCL.png",
+      "weekly_chart": "charts/ORCL_weekly.png"
+    },
+    {
+      "symbol": "GDX",
+      "date": "2026-11-16",
+      "direction": "bear",
+      "grade": "A++",
+      "close": 78.94999694824219,
+      "rsi": 40.849870572491284,
+      "ppo": -0.9770475232355234,
+      "squeeze_on": true,
+      "moxie_w": -4.01719659637318,
+      "atr": 3.4769502148344005,
+      "ema21": 84.00780838827777,
+      "lit_bull": 1,
+      "moxie_up": false,
+      "lit_bear": 7,
+      "target_up": 92.7002,
+      "target_dn": 75.3154,
+      "stop": 73.7346,
+      "score": 20.1,
+      "conviction_grade": "C",
+      "score_parts": {
+        "symbol": "GDX",
+        "date": "2026-11-16",
+        "direction": "bear",
+        "score": 20.1,
+        "grade": "C",
+        "signal_grade": "A++",
+        "confluence": 10.0,
+        "strength": 10.1,
+        "rr": 0.7,
+        "atr_pct": 4.4,
+        "parts": {
+          "momentum": 6.0,
+          "moxie": 3.2,
+          "freshness": 0.0,
+          "risk_reward": 0.9
+        }
+      },
+      "prov_target": 70.26,
+      "prov_stop": 84.17,
+      "chart": "charts/GDX.png",
+      "weekly_chart": "charts/GDX_weekly.png"
+    },
+    {
+      "symbol": "NFLX",
+      "date": "2026-11-16",
+      "direction": "bear",
+      "grade": "A++",
+      "close": 60.75,
+      "rsi": 35.239719505768605,
+      "ppo": -2.0550606410202303,
+      "squeeze_on": true,
+      "moxie_w": -1.8408585826980284,
+      "atr": 1.9738250502642667,
+      "ema21": 64.55182487887683,
+      "lit_bull": 1,
+      "moxie_up": false,
+      "lit_bear": 7,
+      "target_up": 69.4864,
+      "target_dn": 59.6173,
+      "stop": 57.7893,
+      "score": 20.0,
+      "conviction_grade": "C",
+      "score_parts": {
+        "symbol": "NFLX",
+        "date": "2026-11-16",
+        "direction": "bear",
+        "score": 20.0,
+        "grade": "C",
+        "signal_grade": "A++",
+        "confluence": 10.0,
+        "strength": 10.0,
+        "rr": 0.38,
+        "atr_pct": 3.25,
+        "parts": {
+          "momentum": 5.8,
+          "moxie": 3.7,
+          "freshness": 0.0,
+          "risk_reward": 0.5
+        }
+      },
+      "prov_target": 55.82,
+      "prov_stop": 63.71,
+      "chart": "charts/NFLX.png",
+      "weekly_chart": "charts/NFLX_weekly.png"
+    },
+    {
+      "symbol": "GDXJ",
+      "date": "2026-11-16",
+      "direction": "bear",
+      "grade": "A++",
+      "close": 95.3499984741211,
+      "rsi": 38.63120193399298,
+      "ppo": -1.8380449749992294,
+      "squeeze_on": true,
+      "moxie_w": -7.363667718668187,
+      "atr": 4.712809655415854,
+      "ema21": 103.75251340039716,
+      "lit_bull": 1,
+      "moxie_up": false,
+      "lit_bear": 7,
+      "target_up": 115.5345,
+      "target_dn": 91.9705,
+      "stop": 88.2808,
+      "score": 18.6,
+      "conviction_grade": "C",
+      "score_parts": {
+        "symbol": "GDXJ",
+        "date": "2026-11-16",
+        "direction": "bear",
+        "score": 18.6,
+        "grade": "C",
+        "signal_grade": "A++",
+        "confluence": 10.0,
+        "strength": 8.6,
+        "rr": 0.48,
+        "atr_pct": 4.94,
+        "parts": {
+          "momentum": 5.2,
+          "moxie": 2.8,
           "freshness": 0.0,
           "risk_reward": 0.6
         }
       },
-      "prov_target": 3650.25,
-      "prov_stop": 4002.49,
-      "chart": "charts/GC=F.png",
-      "weekly_chart": "charts/GC=F_weekly.png"
-    },
-    {
-      "symbol": "GDXJ",
-      "date": "2026-11-13",
-      "direction": "bear",
-      "grade": "A",
-      "close": 99.0199966430664,
-      "rsi": 42.02505597059412,
-      "ppo": -1.309267555821847,
-      "squeeze_on": true,
-      "moxie_w": -6.587582433528857,
-      "atr": 4.781487344692134,
-      "ema21": 104.59276489302478,
-      "lit_bull": 1,
-      "moxie_up": false,
-      "lit_bear": 6,
-      "target_up": 116.5465,
-      "target_dn": 92.639,
-      "stop": 91.8478,
-      "score": 20.6,
-      "conviction_grade": "C",
-      "score_parts": {
-        "symbol": "GDXJ",
-        "date": "2026-11-13",
-        "direction": "bear",
-        "score": 20.6,
-        "grade": "C",
-        "signal_grade": "A",
-        "confluence": 10.0,
-        "strength": 10.6,
-        "rr": 0.89,
-        "atr_pct": 4.83,
-        "parts": {
-          "momentum": 6.1,
-          "moxie": 3.4,
-          "freshness": 0.0,
-          "risk_reward": 1.2
-        }
-      },
-      "prov_target": 87.07,
-      "prov_stop": 106.19,
+      "prov_target": 83.57,
+      "prov_stop": 102.42,
       "chart": "charts/GDXJ.png",
       "weekly_chart": "charts/GDXJ_weekly.png"
+    },
+    {
+      "symbol": "XME",
+      "date": "2026-11-16",
+      "direction": "bear",
+      "grade": "A++",
+      "close": 89.91000366210938,
+      "rsi": 34.45708013433158,
+      "ppo": -2.145033627627881,
+      "squeeze_on": true,
+      "moxie_w": -6.86337015416648,
+      "atr": 3.522204713389983,
+      "ema21": 97.1725923545342,
+      "lit_bull": 1,
+      "moxie_up": false,
+      "lit_bear": 7,
+      "target_up": 105.9781,
+      "target_dn": 88.3671,
+      "stop": 84.6267,
+      "score": 16.2,
+      "conviction_grade": "C",
+      "score_parts": {
+        "symbol": "XME",
+        "date": "2026-11-16",
+        "direction": "bear",
+        "score": 16.2,
+        "grade": "C",
+        "signal_grade": "A++",
+        "confluence": 10.0,
+        "strength": 6.2,
+        "rr": 0.29,
+        "atr_pct": 3.92,
+        "parts": {
+          "momentum": 4.7,
+          "moxie": 1.1,
+          "freshness": 0.0,
+          "risk_reward": 0.4
+        }
+      },
+      "prov_target": 81.1,
+      "prov_stop": 95.19,
+      "chart": "charts/XME.png",
+      "weekly_chart": "charts/XME_weekly.png"
     }
   ],
   "stale_fired": [],
   "stale_count": 0,
   "watching": [
-    "DIA",
-    "AMZN",
-    "PYPL",
-    "JPM",
+    "SPY",
+    "XBI",
+    "QCOM",
+    "KLAC",
     "UNH",
+    "SLB",
+    "PM",
     "APD",
+    "ON",
     "AFRM",
     "ES=F",
     "YM=F",
     "RSP",
     "XLI",
-    "XLB",
-    "XBI",
-    "KRE",
-    "TSLA",
-    "AVGO",
-    "ORCL",
-    "KLAC",
+    "TAN",
+    "AAPL",
+    "MSFT",
+    "TXN",
     "UBER",
+    "PYPL",
     "BAC",
     "WFC",
-    "GS",
-    "MS",
-    "MRK",
     "ABBV",
     "TMO",
-    "HON",
+    "AMGN",
     "UNP",
     "NKE",
     "LIN",
-    "ANET",
-    "ON",
-    "IBM",
-    "SPY",
-    "IYT",
-    "TAN",
-    "MSFT",
-    "QCOM",
-    "AXP",
-    "PFE",
-    "RTX",
-    "VZ",
-    "PM",
-    "INTU",
-    "ISRG",
+    "BKNG",
     "RTY=F",
     "IWM",
+    "DIA",
+    "IYT",
+    "KRE",
+    "HYG",
+    "AMZN",
+    "JPM",
     "SCHW",
-    "SLB",
-    "BKNG"
+    "PFE",
+    "MRK",
+    "DE",
+    "HON",
+    "VZ",
+    "ANET",
+    "INTU",
+    "XLB",
+    "TSLA",
+    "AVGO",
+    "GS",
+    "MS",
+    "AXP",
+    "RTX",
+    "IBM",
+    "ISRG"
   ],
   "watching_detail": [
     {
-      "symbol": "DIA",
+      "symbol": "SPY",
       "lit": 6,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
-      "symbol": "AMZN",
+      "symbol": "XBI",
       "lit": 6,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
-      "symbol": "PYPL",
+      "symbol": "QCOM",
       "lit": 6,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
-      "symbol": "JPM",
+      "symbol": "KLAC",
       "lit": 6,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
       "symbol": "UNH",
@@ -258,9 +305,24 @@
       "lean": "bull"
     },
     {
+      "symbol": "SLB",
+      "lit": 6,
+      "lean": "bear"
+    },
+    {
+      "symbol": "PM",
+      "lit": 6,
+      "lean": "bear"
+    },
+    {
       "symbol": "APD",
       "lit": 6,
       "lean": "bull"
+    },
+    {
+      "symbol": "ON",
+      "lit": 6,
+      "lean": "bear"
     },
     {
       "symbol": "AFRM",
@@ -285,45 +347,35 @@
     {
       "symbol": "XLI",
       "lit": 5,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
-      "symbol": "XLB",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "XBI",
+      "symbol": "TAN",
       "lit": 5,
       "lean": "bear"
     },
     {
-      "symbol": "KRE",
+      "symbol": "AAPL",
       "lit": 5,
       "lean": "bull"
     },
     {
-      "symbol": "TSLA",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "AVGO",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "ORCL",
+      "symbol": "MSFT",
       "lit": 5,
       "lean": "bear"
     },
     {
-      "symbol": "KLAC",
+      "symbol": "TXN",
       "lit": 5,
-      "lean": "bear"
+      "lean": "bull"
     },
     {
       "symbol": "UBER",
+      "lit": 5,
+      "lean": "bull"
+    },
+    {
+      "symbol": "PYPL",
       "lit": 5,
       "lean": "bull"
     },
@@ -338,21 +390,6 @@
       "lean": "bull"
     },
     {
-      "symbol": "GS",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "MS",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "MRK",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
       "symbol": "ABBV",
       "lit": 5,
       "lean": "bull"
@@ -363,7 +400,7 @@
       "lean": "bull"
     },
     {
-      "symbol": "HON",
+      "symbol": "AMGN",
       "lit": 5,
       "lean": "bull"
     },
@@ -383,24 +420,24 @@
       "lean": "bull"
     },
     {
-      "symbol": "ANET",
-      "lit": 5,
-      "lean": "bull"
-    },
-    {
-      "symbol": "ON",
+      "symbol": "BKNG",
       "lit": 5,
       "lean": "bear"
     },
     {
-      "symbol": "IBM",
+      "symbol": "RTY=F",
       "lit": 5,
-      "lean": "bull"
+      "lean": "bear"
     },
     {
-      "symbol": "SPY",
+      "symbol": "IWM",
       "lit": 4,
       "lean": "bear"
+    },
+    {
+      "symbol": "DIA",
+      "lit": 4,
+      "lean": "bull"
     },
     {
       "symbol": "IYT",
@@ -408,32 +445,47 @@
       "lean": "bull"
     },
     {
-      "symbol": "TAN",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
-      "symbol": "MSFT",
+      "symbol": "KRE",
       "lit": 4,
       "lean": "bull"
     },
     {
-      "symbol": "QCOM",
+      "symbol": "HYG",
       "lit": 4,
       "lean": "bear"
     },
     {
-      "symbol": "AXP",
+      "symbol": "AMZN",
       "lit": 4,
       "lean": "bull"
+    },
+    {
+      "symbol": "JPM",
+      "lit": 4,
+      "lean": "bull"
+    },
+    {
+      "symbol": "SCHW",
+      "lit": 4,
+      "lean": "bear"
     },
     {
       "symbol": "PFE",
       "lit": 4,
+      "lean": "bear"
+    },
+    {
+      "symbol": "MRK",
+      "lit": 4,
       "lean": "bull"
     },
     {
-      "symbol": "RTX",
+      "symbol": "DE",
+      "lit": 4,
+      "lean": "bull"
+    },
+    {
+      "symbol": "HON",
       "lit": 4,
       "lean": "bull"
     },
@@ -443,9 +495,9 @@
       "lean": "bull"
     },
     {
-      "symbol": "PM",
+      "symbol": "ANET",
       "lit": 4,
-      "lean": "bear"
+      "lean": "bull"
     },
     {
       "symbol": "INTU",
@@ -453,32 +505,47 @@
       "lean": "bull"
     },
     {
+      "symbol": "XLB",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "TSLA",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "AVGO",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "GS",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "MS",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "AXP",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "RTX",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
+      "symbol": "IBM",
+      "lit": 3,
+      "lean": "bull"
+    },
+    {
       "symbol": "ISRG",
-      "lit": 4,
-      "lean": "bull"
-    },
-    {
-      "symbol": "RTY=F",
-      "lit": 4,
-      "lean": "bear"
-    },
-    {
-      "symbol": "IWM",
-      "lit": 3,
-      "lean": "bull"
-    },
-    {
-      "symbol": "SCHW",
-      "lit": 3,
-      "lean": "bull"
-    },
-    {
-      "symbol": "SLB",
-      "lit": 3,
-      "lean": "bull"
-    },
-    {
-      "symbol": "BKNG",
       "lit": 3,
       "lean": "bull"
     }
