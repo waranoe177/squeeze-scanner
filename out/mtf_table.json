@@ -8,7 +8,7 @@
   ],
   "counts": {
     "buy": 11,
-    "sell": 45,
+    "sell": 43,
     "mixed": 0
   },
   "rows": [
@@ -303,36 +303,6 @@
           "run": 0,
           "squeeze": false,
           "text": "\u2014"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "/NQ",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 2,
-          "squeeze": false,
-          "text": "S: 2"
-        },
-        "3D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": false,
-          "text": "S: 3"
-        },
-        "2D": {
-          "side": "S",
-          "run": 3,
-          "squeeze": false,
-          "text": "S: 3"
         },
         "1D": {
           "side": null,
@@ -840,15 +810,15 @@
         },
         "2D": {
           "side": "S",
-          "run": 5,
+          "run": 6,
           "squeeze": false,
-          "text": "S: 5"
+          "text": "S: 6"
         },
         "1D": {
-          "side": "S",
-          "run": 9,
+          "side": null,
+          "run": 0,
           "squeeze": false,
-          "text": "S: 9"
+          "text": "\u2014"
         }
       }
     },
@@ -1050,15 +1020,15 @@
         },
         "2D": {
           "side": "S",
-          "run": 5,
+          "run": 6,
           "squeeze": false,
-          "text": "S: 5"
+          "text": "S: 6"
         },
         "1D": {
-          "side": "S",
-          "run": 8,
+          "side": null,
+          "run": 0,
           "squeeze": false,
-          "text": "S: 8"
+          "text": "\u2014"
         }
       }
     },
@@ -1238,36 +1208,6 @@
           "side": null,
           "run": 0,
           "squeeze": true,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "/CL",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": null,
-          "run": 0,
-          "squeeze": true,
-          "text": "\u2014"
-        },
-        "3D": {
-          "side": "S",
-          "run": 2,
-          "squeeze": true,
-          "text": "* S: 2"
-        },
-        "2D": {
-          "side": "S",
-          "run": 1,
-          "squeeze": false,
-          "text": "S: 1"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
           "text": "\u2014"
         }
       }
@@ -1500,9 +1440,9 @@
         },
         "2D": {
           "side": "S",
-          "run": 5,
+          "run": 6,
           "squeeze": false,
-          "text": "S: 5"
+          "text": "S: 6"
         },
         "1D": {
           "side": null,
