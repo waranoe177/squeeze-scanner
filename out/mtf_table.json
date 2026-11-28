@@ -8,7 +8,7 @@
   ],
   "counts": {
     "buy": 14,
-    "sell": 32,
+    "sell": 31,
     "mixed": 0
   },
   "rows": [
@@ -804,9 +804,9 @@
         },
         "3D": {
           "side": "S",
-          "run": 4,
+          "run": 5,
           "squeeze": false,
-          "text": "S: 4"
+          "text": "S: 5"
         },
         "2D": {
           "side": null,
@@ -987,36 +987,6 @@
           "run": 8,
           "squeeze": false,
           "text": "S: 8"
-        },
-        "2D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        },
-        "1D": {
-          "side": null,
-          "run": 0,
-          "squeeze": false,
-          "text": "\u2014"
-        }
-      }
-    },
-    {
-      "symbol": "/SI",
-      "direction": "sell",
-      "cells": {
-        "WK": {
-          "side": "S",
-          "run": 7,
-          "squeeze": false,
-          "text": "S: 7"
-        },
-        "3D": {
-          "side": "S",
-          "run": 11,
-          "squeeze": false,
-          "text": "S: 11"
         },
         "2D": {
           "side": null,
@@ -1243,7 +1213,7 @@
       }
     },
     {
-      "symbol": "/BTC",
+      "symbol": "IBIT",
       "direction": "sell",
       "cells": {
         "WK": {
@@ -1273,7 +1243,7 @@
       }
     },
     {
-      "symbol": "IBIT",
+      "symbol": "/BTC",
       "direction": "sell",
       "cells": {
         "WK": {
@@ -1284,15 +1254,15 @@
         },
         "3D": {
           "side": "S",
-          "run": 4,
+          "run": 5,
           "squeeze": false,
-          "text": "S: 4"
+          "text": "S: 5"
         },
         "2D": {
           "side": "S",
-          "run": 6,
+          "run": 7,
           "squeeze": false,
-          "text": "S: 6"
+          "text": "S: 7"
         },
         "1D": {
           "side": null,
